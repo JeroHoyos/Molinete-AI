@@ -1,13 +1,13 @@
 [package]
-name = "feste"
-version = "0.1.6"
+name = "molineteai"
+version = "0.1.0"
 edition = "2021"
-authors = ["Jeremy Andrews <jeremy@tag1.com>"]
-description = "Educational GPT-2 style language model implemented from scratch in Rust"
+authors = ["Jerónimo Hoyos <jerohoyos1@gmail.com>"]
+description = "Implementación educativa en español de un modelo Transformer tipo GPT-2, inspirada en feste, desarrollada desde cero en Rust."
 license = "Apache-2.0"
-repository = "https://github.com/your-username/feste"
-keywords = ["machine-learning", "nlp", "transformer", "educational"]
-categories = ["machine-learning", "education"]
+repository = "https://github.com/JeroHoyos/molinete-ai"
+keywords = ["machine-learning", "nlp", "transformer", "gpt2", "educational", "rust"]
+categories = ["science", "algorithms"]
 
 [dependencies]
 rayon = "1.10"

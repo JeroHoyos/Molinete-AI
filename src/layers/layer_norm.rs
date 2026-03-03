@@ -1,16 +1,16 @@
-//! Layer Normalization
+//! Normalización por Capa (Layer Normalization)
 //!
-//! Layer normalization is crucial for training deep networks. It normalizes
-//! activations to have zero mean and unit variance, then applies learnable
-//! scale (gamma) and shift (beta) parameters.
+//! La normalización por capa es crucial para entrenar redes profundas. Normaliza
+//! las activaciones para que tengan media cero y varianza unitaria, y luego aplica
+//! parámetros aprendibles de escala (gamma) y desplazamiento (beta).
 //!
-//! ## The Tricky Part: Backward Pass
+//! ## La Parte Complicada: Paso Backward
 //!
-//! Layer norm's backward pass is complex because the mean and variance depend
-//! on ALL elements in the normalized group. This creates dependencies that
-//! require careful gradient computation.
+//! El backward de layer norm es complejo porque la media y la varianza dependen
+//! de TODOS los elementos en el grupo normalizado. Esto crea dependencias que
+//! requieren un cálculo cuidadoso de los gradientes.
 //!
-//! ## Forward Pass
+//! ## Paso Forward
 //!
 //! ```text
 //! 1. mean = E[x] = sum(x) / N
@@ -19,14 +19,14 @@
 //! 4. y = γ * x_norm + β
 //! ```
 //!
-//! where:
-//! - ε (epsilon) prevents division by zero
-//! - γ (gamma) is the learnable scale
-//! - β (beta) is the learnable shift
+//! donde:
+//! - ε (epsilon) previene la división por cero
+//! - γ (gamma) es la escala aprendible
+//! - β (beta) es el desplazamiento aprendible
 //!
-//! ## Backward Pass
+//! ## Paso Backward
 //!
-//! The gradients are:
+//! Los gradientes son:
 //!
 //! ```text
 //! grad_γ = sum(grad_y * x_norm)
@@ -34,48 +34,48 @@
 //! grad_x_norm = grad_y * γ
 //! ```
 //!
-//! The tricky part is backpropagating through the normalization:
+//! La parte complicada es retropropagar a través de la normalización:
 //!
 //! ```text
 //! grad_x = (1/√var) * (grad_x_norm - E[grad_x_norm] - x_norm * E[grad_x_norm * x_norm])
 //! ```
 //!
-//! This formula accounts for:
-//! 1. Each element affects the mean (first E term)
-//! 2. Each element affects the variance (second E term)
-//! 3. The direct gradient through x_norm
+//! Esta fórmula tiene en cuenta:
+//! 1. Cada elemento afecta la media (primer término E)
+//! 2. Cada elemento afecta la varianza (segundo término E)
+//! 3. El gradiente directo a través de x_norm
 //!
-//! ## Why Layer Norm?
+//! ## ¿Por qué Layer Norm?
 //!
-//! - **Training stability**: Prevents internal covariate shift
-//! - **Faster convergence**: Normalized activations train faster
-//! - **Less sensitive to initialization**: Normalization reduces impact of poor init
-//! - **Works with any batch size**: Unlike batch norm, doesn't depend on batch statistics
+//! - **Estabilidad en el entrenamiento**: Previene el cambio interno de covarianza
+//! - **Convergencia más rápida**: Las activaciones normalizadas entrenan más rápido
+//! - **Menos sensible a la inicialización**: La normalización reduce el impacto de una mala inicialización
+//! - **Funciona con cualquier tamaño de batch**: A diferencia de batch norm, no depende de estadísticas del batch
 
 use crate::tensor::Tensor;
 
-/// Layer normalization layer
+/// Capa de normalización por capa
 ///
-/// Normalizes activations across the feature dimension and applies learnable
-/// scale and shift.
+/// Normaliza las activaciones a lo largo de la dimensión de características
+/// y aplica escala y desplazamiento aprendibles.
 pub struct TrainableLayerNorm {
-    pub gamma: Tensor, // Scale parameter [n_embd]
-    pub beta: Tensor,  // Shift parameter [n_embd]
-    pub eps: f32,      // Small constant for numerical stability
+    pub gamma: Tensor, // Parámetro de escala [n_embd]
+    pub beta: Tensor,  // Parámetro de desplazamiento [n_embd]
+    pub eps: f32,      // Constante pequeña para estabilidad numérica
 }
 
 impl TrainableLayerNorm {
-    /// Create a new layer normalization layer
+    /// Crea una nueva capa de normalización por capa
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `normalized_shape` - Size of the feature dimension to normalize
+    /// * `normalized_shape` - Tamaño de la dimensión de características a normalizar
     ///
-    /// # Initialization
+    /// # Inicialización
     ///
-    /// - gamma initialized to 1.0 (no scaling initially)
-    /// - beta initialized to 0.0 (no shift initially)
-    /// - eps = 1e-5 (standard value)
+    /// - gamma inicializado en 1.0 (sin escala al inicio)
+    /// - beta inicializado en 0.0 (sin desplazamiento al inicio)
+    /// - eps = 1e-5 (valor estándar)
     pub fn new(normalized_shape: usize) -> Self {
         Self {
             gamma: Tensor::new(vec![1.0; normalized_shape], vec![normalized_shape]),
@@ -84,30 +84,30 @@ impl TrainableLayerNorm {
         }
     }
 
-    /// Forward pass
+    /// Paso forward
     ///
-    /// Normalizes input to zero mean and unit variance, then applies scale/shift
+    /// Normaliza la entrada a media cero y varianza unitaria, luego aplica escala/desplazamiento
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `x` - Input tensor [seq_len, n_embd]
+    /// * `x` - Tensor de entrada [seq_len, n_embd]
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Tuple of (output, cache) where:
-    /// - output: Normalized tensor [seq_len, n_embd]
-    /// - cache: Stores values needed for backward pass
+    /// Tupla de (output, cache) donde:
+    /// - output: Tensor normalizado [seq_len, n_embd]
+    /// - cache: Almacena valores necesarios para el paso backward
     pub fn forward(&self, x: &Tensor) -> (Tensor, LayerNormCache) {
-        // Compute statistics along last dimension
+        // Calcular estadísticas a lo largo de la última dimensión
         let mean = x.mean(-1, true);
         let variance = x.var(-1, true);
         let std = variance.add_scalar(self.eps).sqrt();
 
-        // Normalize
+        // Normalizar
         let x_centered = x.sub(&mean);
         let x_norm = x_centered.div(&std);
 
-        // Apply learnable scale and shift
+        // Aplicar escala y desplazamiento aprendibles
         let y = x_norm.mul(&self.gamma).add(&self.beta);
 
         let cache = LayerNormCache {
@@ -121,24 +121,24 @@ impl TrainableLayerNorm {
         (y, cache)
     }
 
-    /// Backward pass
+    /// Paso backward
     ///
-    /// Computes gradients for gamma, beta, and input. The input gradient is
-    /// complex because normalization creates dependencies between all elements.
+    /// Calcula gradientes para gamma, beta y la entrada. El gradiente de la
+    /// entrada es complejo porque la normalización crea dependencias entre todos los elementos.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `grad_out` - Gradient from next layer [seq_len, n_embd]
-    /// * `cache` - Cached values from forward pass
+    /// * `grad_out` - Gradiente desde la siguiente capa [seq_len, n_embd]
+    /// * `cache` - Valores almacenados del paso forward
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Gradients for gamma, beta, and input
+    /// Gradientes para gamma, beta y x
     pub fn backward(&self, grad_out: &Tensor, cache: &LayerNormCache) -> LayerNormGradients {
         let n_embd = self.gamma.data.len();
         let seq_len = grad_out.shape[0];
 
-        // Compute grad_gamma and grad_beta by accumulating over sequence
+        // Calcular grad_gamma y grad_beta acumulando sobre la secuencia
         let mut grad_gamma = vec![0.0; n_embd];
         let mut grad_beta = vec![0.0; n_embd];
         for i in 0..seq_len {
@@ -149,11 +149,11 @@ impl TrainableLayerNorm {
             }
         }
 
-        // Backprop through scale: grad_x_norm = grad_out * gamma
+        // Retropropagar a través de la escala: grad_x_norm = grad_out * gamma
         let grad_x_norm = grad_out.mul(&self.gamma);
 
-        // Backprop through normalization (the complex part!)
-        // This accounts for mean and variance dependencies
+        // Retropropagar a través de la normalización (¡la parte compleja!)
+        // Esto tiene en cuenta las dependencias de media y varianza
         let mut grad_x_data = vec![0.0; seq_len * n_embd];
 
         for i in 0..seq_len {
@@ -164,10 +164,10 @@ impl TrainableLayerNorm {
             let x_norm_row = &cache.x_norm.data[row_start..row_end];
             let std_val = cache.std.data[i];
 
-            // Compute mean of gradients (accounts for mean dependency)
+            // Calcular la media de los gradientes (dependencia de la media)
             let mean_grad: f32 = grad_x_norm_row.iter().sum::<f32>() / n_embd as f32;
 
-            // Compute mean of (grad * x_norm) (accounts for variance dependency)
+            // Calcular la media de (grad * x_norm) (dependencia de la varianza)
             let mean_grad_x: f32 = grad_x_norm_row
                 .iter()
                 .zip(x_norm_row.iter())
@@ -175,7 +175,7 @@ impl TrainableLayerNorm {
                 .sum::<f32>()
                 / n_embd as f32;
 
-            // Final gradient formula
+            // Fórmula final del gradiente
             for j in 0..n_embd {
                 let idx = row_start + j;
                 grad_x_data[idx] =
@@ -191,7 +191,7 @@ impl TrainableLayerNorm {
     }
 }
 
-/// Cache for layer norm backward pass
+/// Cache para el paso backward de layer norm
 pub struct LayerNormCache {
     pub x: Tensor,
     pub x_norm: Tensor,
@@ -200,7 +200,7 @@ pub struct LayerNormCache {
     pub std: Tensor,
 }
 
-/// Gradients for layer norm
+/// Gradientes para layer norm
 pub struct LayerNormGradients {
     pub gamma: Tensor,
     pub beta: Tensor,

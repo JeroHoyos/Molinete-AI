@@ -1,67 +1,68 @@
-//! Training Logger and Utilities
+//! Logger de Entrenamiento y Utilidades
 //!
-//! This module provides utilities for tracking and logging training metrics.
-//! It includes a CSV logger for detailed tracking and helper functions for
-//! computing losses and splitting datasets.
+//! Este módulo proporciona utilidades para rastrear y registrar métricas de entrenamiento.
+//! Incluye un logger en CSV para seguimiento detallado y funciones auxiliares para
+//! calcular pérdidas y dividir conjuntos de datos.
 //!
-//! ## Components
+//! ## Componentes
 //!
-//! - **TrainingLogger**: Logs metrics to CSV and console with timestamps
-//! - **train_val_split**: Splits tokenized data into training and validation sets
-//! - **compute_dataset_loss**: Computes average loss over a dataset
+//! - **TrainingLogger**: Registra métricas en CSV y consola con marcas de tiempo
+//! - **train_val_split**: Divide datos tokenizados en conjuntos de entrenamiento y validación
+//! - **compute_dataset_loss**: Calcula la pérdida promedio sobre un conjunto de datos
 //!
-//! ## Example
+//! ## Ejemplo
 //!
 //! ```rust,no_run
-//! use feste::TrainingLogger;
+//! use molineteai::TrainingLogger;
 //!
 //! let mut logger = TrainingLogger::new("training_log.csv")
-//!     .expect("Failed to create logger");
+//!     .expect("Error al crear el logger");
 //!
-//! // Log training step
-//! logger.log(100, 0.001, 2.5, 2.8, Some("To be, or not to be"))
-//!     .expect("Failed to log");
+//! // Registrar paso de entrenamiento
+//! logger.log(100, 0.001, 2.5, 2.8, Some("Ser o no ser"))
+//!     .expect("Error al registrar");
 //! ```
 //!
-//! ## CSV Format
+//! ## Formato CSV
 //!
-//! The logger writes CSV files with the following columns:
-//! - `step`: Training step number
-//! - `elapsed_seconds`: Time since training started
-//! - `learning_rate`: Current learning rate
-//! - `train_loss`: Training loss (cross-entropy)
-//! - `val_loss`: Validation loss
-//! - `train_perplexity`: exp(train_loss) - interpretable metric
-//! - `val_perplexity`: exp(val_loss) - lower is better
-//! - `sample`: Generated text sample
+//! El logger escribe archivos CSV con las siguientes columnas:
+//! - `step`: Número de paso de entrenamiento
+//! - `elapsed_seconds`: Tiempo desde que comenzó el entrenamiento
+//! - `learning_rate`: Tasa de aprendizaje actual
+//! - `train_loss`: Pérdida de entrenamiento (entropía cruzada)
+//! - `val_loss`: Pérdida de validación
+//! - `train_perplexity`: exp(train_loss) - métrica interpretable
+//! - `val_perplexity`: exp(val_loss) - menor es mejor
+//! - `sample`: Texto de muestra generado
 //!
-//! ## Perplexity
+//! ## Perplejidad
 //!
-//! Perplexity measures how "surprised" the model is by the data:
+//! La perplejidad mide qué tan "sorprendido" está el modelo por los datos:
+//!
 //! ```text
-//! perplexity = exp(loss)
+//! perplejidad = exp(pérdida)
 //! ```
 //!
-//! - **Perfect model**: perplexity = 1.0 (loss = 0)
-//! - **Random guessing** (vocab=512): perplexity ≈ 512 (loss ≈ 6.2)
-//! - **Good model**: perplexity = 10-50 (loss = 2.3-3.9)
+//! - **Modelo perfecto**: perplejidad = 1.0 (pérdida = 0)
+//! - **Adivinanza aleatoria** (vocab=512): perplejidad ≈ 512 (pérdida ≈ 6.2)
+//! - **Buen modelo**: perplejidad = 10-50 (pérdida = 2.3-3.9)
 //!
-//! Lower perplexity means the model makes better predictions.
+//! Menor perplejidad significa que el modelo hace mejores predicciones.
 
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
 
-/// Training logger for tracking metrics over time
+/// Logger de entrenamiento para rastrear métricas en el tiempo.
 ///
-/// Logs training metrics to both CSV file and console. The CSV file can be
-/// analyzed later for visualization and model comparison.
+/// Registra métricas de entrenamiento tanto en archivo CSV como en consola.
+/// El archivo CSV puede analizarse posteriormente para visualización y comparación de modelos.
 ///
-/// # Fields
+/// # Campos
 ///
-/// - `log_file`: Output CSV file
-/// - `start_time`: When training started (for elapsed time calculation)
-/// - `last_log_time`: Last log timestamp (for step timing)
+/// - `log_file`: Archivo CSV de salida
+/// - `start_time`: Momento en que comenzó el entrenamiento
+/// - `last_log_time`: Última marca de tiempo de registro
 pub struct TrainingLogger {
     log_file: File,
     start_time: Instant,
@@ -69,35 +70,28 @@ pub struct TrainingLogger {
 }
 
 impl TrainingLogger {
-    /// Create a new training logger
+    /// Crear un nuevo logger de entrenamiento.
     ///
-    /// Creates a CSV file with headers and initializes timing.
+    /// Crea un archivo CSV con encabezados e inicializa los tiempos.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `log_path` - Path to CSV file to create
+    /// * `log_path` - Ruta al archivo CSV a crear
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Result containing the logger or an IO error
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # use feste::TrainingLogger;
-    /// let logger = TrainingLogger::new("training_log.csv")?;
-    /// # Ok::<(), std::io::Error>(())
-    /// ```
+    /// Resultado que contiene el logger o un error de IO
     pub fn new(log_path: &str) -> std::io::Result<Self> {
         let mut log_file = File::create(log_path)?;
 
-        // Write CSV header
+        // Escribir encabezado del CSV
         writeln!(
             log_file,
             "step,elapsed_seconds,learning_rate,train_loss,val_loss,train_perplexity,val_perplexity,sample"
         )?;
 
         let now = Instant::now();
+
         Ok(Self {
             log_file,
             start_time: now,
@@ -105,30 +99,21 @@ impl TrainingLogger {
         })
     }
 
-    /// Log a training step
+    /// Registrar un paso de entrenamiento.
     ///
-    /// Writes metrics to CSV and prints to console with timing information.
+    /// Escribe métricas en el CSV e imprime en consola con información de tiempo.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `step` - Training step number
-    /// * `learning_rate` - Current learning rate
-    /// * `train_loss` - Training loss
-    /// * `val_loss` - Validation loss
-    /// * `sample` - Optional generated text sample
+    /// * `step` - Número de paso de entrenamiento
+    /// * `learning_rate` - Tasa de aprendizaje actual
+    /// * `train_loss` - Pérdida de entrenamiento
+    /// * `val_loss` - Pérdida de validación
+    /// * `sample` - Texto de muestra generado (opcional)
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Result indicating success or IO error
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # use feste::TrainingLogger;
-    /// # let mut logger = TrainingLogger::new("log.csv")?;
-    /// logger.log(100, 0.001, 2.5, 2.8, Some("Hello world"))?;
-    /// # Ok::<(), std::io::Error>(())
-    /// ```
+    /// Resultado indicando éxito o error de IO
     pub fn log(
         &mut self,
         step: usize,
@@ -139,15 +124,17 @@ impl TrainingLogger {
     ) -> std::io::Result<()> {
         let elapsed = self.start_time.elapsed().as_secs_f32();
 
-        // Perplexity = exp(loss)
-        // This is a more interpretable metric than raw loss
+        // Perplejidad = exp(pérdida)
+        // Es una métrica más interpretable que la pérdida cruda
         let train_perplexity = train_loss.exp();
         let val_perplexity = val_loss.exp();
 
-        // Escape quotes in sample text for CSV format
-        let sample_escaped = sample.map(|s| s.replace('"', "\"\"")).unwrap_or_default();
+        // Escapar comillas en el texto de muestra para formato CSV
+        let sample_escaped = sample
+            .map(|s| s.replace('"', "\"\""))
+            .unwrap_or_default();
 
-        // Write to CSV file
+        // Escribir en archivo CSV
         writeln!(
             self.log_file,
             "{},{:.2},{:.6},{:.4},{:.4},{:.2},{:.2},\"{}\"",
@@ -161,19 +148,19 @@ impl TrainingLogger {
             sample_escaped
         )?;
 
-        // Flush to ensure data is written immediately
-        // This is important if training crashes - we don't lose data
+        // Forzar escritura inmediata para no perder datos si el entrenamiento falla
         self.log_file.flush()?;
 
-        // Print to console with timing info
+        // Imprimir en consola con información de tiempo
         let step_time = self.last_log_time.elapsed().as_secs_f32();
+
         println!(
-            "Step {:4} | Time: {:7.1}s (+{:.1}s) | LR: {:.6} | Train: {:.4} | Val: {:.4} | Perplexity: {:.2}",
+            "Paso {:4} | Tiempo: {:7.1}s (+{:.1}s) | LR: {:.6} | Train: {:.4} | Val: {:.4} | Perplejidad: {:.2}",
             step, elapsed, step_time, learning_rate, train_loss, val_loss, val_perplexity
         );
 
         if let Some(text) = sample {
-            println!("  Sample: \"{}\"", text);
+            println!("  Muestra: \"{}\"", text);
         }
 
         self.last_log_time = Instant::now();
@@ -181,65 +168,41 @@ impl TrainingLogger {
     }
 }
 
-/// Split tokenized data into training and validation sets
+/// Divide datos tokenizados en conjuntos de entrenamiento y validación.
 ///
-/// Performs a simple split at a fixed fraction. The validation set is taken
-/// from the end of the data to ensure temporal separation in sequential data.
+/// Realiza una división simple usando una fracción fija.
+/// El conjunto de validación se toma del final de los datos para asegurar
+/// separación temporal en datos secuenciales.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `tokens` - All tokenized data
-/// * `val_fraction` - Fraction to use for validation (e.g., 0.1 for 10%)
+/// * `tokens` - Datos tokenizados completos
+/// * `val_fraction` - Fracción para validación (por ejemplo, 0.1 para 10%)
 ///
-/// # Returns
+/// # Retorna
 ///
-/// Tuple of (training_tokens, validation_tokens)
-///
-/// # Example
-///
-/// ```rust
-/// # use feste::train_val_split;
-/// let tokens = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-/// let (train, val) = train_val_split(&tokens, 0.2);
-/// assert_eq!(train.len(), 8);  // 80% for training
-/// assert_eq!(val.len(), 2);    // 20% for validation
-/// ```
+/// Tupla (tokens_entrenamiento, tokens_validación)
 pub fn train_val_split(tokens: &[usize], val_fraction: f32) -> (&[usize], &[usize]) {
     let split_idx = ((tokens.len() as f32) * (1.0 - val_fraction)) as usize;
     (&tokens[..split_idx], &tokens[split_idx..])
 }
 
-/// Compute average loss over a dataset
+/// Calcula la pérdida promedio sobre un conjunto de datos.
 ///
-/// Evaluates the model on multiple batches from the dataset and returns
-/// the average loss. This is used to compute validation loss during training.
+/// Evalúa el modelo en múltiples batches del conjunto de datos y devuelve
+/// la pérdida promedio. Esto se usa para calcular la pérdida de validación
+/// durante el entrenamiento.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `tokens` - Tokenized dataset
-/// * `seq_len` - Sequence length per example
-/// * `num_batches` - Number of batches to evaluate (limited by dataset size)
-/// * `compute_loss_fn` - Function that computes loss for a single batch
+/// * `tokens` - Conjunto de datos tokenizado
+/// * `seq_len` - Longitud de secuencia por ejemplo
+/// * `num_batches` - Número de batches a evaluar (limitado por el tamaño del dataset)
+/// * `compute_loss_fn` - Función que calcula la pérdida para un batch
 ///
-/// # Returns
+/// # Retorna
 ///
-/// Average loss across all batches
-///
-/// # Example
-///
-/// ```rust,no_run
-/// # use feste::compute_dataset_loss;
-/// let tokens = vec![1, 2, 3, 4, 5, 6, 7, 8];
-/// let avg_loss = compute_dataset_loss(
-///     &tokens,
-///     4,    // seq_len
-///     2,    // num_batches
-///     |input, target| {
-///         // Compute loss for this batch
-///         0.5  // placeholder
-///     }
-/// );
-/// ```
+/// Pérdida promedio en todos los batches
 pub fn compute_dataset_loss<F>(
     tokens: &[usize],
     seq_len: usize,
@@ -249,20 +212,20 @@ pub fn compute_dataset_loss<F>(
 where
     F: FnMut(&[usize], &[usize]) -> f32,
 {
-    // Need at least seq_len + 1 tokens (input + target)
+    // Se necesitan al menos seq_len + 1 tokens (entrada + objetivo)
     if tokens.len() < seq_len + 1 {
         return 0.0;
     }
 
     let mut total_loss = 0.0;
 
-    // Limit num_batches to what's actually available in the dataset
+    // Limitar num_batches a lo realmente disponible en el dataset
     let max_batches = (tokens.len() - seq_len - 1) / seq_len;
     let num_batches = num_batches.min(max_batches);
 
     for batch_idx in 0..num_batches {
-        // Extract input and target sequences
-        // Target is shifted by 1 position (next token prediction)
+        // Extraer secuencias de entrada y objetivo
+        // El objetivo está desplazado 1 posición (predicción del siguiente token)
         let start = (batch_idx * seq_len) % (tokens.len() - seq_len - 1);
         let input_seq = &tokens[start..start + seq_len];
         let target_seq = &tokens[start + 1..start + seq_len + 1];

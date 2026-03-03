@@ -1,25 +1,25 @@
-//! Neural Network Layers
+//! Capas de la Red Neuronal
 //!
-//! This module contains all the layer implementations for the trainable GPT-2 model.
-//! Each layer provides both forward and backward passes for training.
+//! Este módulo contiene todas las implementaciones de capas para el modelo GPT-2 entrenable.
+//! Cada capa proporciona tanto el paso forward como el backward para entrenamiento.
 //!
-//! ## Layers
+//! ## Capas
 //!
-//! - **activation**: GELU activation function (forward and backward)
-//! - **linear**: Fully connected layer
-//! - **layer_norm**: Layer normalization
-//! - **dropout**: Dropout regularization
-//! - **mlp**: Multi-layer perceptron (feedforward network)
-//! - **attention**: Self-attention mechanism
-//! - **block**: Complete transformer block
+//! - **activation**: Función de activación GELU (forward y backward)
+//! - **linear**: Capa totalmente conectada
+//! - **layer_norm**: Normalización por capa
+//! - **dropout**: Regularización con dropout
+//! - **mlp**: Perceptrón multicapa (red feedforward)
+//! - **attention**: Mecanismo de auto-atención
+//! - **block**: Bloque transformer completo
 //!
-//! ## Design Pattern
+//! ## Patrón de Diseño
 //!
-//! Each trainable layer follows a consistent pattern:
+//! Cada capa entrenable sigue un patrón consistente:
 //!
 //! ```rust,ignore
 //! pub struct TrainableLayer {
-//!     // Parameters (weights, biases, etc.)
+//!     // Parámetros (pesos, biases, etc.)
 //! }
 //!
 //! impl TrainableLayer {
@@ -29,15 +29,15 @@
 //! }
 //!
 //! pub struct Cache {
-//!     // Values needed for backward pass
+//!     // Valores necesarios para el paso backward
 //! }
 //!
 //! pub struct Gradients {
-//!     // Gradients for parameters and input
+//!     // Gradientes para parámetros y entrada
 //! }
 //! ```
 //!
-//! This pattern makes backpropagation explicit and educational.
+//! Este patrón hace que la retropropagación sea explícita y educativa.
 
 pub mod activation;
 pub mod attention;
@@ -47,7 +47,7 @@ pub mod layer_norm;
 pub mod linear;
 pub mod mlp;
 
-// Re-export main types for convenience
+// Re-exportar tipos principales para mayor comodidad
 pub use activation::{gelu_backward, gelu_forward};
 pub use attention::{AttentionCache, AttentionGradients, TrainableSingleHeadAttention};
 pub use block::{BlockCache, BlockGradients, TrainableTransformerBlock};

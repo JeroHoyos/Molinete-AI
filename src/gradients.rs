@@ -1,56 +1,56 @@
-//! Gradient Utilities
+//! Utilidades de Gradientes
 //!
-//! This module provides utilities for working with gradients during training.
-//! These operations are essential for training stability and monitoring.
+//! Este módulo proporciona utilidades para trabajar con gradientes durante el entrenamiento.
+//! Estas operaciones son esenciales para la estabilidad y el monitoreo del entrenamiento.
 //!
-//! ## Components
+//! ## Componentes
 //!
-//! - **Gradient Norm Computation**: Measure the magnitude of gradients
-//! - **Gradient Clipping**: Prevent gradient explosion by scaling
+//! - **Cálculo de la Norma del Gradiente**: Medir la magnitud de los gradientes
+//! - **Gradient Clipping**: Prevenir la explosión de gradientes mediante escalado
 //!
-//! ## Why Gradient Clipping?
+//! ## ¿Por qué Gradient Clipping?
 //!
-//! During training, occasional batches can produce very large gradients that
-//! destabilize the model. Gradient clipping prevents this by scaling down
-//! gradients when their norm exceeds a threshold.
+//! Durante el entrenamiento, algunos batches pueden producir gradientes muy grandes
+//! que desestabilizan el modelo. El gradient clipping previene esto escalando los
+//! gradientes cuando su norma supera un umbral.
 //!
-//! Without clipping:
+//! Sin clipping:
 //! ```text
 //! Step 1000: Loss = 3.2
-//! Step 1001: Loss = 287.5  (gradient explosion!)
-//! Step 1002: Loss = NaN    (training failed)
+//! Step 1001: Loss = 287.5  (¡explosión de gradientes!)
+//! Step 1002: Loss = NaN    (entrenamiento falló)
 //! ```
 //!
-//! With clipping:
+//! Con clipping:
 //! ```text
 //! Step 1000: Loss = 3.2
-//! Step 1001: Loss = 3.3  (gradient was clipped)
-//! Step 1002: Loss = 3.1  (recovered)
+//! Step 1001: Loss = 3.3  (el gradiente fue recortado)
+//! Step 1002: Loss = 3.1  (se recuperó)
 //! ```
 //!
-//! ## Algorithm
+//! ## Algoritmo
 //!
 //! ```text
-//! norm = √(Σ gradient²)  // Compute L2 norm
+//! norm = √(Σ gradient²)  // Calcular norma L2
 //! if norm > max_norm:
-//!     gradients *= (max_norm / norm)  // Scale proportionally
+//!     gradients *= (max_norm / norm)  // Escalar proporcionalmente
 //! ```
 //!
-//! This ensures all gradients are scaled by the same factor, preserving
-//! their relative magnitudes while limiting the total update magnitude.
+//! Esto garantiza que todos los gradientes se escalen por el mismo factor,
+//! preservando sus magnitudes relativas mientras se limita la magnitud total de la actualización.
 //!
-//! ## Example
+//! ## Ejemplo
 //!
 //! ```rust,no_run
 //! use feste::gradients::{compute_grad_norm, clip_gradients};
 //! # use feste::gpt2_trainable::GPT2Gradients;
 //!
 //! # let grads: GPT2Gradients = todo!();
-//! // Compute gradient norm for monitoring
+//! // Calcular la norma del gradiente para monitoreo
 //! let norm = compute_grad_norm(&grads);
-//! println!("Gradient norm: {:.4}", norm);
+//! println!("Norma del gradiente: {:.4}", norm);
 //!
-//! // Clip if too large
+//! // Recortar si es demasiado grande
 //! let mut grads_clipped = grads;
 //! clip_gradients(&mut grads_clipped, 1.0);
 //! ```
@@ -58,26 +58,26 @@
 use crate::gpt2_trainable::GPT2Gradients;
 use rayon::prelude::*;
 
-/// Compute the L2 norm of all gradients
+/// Calcula la norma L2 de todos los gradientes
 ///
-/// The gradient norm is the square root of the sum of all squared gradient values
-/// across all parameters in the model. This gives a single number representing
-/// the overall magnitude of the gradient update.
+/// La norma del gradiente es la raíz cuadrada de la suma de todos los valores
+/// de gradiente al cuadrado a través de todos los parámetros del modelo.
+/// Esto produce un único número que representa la magnitud global de la actualización.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `grads` - Gradients for all model parameters
+/// * `grads` - Gradientes de todos los parámetros del modelo
 ///
-/// # Returns
+/// # Retorna
 ///
-/// The L2 norm: √(Σ g²) for all gradient values g
+/// La norma L2: √(Σ g²) para todos los valores de gradiente g
 ///
-/// # Performance
+/// # Rendimiento
 ///
-/// Uses parallel computation via Rayon for better performance on multi-core CPUs.
-/// The computation is parallelized within each tensor to maximize throughput.
+/// Usa computación paralela con Rayon para mejor rendimiento en CPUs multinúcleo.
+/// El cálculo se paraleliza dentro de cada tensor para maximizar el rendimiento.
 ///
-/// # Example
+/// # Ejemplo
 ///
 /// ```rust,no_run
 /// # use feste::gradients::compute_grad_norm;
@@ -85,20 +85,20 @@ use rayon::prelude::*;
 /// # let grads: GPT2Gradients = todo!();
 /// let norm = compute_grad_norm(&grads);
 /// if norm > 5.0 {
-///     println!("Warning: Large gradient norm: {:.2}", norm);
+///     println!("Advertencia: Norma de gradiente grande: {:.2}", norm);
 /// }
 /// ```
 pub fn compute_grad_norm(grads: &GPT2Gradients) -> f32 {
-    // Helper to compute sum of squares in parallel
+    // Función auxiliar para calcular suma de cuadrados en paralelo
     let sum_sq_parallel = |data: &Vec<f32>| -> f32 { data.par_iter().map(|&val| val * val).sum() };
 
     let mut sum_sq = 0.0;
 
-    // Token and position embeddings
+    // Embeddings de token y posición
     sum_sq += sum_sq_parallel(&grads.token_embedding.data);
     sum_sq += sum_sq_parallel(&grads.position_embedding.data);
 
-    // All transformer blocks
+    // Todos los bloques transformer
     for block_grad in &grads.block_grads {
         // LayerNorm 1
         sum_sq += sum_sq_parallel(&block_grad.ln1_gamma.data);
@@ -118,35 +118,35 @@ pub fn compute_grad_norm(grads: &GPT2Gradients) -> f32 {
         sum_sq += sum_sq_parallel(&block_grad.ln2_gamma.data);
         sum_sq += sum_sq_parallel(&block_grad.ln2_beta.data);
 
-        // MLP (feedforward network)
+        // MLP (red feedforward)
         sum_sq += sum_sq_parallel(&block_grad.mlp.fc1_weight.data);
         sum_sq += sum_sq_parallel(&block_grad.mlp.fc1_bias.data);
         sum_sq += sum_sq_parallel(&block_grad.mlp.fc2_weight.data);
         sum_sq += sum_sq_parallel(&block_grad.mlp.fc2_bias.data);
     }
 
-    // Final layer norm
+    // Layer norm final
     sum_sq += sum_sq_parallel(&grads.ln_final_gamma.data);
     sum_sq += sum_sq_parallel(&grads.ln_final_beta.data);
 
-    // Output projection weight
+    // Peso de proyección de salida
     sum_sq += sum_sq_parallel(&grads.output_weight.data);
 
     sum_sq.sqrt()
 }
 
-/// Clip gradients to a maximum norm
+/// Recorta los gradientes a una norma máxima
 ///
-/// When the gradient norm exceeds `max_norm`, all gradients are scaled
-/// proportionally to bring the norm down to exactly `max_norm`. This prevents
-/// gradient explosion while preserving the direction of the gradient update.
+/// Cuando la norma del gradiente supera `max_norm`, todos los gradientes se escalan
+/// proporcionalmente para llevar la norma exactamente a `max_norm`. Esto previene
+/// la explosión de gradientes mientras preserva la dirección de la actualización.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `grads` - Gradients to clip (modified in place)
-/// * `max_norm` - Maximum allowed gradient norm (typically 1.0)
+/// * `grads` - Gradientes a recortar (modificados en el lugar)
+/// * `max_norm` - Norma máxima permitida (típicamente 1.0)
 ///
-/// # Algorithm
+/// # Algoritmo
 ///
 /// ```text
 /// norm = compute_grad_norm(grads)
@@ -156,39 +156,39 @@ pub fn compute_grad_norm(grads: &GPT2Gradients) -> f32 {
 ///         g *= scale
 /// ```
 ///
-/// # Performance
+/// # Rendimiento
 ///
-/// Only performs scaling if clipping is needed. Uses parallel computation via
-/// Rayon for better performance on multi-core CPUs.
+/// Solo realiza el escalado si es necesario. Usa computación paralela con
+/// Rayon para mejor rendimiento en CPUs multinúcleo.
 ///
-/// # Example
+/// # Ejemplo
 ///
 /// ```rust,no_run
 /// # use feste::gradients::clip_gradients;
 /// # use feste::gpt2_trainable::GPT2Gradients;
 /// # let mut grads: GPT2Gradients = todo!();
-/// // Clip gradients to norm of 1.0 (standard practice)
+/// // Recortar gradientes a norma 1.0 (práctica estándar)
 /// clip_gradients(&mut grads, 1.0);
 /// ```
 pub fn clip_gradients(grads: &mut GPT2Gradients, max_norm: f32) {
     let norm = compute_grad_norm(grads);
 
-    // Only clip if norm exceeds threshold
+    // Solo recortar si la norma supera el umbral
     if norm > max_norm {
         let scale = max_norm / norm;
 
-        // Helper to scale tensor data in parallel
+        // Función auxiliar para escalar datos del tensor en paralelo
         let scale_parallel = |data: &mut Vec<f32>| {
             data.par_iter_mut().for_each(|val| *val *= scale);
         };
 
-        // Scale all gradients by the same factor
+        // Escalar todos los gradientes por el mismo factor
 
-        // Token and position embeddings
+        // Embeddings de token y posición
         scale_parallel(&mut grads.token_embedding.data);
         scale_parallel(&mut grads.position_embedding.data);
 
-        // All transformer blocks
+        // Todos los bloques transformer
         for block_grad in &mut grads.block_grads {
             // LayerNorm 1
             scale_parallel(&mut block_grad.ln1_gamma.data);
@@ -208,18 +208,18 @@ pub fn clip_gradients(grads: &mut GPT2Gradients, max_norm: f32) {
             scale_parallel(&mut block_grad.ln2_gamma.data);
             scale_parallel(&mut block_grad.ln2_beta.data);
 
-            // MLP (feedforward network)
+            // MLP (red feedforward)
             scale_parallel(&mut block_grad.mlp.fc1_weight.data);
             scale_parallel(&mut block_grad.mlp.fc1_bias.data);
             scale_parallel(&mut block_grad.mlp.fc2_weight.data);
             scale_parallel(&mut block_grad.mlp.fc2_bias.data);
         }
 
-        // Final layer norm
+        // Layer norm final
         scale_parallel(&mut grads.ln_final_gamma.data);
         scale_parallel(&mut grads.ln_final_beta.data);
 
-        // Output projection weight
+        // Peso de proyección de salida
         scale_parallel(&mut grads.output_weight.data);
     }
 }

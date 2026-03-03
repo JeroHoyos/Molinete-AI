@@ -1,12 +1,12 @@
-//! Training Data Loading
+//! Carga de Datos para Entrenamiento
 //!
-//! This module provides a simple data loader for training language models on text.
-//! It handles tokenization, batching, and sequence generation with a sliding window
-//! approach.
+//! Este módulo proporciona un cargador de datos simple para entrenar modelos
+//! de lenguaje sobre texto. Maneja la tokenización, el batching y la generación
+//! de secuencias usando un enfoque de ventana deslizante.
 //!
-//! ## How Sequences Are Generated
+//! ## Cómo se generan las secuencias
 //!
-//! The data loader uses a sliding window to create training examples:
+//! El cargador de datos usa una ventana deslizante para crear ejemplos de entrenamiento:
 //!
 //! ```text
 //! Tokens: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -18,13 +18,13 @@
 //!   Input:  [5, 6, 7, 8]  Target: [6, 7, 8, 9]
 //!
 //! Batch 2:
-//!   Input:  [9, 10, 11, 12]  Target: [10, 11, 12, 13]  (if 13 exists)
+//!   Input:  [9, 10, 11, 12]  Target: [10, 11, 12, 13]  (si 13 existe)
 //! ```
 //!
-//! The target is always the input shifted by one position, teaching the model
-//! to predict the next token.
+//! El target siempre es el input desplazado una posición,
+//! enseñando al modelo a predecir el siguiente token.
 //!
-//! ## Example
+//! ## Ejemplo
 //!
 //! ```rust,no_run
 //! # use feste::{BPETokenizer, TextDataLoader};
@@ -34,14 +34,14 @@
 //! let mut loader = TextDataLoader::new(
 //!     &text,
 //!     &tokenizer,
-//!     128,  // sequence length
-//!     4     // batch size
+//!     128,  // longitud de secuencia
+//!     4     // tamaño de batch
 //! );
 //!
 //! while let Some((inputs, targets)) = loader.next_batch() {
-//!     // Train on this batch
-//!     // inputs: Vec<Vec<usize>> with shape [batch_size, seq_len]
-//!     // targets: Vec<Vec<usize>> with shape [batch_size, seq_len]
+//!     // Entrenar con este batch
+//!     // inputs: Vec<Vec<usize>> con forma [batch_size, seq_len]
+//!     // targets: Vec<Vec<usize>> con forma [batch_size, seq_len]
 //! }
 //! # Ok::<(), std::io::Error>(())
 //! ```
@@ -49,21 +49,21 @@
 use crate::tokenizer::BPETokenizer;
 use std::fs;
 
-/// Type alias for a batch of input/target sequences
-/// Each element is a Vec<Vec<usize>> with shape [batch_size][seq_len]
+/// Alias de tipo para un batch de secuencias input/target
+/// Cada elemento es un Vec<Vec<usize>> con forma [batch_size][seq_len]
 pub type Batch = (Vec<Vec<usize>>, Vec<Vec<usize>>);
 
-/// Data loader for text datasets
+/// Cargador de datos para conjuntos de texto
 ///
-/// Loads text, tokenizes it, and provides batches of (input, target) sequence pairs
-/// for training language models.
+/// Carga texto, lo tokeniza y proporciona batches de pares (input, target)
+/// para entrenar modelos de lenguaje.
 ///
-/// # Fields
+/// # Campos
 ///
-/// - `tokens`: All tokenized data
-/// - `seq_len`: Length of each training sequence
-/// - `batch_size`: Number of sequences per batch
-/// - `position`: Current position in the dataset
+/// - `tokens`: Todos los datos tokenizados
+/// - `seq_len`: Longitud de cada secuencia de entrenamiento
+/// - `batch_size`: Número de secuencias por batch
+/// - `position`: Posición actual en el dataset
 pub struct TextDataLoader {
     tokens: Vec<usize>,
     seq_len: usize,
@@ -72,28 +72,19 @@ pub struct TextDataLoader {
 }
 
 impl TextDataLoader {
-    /// Create a data loader from text
+    /// Crear un cargador de datos a partir de texto
     ///
-    /// Tokenizes the text immediately and stores all tokens in memory.
+    /// Tokeniza el texto inmediatamente y almacena todos los tokens en memoria.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `text` - Raw text to train on
-    /// * `tokenizer` - Trained tokenizer for encoding
-    /// * `seq_len` - Length of each training sequence
-    /// * `batch_size` - Number of sequences per batch
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # use feste::{BPETokenizer, TextDataLoader};
-    /// # let tokenizer = BPETokenizer::new(512);
-    /// let text = "To be, or not to be, that is the question.";
-    /// let loader = TextDataLoader::new(&text, &tokenizer, 64, 4);
-    /// ```
+    /// * `text` - Texto crudo para entrenar
+    /// * `tokenizer` - Tokenizador entrenado para codificar
+    /// * `seq_len` - Longitud de cada secuencia de entrenamiento
+    /// * `batch_size` - Número de secuencias por batch
     pub fn new(text: &str, tokenizer: &BPETokenizer, seq_len: usize, batch_size: usize) -> Self {
         let tokens = tokenizer.encode(text);
-        println!("Loaded {} tokens from text", tokens.len());
+        println!("Se cargaron {} tokens del texto", tokens.len());
 
         Self {
             tokens,
@@ -103,34 +94,20 @@ impl TextDataLoader {
         }
     }
 
-    /// Create a data loader from a file
+    /// Crear un cargador de datos a partir de un archivo
     ///
-    /// Convenience method that reads the file and creates the loader.
+    /// Método de conveniencia que lee el archivo y crea el loader.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `path` - Path to text file
-    /// * `tokenizer` - Trained tokenizer
-    /// * `seq_len` - Sequence length
-    /// * `batch_size` - Batch size
+    /// * `path` - Ruta al archivo de texto
+    /// * `tokenizer` - Tokenizador entrenado
+    /// * `seq_len` - Longitud de secuencia
+    /// * `batch_size` - Tamaño de batch
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Result containing the loader or an IO error
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # use feste::{BPETokenizer, TextDataLoader};
-    /// # let tokenizer = BPETokenizer::new(512);
-    /// let loader = TextDataLoader::from_file(
-    ///     "shakespeare.txt",
-    ///     &tokenizer,
-    ///     128,
-    ///     4
-    /// )?;
-    /// # Ok::<(), std::io::Error>(())
-    /// ```
+    /// Result que contiene el loader o un error de IO
     pub fn from_file(
         path: &str,
         tokenizer: &BPETokenizer,
@@ -141,39 +118,26 @@ impl TextDataLoader {
         Ok(Self::new(&text, tokenizer, seq_len, batch_size))
     }
 
-    /// Get the next batch of training data
+    /// Obtener el siguiente batch de datos de entrenamiento
     ///
-    /// Returns a batch of (input, target) sequence pairs. The target is always
-    /// the input shifted by one position (next token prediction).
+    /// Devuelve un batch de pares (input, target). El target siempre es
+    /// el input desplazado una posición (predicción del siguiente token).
     ///
-    /// When the end of the dataset is reached, returns `None` and resets to
-    /// the beginning for the next epoch.
+    /// Cuando se alcanza el final del dataset, retorna `None` y reinicia
+    /// al inicio para la siguiente época.
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// - `Some((inputs, targets))` if a batch is available
-    /// - `None` if the epoch is complete (resets position)
+    /// - `Some((inputs, targets))` si hay un batch disponible
+    /// - `None` si la época terminó (reinicia position)
     ///
-    /// # Shape
+    /// # Forma
     ///
-    /// Both inputs and targets have shape `[batch_size, seq_len]`
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # use feste::{BPETokenizer, TextDataLoader};
-    /// # let tokenizer = BPETokenizer::new(512);
-    /// # let mut loader = TextDataLoader::new("text", &tokenizer, 64, 4);
-    /// while let Some((inputs, targets)) = loader.next_batch() {
-    ///     assert_eq!(inputs.len(), 4);     // batch_size
-    ///     assert_eq!(inputs[0].len(), 64); // seq_len
-    ///     // Train on this batch...
-    /// }
-    /// ```
+    /// Tanto inputs como targets tienen forma `[batch_size, seq_len]`
     pub fn next_batch(&mut self) -> Option<Batch> {
-        // Check if we have enough tokens left for a full batch
+        // Verificar si quedan suficientes tokens para un batch completo
         if self.position + self.batch_size * (self.seq_len + 1) >= self.tokens.len() {
-            // Reset to beginning (epoch complete)
+            // Reiniciar al comienzo (época completa)
             self.position = 0;
             return None;
         }
@@ -181,25 +145,25 @@ impl TextDataLoader {
         let mut inputs = Vec::new();
         let mut targets = Vec::new();
 
-        // Build batch by extracting sequences
+        // Construir el batch extrayendo secuencias
         for _ in 0..self.batch_size {
-            // Ensure we have enough tokens for this sequence
+            // Verificar que haya suficientes tokens para esta secuencia
             if self.position + self.seq_len + 1 >= self.tokens.len() {
                 break;
             }
 
-            // Extract input sequence: tokens[pos..pos+seq_len]
-            let input_seq = self.tokens[self.position..self.position + self.seq_len].to_vec();
+            // Extraer secuencia de entrada
+            let input_seq =
+                self.tokens[self.position..self.position + self.seq_len].to_vec();
 
-            // Extract target sequence: tokens[pos+1..pos+seq_len+1]
-            // This is the input shifted by 1 (next token prediction)
+            // Extraer secuencia objetivo (input desplazado en 1)
             let target_seq =
                 self.tokens[self.position + 1..self.position + self.seq_len + 1].to_vec();
 
             inputs.push(input_seq);
             targets.push(target_seq);
 
-            // Move forward by seq_len (non-overlapping sequences)
+            // Avanzar seq_len (secuencias no superpuestas)
             self.position += self.seq_len;
         }
 
@@ -210,45 +174,41 @@ impl TextDataLoader {
         }
     }
 
-    /// Reset the data loader to the beginning
+    /// Reiniciar el cargador de datos al inicio
     ///
-    /// Useful for starting a new epoch without waiting for `next_batch()`
-    /// to reach the end.
+    /// Útil para comenzar una nueva época sin esperar a que `next_batch()`
+    /// llegue al final.
     pub fn reset(&mut self) {
         self.position = 0;
     }
 
-    /// Get the total number of batches in one epoch
+    /// Obtener el número total de batches en una época
     ///
-    /// This is an estimate based on the dataset size and batch parameters.
-    ///
-    /// # Returns
-    ///
-    /// Number of batches per epoch
+    /// Es una estimación basada en el tamaño del dataset y los parámetros del batch.
     pub fn num_batches(&self) -> usize {
         self.tokens.len() / (self.batch_size * self.seq_len)
     }
 }
 
-/// Training configuration
+/// Configuración de entrenamiento
 ///
-/// Hyperparameters for training a language model.
+/// Hiperparámetros para entrenar un modelo de lenguaje.
 ///
-/// # Common Configurations
+/// # Configuraciones comunes
 ///
-/// - **Tiny**: Fast experimentation (minutes)
-/// - **Small**: Medium training runs (hours)
-/// - **Large**: Full training (overnight)
+/// - **Tiny**: Experimentación rápida (minutos)
+/// - **Small**: Entrenamientos medianos (horas)
+/// - **Large**: Entrenamiento completo (toda la noche)
 pub struct TrainingConfig {
-    /// Learning rate for optimizer
+    /// Tasa de aprendizaje del optimizador
     pub learning_rate: f32,
-    /// Number of passes through the dataset
+    /// Número de pasadas sobre el dataset
     pub num_epochs: usize,
-    /// Number of sequences per batch
+    /// Número de secuencias por batch
     pub batch_size: usize,
-    /// Length of each training sequence
+    /// Longitud de cada secuencia de entrenamiento
     pub seq_len: usize,
-    /// Print metrics every N steps
+    /// Imprimir métricas cada N pasos
     pub print_every: usize,
 }
 
@@ -265,16 +225,12 @@ impl Default for TrainingConfig {
 }
 
 impl TrainingConfig {
-    /// Create a tiny configuration for quick experiments
+    /// Crear una configuración tiny para experimentos rápidos
     ///
-    /// Good for:
-    /// - Testing code changes
-    /// - Quick iterations
-    /// - Low-resource environments
-    ///
-    /// # Returns
-    ///
-    /// TrainingConfig with small batch size and short sequences
+    /// Buena para:
+    /// - Probar cambios en el código
+    /// - Iteraciones rápidas
+    /// - Entornos con pocos recursos
     pub fn tiny() -> Self {
         Self {
             learning_rate: 3e-4,
@@ -285,16 +241,12 @@ impl TrainingConfig {
         }
     }
 
-    /// Create a small configuration for medium experiments
+    /// Crear una configuración small para experimentos medianos
     ///
-    /// Good for:
-    /// - Prototyping model changes
-    /// - Overnight training runs
-    /// - Balancing speed and quality
-    ///
-    /// # Returns
-    ///
-    /// TrainingConfig with moderate settings
+    /// Buena para:
+    /// - Prototipar cambios en el modelo
+    /// - Entrenamientos nocturnos
+    /// - Balancear velocidad y calidad
     pub fn small() -> Self {
         Self {
             learning_rate: 3e-4,

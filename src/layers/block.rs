@@ -1,10 +1,10 @@
-//! Transformer Block
+//! Bloque Transformer
 //!
-//! A transformer block is the fundamental building block of GPT models.
-//! It combines attention and feedforward layers with residual connections
-//! and layer normalization.
+//! Un bloque transformer es el componente fundamental de los modelos GPT.
+//! Combina capas de atención y feedforward con conexiones residuales
+//! y normalización por capas (Layer Normalization).
 //!
-//! ## Architecture
+//! ## Arquitectura
 //!
 //! ```text
 //! x → LayerNorm → Attention → (+) → LayerNorm → MLP → (+) → output
@@ -15,29 +15,31 @@
 //!
 //! ## Pre-Norm vs Post-Norm
 //!
-//! We use **pre-norm** (LayerNorm before sublayers) rather than post-norm:
-//! - More stable training
-//! - Better gradient flow
-//! - Standard in modern transformers (GPT-2, GPT-3)
+//! Usamos **pre-norm** (LayerNorm antes de las subcapas) en lugar de post-norm:
+//! - Entrenamiento más estable
+//! - Mejor flujo de gradientes
+//! - Estándar en transformers modernos (GPT-2, GPT-3)
 //!
-//! ## Residual Connections
+//! ## Conexiones Residuales
 //!
-//! Residual connections are critical for training deep networks:
-//! - Allow gradients to flow directly backward
-//! - Prevent vanishing gradients
-//! - Enable training very deep models (100+ layers)
+//! Las conexiones residuales son críticas para entrenar redes profundas:
+//! - Permiten que los gradientes fluyan directamente hacia atrás
+//! - Previenen el desvanecimiento del gradiente
+//! - Hacen posible entrenar modelos muy profundos (100+ capas)
 //!
 //! ## Backward Pass
 //!
-//! The backward pass through residual connections requires careful gradient accumulation.
-//! At each residual connection, gradients split into two paths that must be summed.
+//! El backward pass a través de conexiones residuales requiere una
+//! acumulación cuidadosa de gradientes.
+//! En cada conexión residual, los gradientes se dividen en dos caminos
+//! que luego deben sumarse.
 
 use super::attention::{AttentionCache, AttentionGradients, TrainableSingleHeadAttention};
 use super::layer_norm::{LayerNormCache, TrainableLayerNorm};
 use super::mlp::{MLPCache, MLPGradients, TrainableMLP};
 use crate::tensor::Tensor;
 
-/// Transformer block combining attention and MLP with residuals
+/// Bloque transformer que combina atención y MLP con conexiones residuales
 pub struct TrainableTransformerBlock {
     pub ln1: TrainableLayerNorm,
     pub attn: TrainableSingleHeadAttention,
@@ -46,13 +48,13 @@ pub struct TrainableTransformerBlock {
 }
 
 impl TrainableTransformerBlock {
-    /// Create a new transformer block
+    /// Crea un nuevo bloque transformer
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `n_embd` - Embedding dimension
-    /// * `dropout_rate` - Dropout probability
-    /// * `seed` - Random seed for initialization
+    /// * `n_embd` - Dimensión del embedding
+    /// * `dropout_rate` - Probabilidad de dropout
+    /// * `seed` - Semilla aleatoria para inicialización
     pub fn new(n_embd: usize, dropout_rate: f32, seed: u64) -> Self {
         Self {
             ln1: TrainableLayerNorm::new(n_embd),
@@ -62,25 +64,25 @@ impl TrainableTransformerBlock {
         }
     }
 
-    /// Forward pass: attention + MLP with residual connections
+    /// Forward pass: atención + MLP con conexiones residuales
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `x` - Input tensor [seq_len, n_embd]
+    /// * `x` - Tensor de entrada [seq_len, n_embd]
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Tuple of (output, cache)
+    /// Tupla de (output, cache)
     pub fn forward(&self, x: &Tensor) -> (Tensor, BlockCache) {
-        // First sub-block: LayerNorm → Attention → Residual
+        // Primer sub-bloque: LayerNorm → Attention → Residual
         let (ln1_out, ln1_cache) = self.ln1.forward(x);
         let (attn_out, attn_cache) = self.attn.forward(&ln1_out);
-        let x_after_attn = x.add(&attn_out); // Residual connection
+        let x_after_attn = x.add(&attn_out); // Conexión residual
 
-        // Second sub-block: LayerNorm → MLP → Residual
+        // Segundo sub-bloque: LayerNorm → MLP → Residual
         let (ln2_out, ln2_cache) = self.ln2.forward(&x_after_attn);
         let (mlp_out, mlp_cache) = self.mlp.forward(&ln2_out);
-        let y = x_after_attn.add(&mlp_out); // Residual connection
+        let y = x_after_attn.add(&mlp_out); // Conexión residual
 
         let cache = BlockCache {
             #[allow(dead_code)]
@@ -96,40 +98,41 @@ impl TrainableTransformerBlock {
         (y, cache)
     }
 
-    /// Backward pass through transformer block
+    /// Backward pass a través del bloque transformer
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `grad_out` - Gradient from next layer
-    /// * `cache` - Cached values from forward pass
+    /// * `grad_out` - Gradiente de la siguiente capa
+    /// * `cache` - Valores almacenados del forward pass
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Gradients for all parameters and input
+    /// Gradientes para todos los parámetros y la entrada
     pub fn backward(&self, grad_out: &Tensor, cache: &BlockCache) -> BlockGradients {
-        // Backprop through second residual connection
-        // Gradient flows to both MLP path and directly to first residual
+        // Retropropagación por la segunda conexión residual
+        // El gradiente fluye tanto hacia el camino del MLP como directamente
+        // hacia la primera conexión residual
         let grad_mlp_out = grad_out.clone();
         let mut grad_x_after_attn = grad_out.clone();
 
-        // Backprop through MLP path
+        // Retropropagación por el camino del MLP
         let mlp_grads = self.mlp.backward(&grad_mlp_out, &cache.mlp_cache);
         let ln2_grads = self.ln2.backward(&mlp_grads.x, &cache.ln2_cache);
 
-        // Accumulate gradient from LN2 path
+        // Acumular gradiente proveniente del camino LN2
         for i in 0..grad_x_after_attn.data.len() {
             grad_x_after_attn.data[i] += ln2_grads.x.data[i];
         }
 
-        // Backprop through first residual connection
+        // Retropropagación por la primera conexión residual
         let grad_attn_out = grad_x_after_attn.clone();
         let mut grad_x = grad_x_after_attn;
 
-        // Backprop through attention path
+        // Retropropagación por el camino de atención
         let attn_grads = self.attn.backward(&grad_attn_out, &cache.attn_cache);
         let ln1_grads = self.ln1.backward(&attn_grads.x, &cache.ln1_cache);
 
-        // Accumulate gradient from LN1 path
+        // Acumular gradiente proveniente del camino LN1
         for i in 0..grad_x.data.len() {
             grad_x.data[i] += ln1_grads.x.data[i];
         }
@@ -146,7 +149,7 @@ impl TrainableTransformerBlock {
     }
 }
 
-/// Cache for transformer block backward pass
+/// Cache para el backward pass del bloque transformer
 pub struct BlockCache {
     #[allow(dead_code)]
     pub x: Tensor,
@@ -158,7 +161,7 @@ pub struct BlockCache {
     pub mlp_cache: MLPCache,
 }
 
-/// Gradients for transformer block
+/// Gradientes del bloque transformer
 pub struct BlockGradients {
     pub ln1_gamma: Tensor,
     pub ln1_beta: Tensor,

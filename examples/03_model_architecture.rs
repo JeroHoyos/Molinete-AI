@@ -1,37 +1,37 @@
-//! Model Architecture Demonstration
+//! Demostración de la Arquitectura del Modelo
 //!
-//! This example demonstrates the GPT-2 model architecture:
-//! - Creating models of different sizes
-//! - Understanding parameter counts
-//! - Forward pass through the model
-//! - Inspecting intermediate layer outputs
+//! Este ejemplo demuestra la arquitectura del modelo GPT-2:
+//! - Creación de modelos de diferentes tamaños
+//! - Comprensión del número de parámetros
+//! - Forward pass a través del modelo
+//! - Inspección de salidas intermedias de las capas
 //!
-//! This shows the **architecture only** (forward pass). Training would require
-//! backpropagation, optimization, and a training loop (not included in Phase 3).
+//! Esto muestra **solo la arquitectura** (forward pass). El entrenamiento requeriría
+//! backpropagation, optimización y un bucle de entrenamiento (no incluido en la Fase 3).
 //!
-//! # Usage
+//! # Uso
 //!
 //! ```bash
 //! cargo run --release --example 03_model_architecture
 //! ```
 //!
-//! # Expected Runtime
+//! # Tiempo de ejecución esperado
 //!
-//! Less than 5 seconds
+//! Menos de 5 segundos
 
 use feste::{Config, GPT2};
 
 fn main() {
     println!("\n{}", "=".repeat(70));
-    println!("  GPT-2 Model Architecture Demonstration");
+    println!("  Demostración de la Arquitectura del Modelo GPT-2");
     println!("{}", "=".repeat(70));
 
-    // ========== Model Configurations ==========
+    // ========== Configuraciones del Modelo ==========
     println!("\n{}", "─".repeat(70));
-    println!("1. Model Configurations");
+    println!("1. Configuraciones del Modelo");
     println!("{}", "─".repeat(70));
 
-    let vocab_size = 512; // Small vocab for demonstration
+    let vocab_size = 512; // Vocabulario pequeño para demostración
 
     let configs = vec![
         ("Tiny", Config::tiny(vocab_size)),
@@ -58,27 +58,27 @@ fn main() {
         );
     }
 
-    // ========== Parameter Counts ==========
+    // ========== Conteo de Parámetros ==========
     println!("\n{}", "─".repeat(70));
-    println!("2. Parameter Counts");
+    println!("2. Conteo de Parámetros");
     println!("{}", "─".repeat(70));
 
-    println!("\nCreating models and counting parameters...\n");
+    println!("\nCreando modelos y contando parámetros...\n");
 
     for (name, config) in &configs {
         let model = GPT2::new(config);
         let params = model.count_parameters();
 
-        println!("{} model:", name);
+        println!("Modelo {}:", name);
         println!(
-            "  Total parameters: {:>12} ({:.2}M)",
+            "  Parámetros totales: {:>12} ({:.2}M)",
             params,
             params as f32 / 1_000_000.0
         );
 
-        // Estimate memory (4 bytes per f32 parameter)
+        // Estimación de memoria (4 bytes por parámetro f32)
         let memory_mb = (params * 4) as f32 / 1_000_000.0;
-        println!("  Memory (weights): {:>10.1} MB", memory_mb);
+        println!("  Memoria (pesos): {:>10.1} MB", memory_mb);
         println!();
     }
 
@@ -87,48 +87,46 @@ fn main() {
     println!("3. Forward Pass");
     println!("{}", "─".repeat(70));
 
-    // Use tiny model for demonstration
     let config = Config::tiny(vocab_size);
     let model = GPT2::new(&config);
 
-    println!("\nUsing Tiny model for forward pass demonstration");
-    println!("  Vocab size: {}", config.vocab_size);
-    println!("  Embedding dim: {}", config.n_embd);
-    println!("  Layers: {}", config.n_layers);
+    println!("\nUsando el modelo Tiny para la demostración del forward pass");
+    println!("  Tamaño de vocabulario: {}", config.vocab_size);
+    println!("  Dimensión de embedding: {}", config.n_embd);
+    println!("  Capas: {}", config.n_layers);
 
-    // Create sample input: batch_size=2, seq_len=8
     let batch_size = 2;
     let seq_len = 8;
 
     let tokens = vec![
-        vec![1, 2, 3, 4, 5, 6, 7, 8],         // Batch 0
-        vec![10, 20, 30, 40, 50, 60, 70, 80], // Batch 1
+        vec![1, 2, 3, 4, 5, 6, 7, 8],
+        vec![10, 20, 30, 40, 50, 60, 70, 80],
     ];
 
-    println!("\nInput shape: [batch={}, seq_len={}]", batch_size, seq_len);
-    println!("  Batch 0 tokens: {:?}", tokens[0]);
-    println!("  Batch 1 tokens: {:?}", tokens[1]);
+    println!("\nForma de entrada: [batch={}, seq_len={}]", batch_size, seq_len);
+    println!("  Tokens Batch 0: {:?}", tokens[0]);
+    println!("  Tokens Batch 1: {:?}", tokens[1]);
 
-    println!("\nRunning forward pass...");
+    println!("\nEjecutando forward pass...");
     let start = std::time::Instant::now();
     let logits = model.forward(&tokens);
     let elapsed = start.elapsed();
 
-    println!("\nOutput (logits):");
-    println!("  Shape: {:?}", logits.shape);
+    println!("\nSalida (logits):");
+    println!("  Forma: {:?}", logits.shape);
     println!(
-        "  Expected: [batch={}, seq_len={}, vocab_size={}]",
+        "  Esperado: [batch={}, seq_len={}, vocab_size={}]",
         batch_size, seq_len, vocab_size
     );
-    println!("  Time: {:.3}ms", elapsed.as_secs_f64() * 1000.0);
+    println!("  Tiempo: {:.3}ms", elapsed.as_secs_f64() * 1000.0);
 
-    // ========== Performance Benchmarks ==========
+    // ========== Benchmarks de Rendimiento ==========
     println!("\n{}", "─".repeat(70));
-    println!("3b. Performance Benchmarks");
+    println!("3b. Benchmarks de Rendimiento");
     println!("{}", "─".repeat(70));
 
-    println!("\nBenchmarking all model sizes with 8-token sequences:");
-    println!("(Running multiple iterations for accurate measurements)\n");
+    println!("\nMidiendo todos los tamaños de modelo con secuencias de 8 tokens:");
+    println!("(Ejecutando múltiples iteraciones para mediciones precisas)\n");
 
     let benchmark_configs = vec![
         ("Tiny", Config::tiny(vocab_size)),
@@ -137,16 +135,13 @@ fn main() {
         ("GPT-2 Small", Config::gpt2_small(vocab_size)),
     ];
 
-    // Single token benchmark
     let single_token = vec![vec![42]];
 
     for (name, config) in &benchmark_configs {
         let model = GPT2::new(config);
 
-        // Warmup run
         let _ = model.forward(&tokens);
 
-        // Benchmark with 8 tokens
         let iterations = 10;
         let start = std::time::Instant::now();
         for _ in 0..iterations {
@@ -155,7 +150,6 @@ fn main() {
         let elapsed = start.elapsed();
         let avg_time = elapsed.as_secs_f64() * 1000.0 / iterations as f64;
 
-        // Benchmark with 1 token
         let start_single = std::time::Instant::now();
         for _ in 0..iterations {
             let _ = model.forward(&single_token);
@@ -163,17 +157,16 @@ fn main() {
         let elapsed_single = start_single.elapsed();
         let avg_time_single = elapsed_single.as_secs_f64() * 1000.0 / iterations as f64;
 
-        println!("{} model:", name);
+        println!("Modelo {}:", name);
         println!("  8 tokens:  {:>8.3} ms/forward", avg_time);
         println!("  1 token:   {:>8.3} ms/forward", avg_time_single);
         println!();
     }
 
-    // Show sample logits for first position
-    println!("\nSample logits at position [0, 0, :]:");
-    println!("  (predictions for first token in first batch)");
+    println!("\nLogits de ejemplo en la posición [0, 0, :]:");
+    println!("  (predicciones para el primer token del primer batch)");
     let sample_size = 10.min(vocab_size);
-    print!("  First {} values: [", sample_size);
+    print!("  Primeros {} valores: [", sample_size);
     for i in 0..sample_size {
         print!("{:.3}", logits.data[i]);
         if i < sample_size - 1 {
@@ -182,90 +175,91 @@ fn main() {
     }
     println!("]");
 
-    // ========== Architecture Breakdown ==========
+    // ========== Desglose de la Arquitectura ==========
     println!("\n{}", "─".repeat(70));
-    println!("4. Architecture Breakdown");
+    println!("4. Desglose de la Arquitectura");
     println!("{}", "─".repeat(70));
 
-    println!("\nFor the Tiny model:");
-    println!("\n  Token Embedding:");
-    println!("    Input: [batch, seq_len] = [2, 8]");
+    println!("\nPara el modelo Tiny:");
+
+    println!("\n  Embedding de Tokens:");
+    println!("    Entrada: [batch, seq_len] = [2, 8]");
     println!(
-        "    Output: [batch, seq_len, n_embd] = [2, 8, {}]",
+        "    Salida: [batch, seq_len, n_embd] = [2, 8, {}]",
         config.n_embd
     );
     println!(
-        "    Parameters: {} × {} = {}",
+        "    Parámetros: {} × {} = {}",
         config.vocab_size,
         config.n_embd,
         config.vocab_size * config.n_embd
     );
 
-    println!("\n  Position Embedding:");
-    println!("    Positions: 0..{}", seq_len - 1);
+    println!("\n  Embedding Posicional:");
+    println!("    Posiciones: 0..{}", seq_len - 1);
     println!(
-        "    Output: [1, seq_len, n_embd] = [1, 8, {}]",
+        "    Salida: [1, seq_len, n_embd] = [1, 8, {}]",
         config.n_embd
     );
     println!(
-        "    Parameters: {} × {} = {}",
+        "    Parámetros: {} × {} = {}",
         config.block_size,
         config.n_embd,
         config.block_size * config.n_embd
     );
 
-    println!("\n  Transformer Block (×{}):", config.n_layers);
-    println!("    Each block contains:");
+    println!("\n  Bloque Transformer (×{}):", config.n_layers);
+    println!("    Cada bloque contiene:");
     println!("      - Layer Norm 1");
-    println!("      - Multi-Head Attention ({} heads)", config.n_heads);
+    println!("      - Atención Multi-Cabeza ({} cabezas)", config.n_heads);
     println!(
-        "        • Q, K, V projections: {} → {}",
+        "        • Proyecciones Q, K, V: {} → {}",
         config.n_embd,
         config.n_embd * 3
     );
     println!(
-        "        • Output projection: {} → {}",
+        "        • Proyección de salida: {} → {}",
         config.n_embd, config.n_embd
     );
     println!("      - Layer Norm 2");
     println!("      - MLP:");
     println!(
-        "        • Expand: {} → {}",
+        "        • Expansión: {} → {}",
         config.n_embd,
         config.n_embd * 4
     );
-    println!("        • GELU activation");
+    println!("        • Activación GELU");
     println!(
-        "        • Project: {} → {}",
+        "        • Proyección: {} → {}",
         config.n_embd * 4,
         config.n_embd
     );
 
-    println!("\n  Final Layer Norm:");
-    println!("    Input/Output: [batch, seq_len, n_embd]");
+    println!("\n  Layer Norm Final:");
+    println!("    Entrada/Salida: [batch, seq_len, n_embd]");
 
-    println!("\n  LM Head (Output Projection):");
+    println!("\n  LM Head (Proyección de Salida):");
     println!(
-        "    Input: [batch, seq_len, n_embd] = [2, 8, {}]",
+        "    Entrada: [batch, seq_len, n_embd] = [2, 8, {}]",
         config.n_embd
     );
     println!(
-        "    Output: [batch, seq_len, vocab_size] = [2, 8, {}]",
+        "    Salida: [batch, seq_len, vocab_size] = [2, 8, {}]",
         config.vocab_size
     );
     println!(
-        "    Parameters: {} × {} = {}",
+        "    Parámetros: {} × {} = {}",
         config.n_embd,
         config.vocab_size,
         config.n_embd * config.vocab_size
     );
 
-    // ========== Multi-Head Attention Explanation ==========
+    // ========== Atención Multi-Cabeza ==========
     println!("\n{}", "─".repeat(70));
-    println!("5. Multi-Head Attention Details");
+    println!("5. Detalles de Atención Multi-Cabeza");
     println!("{}", "─".repeat(70));
 
-    println!("\nSingle-head attention (Tiny model):");
+    println!("\nAtención de una sola cabeza (modelo Tiny):");
     let tiny_config = Config::tiny(vocab_size);
     let tiny_head_dim = tiny_config.n_embd / tiny_config.n_heads;
     println!(
@@ -273,12 +267,12 @@ fn main() {
         tiny_config.n_embd, tiny_config.n_heads, tiny_head_dim
     );
     println!(
-        "  The entire {} dimensions attend as one unit",
+        "  Las {} dimensiones completas atienden como una sola unidad",
         tiny_config.n_embd
     );
-    println!("  Simple but limited in what patterns it can learn");
+    println!("  Simple pero limitado en los patrones que puede aprender");
 
-    println!("\nMulti-head attention (GPT-2 Small model):");
+    println!("\nAtención multi-cabeza (modelo GPT-2 Small):");
     let gpt2_config = Config::gpt2_small(vocab_size);
     let gpt2_head_dim = gpt2_config.n_embd / gpt2_config.n_heads;
     println!(
@@ -286,55 +280,31 @@ fn main() {
         gpt2_config.n_embd, gpt2_config.n_heads, gpt2_head_dim
     );
     println!(
-        "  Split {} dimensions into {} independent heads of {} dimensions each",
+        "  Dividir {} dimensiones en {} cabezas independientes de {} dimensiones cada una",
         gpt2_config.n_embd, gpt2_config.n_heads, gpt2_head_dim
     );
-    println!("  Each head can learn different attention patterns in parallel");
+    println!("  Cada cabeza aprende diferentes patrones de atención en paralelo");
 
-    println!("\nHow multi-head attention works:");
-    println!(
-        "  1. Project input to Q, K, V: [batch, seq, {}]",
-        gpt2_config.n_embd
-    );
-    println!(
-        "  2. Reshape into heads: [batch, {}, seq, {}]",
-        gpt2_config.n_heads, gpt2_head_dim
-    );
-    println!("  3. Each head computes attention independently");
-    println!("     Head 1 might focus on nearby words (local syntax)");
-    println!("     Head 2 might focus on sentence structure (long-range dependencies)");
-    println!("     Head 3 might focus on semantic relationships");
-    println!("     ... and so on for all {} heads", gpt2_config.n_heads);
-    println!(
-        "  4. Concatenate all heads: [batch, seq, {}]",
-        gpt2_config.n_embd
-    );
-    println!(
-        "  5. Output projection: [batch, seq, {}]",
-        gpt2_config.n_embd
-    );
-
-    // ========== Causal Attention Explanation ==========
+    // ========== Atención Causal ==========
     println!("\n{}", "─".repeat(70));
-    println!("6. Causal (Autoregressive) Attention");
+    println!("6. Atención Causal (Autoregresiva)");
     println!("{}", "─".repeat(70));
 
-    println!("\nIn language modeling, we predict the NEXT token.");
-    println!("Position i cannot see positions i+1, i+2, ... (the future)");
+    println!("\nEn modelado de lenguaje, predecimos el SIGUIENTE token.");
+    println!("La posición i no puede ver posiciones i+1, i+2, ... (el futuro)");
 
-    // Actually create and display the causal mask
-    println!("\nCreating causal mask for seq_len=4:");
+    println!("\nCreando máscara causal para seq_len=4:");
     let demo_seq_len = 4;
     let mut mask_data = vec![0.0; demo_seq_len * demo_seq_len];
     for i in 0..demo_seq_len {
         for j in 0..demo_seq_len {
             if j > i {
-                mask_data[i * demo_seq_len + j] = 1.0; // Mask future positions
+                mask_data[i * demo_seq_len + j] = 1.0;
             }
         }
     }
 
-    println!("\nMask (1 = masked, 0 = visible):");
+    println!("\nMáscara (1 = enmascarado, 0 = visible):");
     println!("  Pos:  0  1  2  3");
     for i in 0..demo_seq_len {
         print!("    {}: [", i);
@@ -346,31 +316,31 @@ fn main() {
                 print!("✗  ");
             }
         }
-        println!("]  position {} can see positions 0..={}", i, i);
+        println!("]  la posición {} puede ver posiciones 0..={}", i, i);
     }
 
-    println!("\nHow it works:");
-    println!("  1. Compute attention scores between all positions");
-    println!("  2. Set future positions (where mask=1) to -∞");
-    println!("  3. Apply softmax: exp(-∞) = 0, so no attention to future");
-    println!("  4. Each position can only attend to itself and past positions");
+    println!("\nCómo funciona:");
+    println!("  1. Calcular puntajes de atención entre todas las posiciones");
+    println!("  2. Establecer posiciones futuras (mask=1) en -∞");
+    println!("  3. Aplicar softmax: exp(-∞) = 0, sin atención al futuro");
+    println!("  4. Cada posición solo atiende a sí misma y al pasado");
 
-    // ========== Summary ==========
+    // ========== Resumen ==========
     println!("\n{}", "=".repeat(70));
-    println!("  Summary");
+    println!("  Resumen");
     println!("{}", "=".repeat(70));
 
-    println!("\n✓ GPT-2 architecture implemented from scratch");
-    println!("✓ Forward pass working for inference");
-    println!("✓ Multiple model sizes available (tiny → GPT-2 Small)");
-    println!("✓ All components: embeddings, attention, MLP, layer norm");
+    println!("\n✓ Arquitectura GPT-2 implementada desde cero");
+    println!("✓ Forward pass funcionando para inferencia");
+    println!("✓ Múltiples tamaños de modelo disponibles (tiny → GPT-2 Small)");
+    println!("✓ Todos los componentes: embeddings, atención, MLP, layer norm");
 
-    println!("\nKey architectural choices:");
-    println!("  • Multi-head self-attention (parallel attention operations)");
-    println!("  • Causal masking (prevent seeing future tokens)");
-    println!("  • Residual connections (help gradient flow)");
-    println!("  • Layer normalization (stabilize activations)");
-    println!("  • GELU activation (smooth, works well in practice)");
-    println!("  • 4× expansion in MLP (provides representational capacity)");
+    println!("\nDecisiones arquitectónicas clave:");
+    println!("  • Self-attention multi-cabeza (operaciones de atención en paralelo)");
+    println!("  • Enmascaramiento causal (evita ver tokens futuros)");
+    println!("  • Conexiones residuales (ayudan al flujo del gradiente)");
+    println!("  • Normalización de capa (estabiliza activaciones)");
+    println!("  • Activación GELU (suave y efectiva en práctica)");
+    println!("  • Expansión 4× en el MLP (mayor capacidad representacional)");
     println!();
 }

@@ -1,57 +1,60 @@
-//! Activation Functions
+//! Funciones de Activación
 //!
-//! This module provides activation functions and their derivatives for
-//! backpropagation.
+//! Este módulo proporciona funciones de activación y sus derivadas para
+//! la retropropagación (backpropagation).
 //!
-//! ## GELU (Gaussian Error Linear Unit)
+//! ## GELU (Unidad Lineal de Error Gaussiano)
 //!
-//! GELU is used in transformers instead of ReLU because it provides smoother
-//! gradients and often performs better in practice.
+//! GELU se utiliza en transformers en lugar de ReLU porque proporciona
+//! gradientes más suaves y generalmente mejor rendimiento en la práctica.
 //!
-//! ### Formula
+//! ### Fórmula
 //!
 //! ```text
 //! GELU(x) = x × Φ(x)
 //! ```
 //!
-//! where Φ(x) is the cumulative distribution function of the standard normal distribution.
+//! donde Φ(x) es la función de distribución acumulada de la distribución
+//! normal estándar.
 //!
-//! ### Approximation
+//! ### Aproximación
 //!
-//! We use the tanh approximation for efficiency:
+//! Usamos la aproximación con tanh por eficiencia:
 //!
 //! ```text
 //! GELU(x) ≈ 0.5 × x × (1 + tanh(√(2/π) × (x + 0.044715 × x³)))
 //! ```
 //!
-//! This is faster than computing the exact CDF and is accurate enough for neural networks.
+//! Esto es más rápido que calcular la CDF exacta y es suficientemente
+//! preciso para redes neuronales.
 //!
-//! ### Why GELU?
+//! ### ¿Por qué GELU?
 //!
-//! - **Smooth gradients**: Unlike ReLU (which has zero gradient for x<0), GELU has
-//!   non-zero gradients everywhere
-//! - **Better empirical performance**: Especially in large transformers like GPT-2/BERT
-//! - **Probabilistic interpretation**: GELU can be seen as a smooth approximation to
-//!   dropout at the neuron level
+//! - **Gradientes suaves**: A diferencia de ReLU (que tiene gradiente cero para x<0),
+//!   GELU tiene gradientes distintos de cero en todo el dominio
+//! - **Mejor rendimiento empírico**: Especialmente en transformers grandes como GPT-2/BERT
+//! - **Interpretación probabilística**: GELU puede verse como una aproximación
+//!   suave al dropout a nivel de neurona
 
 use crate::tensor::Tensor;
 use rayon::prelude::*;
 
-/// GELU activation (forward pass)
+/// Activación GELU (forward pass)
 ///
-/// Computes the GELU activation using the tanh approximation.
+/// Calcula la activación GELU usando la aproximación con tanh.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `x` - Input tensor
+/// * `x` - Tensor de entrada
 ///
-/// # Returns
+/// # Retorna
 ///
-/// Tensor with GELU activation applied element-wise
+/// Tensor con la activación GELU aplicada elemento por elemento
 ///
-/// # Performance
+/// # Rendimiento
 ///
-/// Uses parallel computation via Rayon for better performance on multi-core CPUs.
+/// Usa computación paralela mediante Rayon para mejor rendimiento
+/// en CPUs multinúcleo.
 pub fn gelu_forward(x: &Tensor) -> Tensor {
     let result = x
         .data
@@ -65,27 +68,27 @@ pub fn gelu_forward(x: &Tensor) -> Tensor {
     Tensor::new(result, x.shape.clone())
 }
 
-/// GELU activation derivative (backward pass)
+/// Derivada de la activación GELU (backward pass)
 ///
-/// Computes the gradient of GELU with respect to its input.
+/// Calcula el gradiente de GELU con respecto a su entrada.
 ///
-/// # Arguments
+/// # Argumentos
 ///
-/// * `grad_out` - Gradient from next layer
-/// * `x` - Original input to GELU (from forward pass)
+/// * `grad_out` - Gradiente proveniente de la siguiente capa
+/// * `x` - Entrada original a GELU (del forward pass)
 ///
-/// # Returns
+/// # Retorna
 ///
-/// Gradient with respect to input: grad_x = grad_out * GELU'(x)
+/// Gradiente con respecto a la entrada: grad_x = grad_out * GELU'(x)
 ///
-/// # Mathematical Derivation
+/// # Derivación Matemática
 ///
-/// The derivative involves:
-/// 1. Derivative of tanh (sech² term)
-/// 2. Derivative of the inner polynomial
-/// 3. Product rule application
+/// La derivada involucra:
+/// 1. Derivada de tanh (término sech²)
+/// 2. Derivada del polinomio interno
+/// 3. Aplicación de la regla del producto
 ///
-/// This gives us a complex but smooth gradient that helps training.
+/// Esto nos da un gradiente complejo pero suave que facilita el entrenamiento.
 pub fn gelu_backward(grad_out: &Tensor, x: &Tensor) -> Tensor {
     let grad_data: Vec<f32> = x
         .data

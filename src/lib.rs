@@ -1,55 +1,55 @@
-//! Feste: Educational Language Model Implementation
+//! Molinete AI: Implementación Educativa de Modelo de Lenguaje
 //!
-//! A complete GPT-2 style transformer implemented from scratch in Rust
-//! for educational purposes. Named after Shakespeare's witty fool from
-//! *Twelfth Night*.
+//! Un transformer estilo GPT-2 implementado completamente desde cero en Rust
+//! con fines educativos. Nombrado en honor al “molinete”, símbolo de movimiento,
+//! dinámica y transformación — como el flujo de información en un transformer.
 //!
-//! # Modules
+//! # Módulos
 //!
-//! - [`tokenizer`] - Byte Pair Encoding (BPE) tokenization
-//! - [`tensor`] - Multi-dimensional arrays and operations
-//! - [`model`] - GPT-2 model architecture (forward pass only)
-//! - [`gpt2_trainable`] - Trainable GPT-2 with backward pass
-//! - [`train`] - Data loading for training
-//! - [`training_logger`] - Training metrics and logging
+//! - [`tokenizer`] - Tokenización Byte Pair Encoding (BPE)
+//! - [`tensor`] - Arreglos multidimensionales y operaciones
+//! - [`model`] - Arquitectura del modelo GPT-2 (solo forward pass)
+//! - [`gpt2_trainable`] - GPT-2 entrenable con backward pass
+//! - [`train`] - Carga de datos para entrenamiento
+//! - [`training_logger`] - Métricas y registro de entrenamiento
 //!
-//! # Example: Tokenization
+//! # Ejemplo: Tokenización
 //!
 //! ```rust,no_run
-//! use feste::BPETokenizer;
+//! use molinete_ai::BPETokenizer;
 //!
-//! // Train a tokenizer
+//! // Entrenar un tokenizador
 //! let text = std::fs::read_to_string("corpus.txt").unwrap();
 //! let mut tokenizer = BPETokenizer::new(1024);
 //! tokenizer.train(&text, 1024);
 //!
-//! // Encode and decode
-//! let ids = tokenizer.encode("Hello, world!");
+//! // Codificar y decodificar
+//! let ids = tokenizer.encode("Hola, mundo!");
 //! let decoded = tokenizer.decode(&ids);
-//! assert_eq!(decoded, "Hello, world!");
+//! assert_eq!(decoded, "Hola, mundo!");
 //! ```
 //!
-//! # Example: Tensor Operations
+//! # Ejemplo: Operaciones con Tensores
 //!
 //! ```rust
-//! use feste::Tensor;
+//! use molinete_ai::Tensor;
 //!
-//! // Create a 2x2 matrix
+//! // Crear una matriz 2x2
 //! let a = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
 //! let b = Tensor::new(vec![1.0, 0.0, 0.0, 1.0], vec![2, 2]);
 //!
-//! // Matrix multiplication
+//! // Multiplicación matricial
 //! let c = a.matmul(&b);
 //! assert_eq!(c.shape, vec![2, 2]);
 //! ```
 //!
-//! # Example: Model Architecture
+//! # Ejemplo: Arquitectura del Modelo
 //!
 //! ```rust
-//! use feste::{GPT2, Config};
+//! use molinete_ai::{GPT2, Config};
 //!
-//! // Create a tiny model
-//! let config = Config::tiny(512); // 512 vocab size
+//! // Crear un modelo pequeño
+//! let config = Config::tiny(512); // vocabulario de tamaño 512
 //! let model = GPT2::new(&config);
 //!
 //! // Forward pass: tokens → logits
@@ -68,7 +68,7 @@ pub mod tokenizer;
 pub mod train;
 pub mod training_logger;
 
-// Re-export main types for convenience
+// Re-exportar tipos principales para mayor comodidad
 pub use gradients::{clip_gradients, compute_grad_norm};
 pub use model::{gelu, Config, GPT2};
 pub use optimizer::{adamw_update, AdamWOptimizer};

@@ -22,3 +22,36 @@ data/
 *log
 shakespeare.txt
 chatbot/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+
+# Manim output directories
+media/
+videos/
+images/
+Tex/
+*.mp4
+*.mov
+*.gif
+*.svg
+*.txt
+*.json
+
+# Manim LaTeX auxiliary files
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.toc
+*.synctex.gz
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/

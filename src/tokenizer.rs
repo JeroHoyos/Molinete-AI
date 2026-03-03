@@ -1,53 +1,59 @@
-//! Byte Pair Encoding (BPE) Tokenizer
+//! Tokenizador Byte Pair Encoding (BPE)
 //!
-//! This module implements BPE tokenization from scratch. BPE is the standard
-//! tokenization method used by GPT-2, GPT-3, and many other language models.
+//! Este módulo implementa la tokenización BPE desde cero. BPE es el método
+//! de tokenización estándar utilizado por GPT-2, GPT-3 y muchos otros
+//! modelos de lenguaje.
 //!
-//! ## How BPE Works
+//! ## Cómo funciona BPE
 //!
-//! 1. **Start with byte-level encoding**: 256 base tokens (one per byte value: 0-255)
-//! 2. **Count adjacent pairs**: Find the most common adjacent byte pair in the corpus
-//! 3. **Merge the most frequent pair**: Create a new token representing that pair
-//! 4. **Repeat**: Continue until vocabulary reaches the target size
+//! 1. **Comienza con codificación a nivel de byte**: 256 tokens base (uno por cada valor de byte: 0–255)
+//! 2. **Cuenta pares adyacentes**: Encuentra el par de bytes adyacentes más común en el corpus
+//! 3. **Fusiona el par más frecuente**: Crea un nuevo token que representa ese par
+//! 4. **Repite**: Continúa hasta que el vocabulario alcance el tamaño objetivo
 //!
-//! ## Example
+//! ## Ejemplo
 //!
-//! Given corpus: "hello hello world"
-//! - Iteration 1: Most common pair = ('l','l') → merge to token 256: "he[256]o he[256]o world"
-//! - Iteration 2: Most common pair = ('h','e') → merge to token 257: "[257][256]o [257][256]o world"
-//! - Iteration 3: Most common pair = ('[257]','[256]') → merge to token 258: "[258]o [258]o world"
-//! - Continue until vocab_size is reached...
+//! Dado el corpus: "hello hello world"
+//! - Iteración 1: Par más común = ('l','l') → se fusiona en el token 256: "he[256]o he[256]o world"
+//! - Iteración 2: Par más común = ('h','e') → se fusiona en el token 257: "[257][256]o [257][256]o world"
+//! - Iteración 3: Par más común = ('[257]','[256]') → se fusiona en el token 258: "[258]o [258]o world"
+//! - Continúa hasta alcanzar vocab_size...
 //!
-//! ## Why Tokenization Matters
+//! ## Por qué la tokenización es importante
 //!
-//! Language models never see raw text—they see token IDs. This fundamental
-//! transformation explains many "quirky" behaviors:
+//! Los modelos de lenguaje nunca ven texto en bruto: ven IDs de tokens.
+//! Esta transformación fundamental explica muchos comportamientos “extraños”:
 //!
-//! - **Can't reliably count letters**: The model sees tokens like ["run", "ning"],
-//!   not individual characters
-//! - **Sensitive to spacing**: " hello" and "hello" tokenize differently
-//! - **Struggles with rare words**: Uncommon words are broken into unfamiliar pieces
-//! - **Reversal is hard**: Character-level operations are difficult when working with tokens
+//! - **No pueden contar letras con fiabilidad**: El modelo ve tokens como ["run", "ning"],
+//!   no caracteres individuales
+//! - **Sensibilidad a los espacios**: " hello" y "hello" se tokenizan de manera diferente
+//! - **Dificultad con palabras raras**: Las palabras poco comunes se dividen en fragmentos desconocidos
+//! - **Invertir texto es difícil**: Las operaciones a nivel de carácter son complicadas cuando se trabaja con tokens
 //!
-//! ## Implementation Notes
+//! ## Notas de implementación
 //!
-//! This implementation includes several optimizations for practical use:
+//! Esta implementación incluye varias optimizaciones para uso práctico:
 //!
-//! - **Parallel pair counting**: Uses Rayon to count byte pairs across CPU cores,
-//!   providing 2-3x speedup on multi-core systems
-//! - **Parallel encoding**: Large texts are split into chunks and encoded in parallel
-//! - **Training on samples**: For very large vocabularies (>2000 tokens), training
-//!   uses a subset of the corpus to learn patterns faster
-//! - **Efficient merge application**: Builds new token vectors instead of in-place
-//!   removal, avoiding O(n²) complexity
+//! - **Conteo paralelo de pares**: Usa Rayon para contar pares de bytes en múltiples núcleos de CPU,
+//!   proporcionando una mejora de velocidad de 2–3x en sistemas multinúcleo
+//! - **Codificación paralela**: Los textos grandes se dividen en fragmentos y se codifican en paralelo
+//! - **Entrenamiento con muestras**: Para vocabularios muy grandes (>2000 tokens), el entrenamiento
+//!   usa un subconjunto del corpus para aprender patrones más rápidamente
+//! - **Aplicación eficiente de fusiones**: Construye nuevos vectores de tokens en lugar de eliminar
+//!   elementos en el lugar, evitando complejidad O(n²)
 //!
-//! These optimizations are necessary to make training practical on CPU, but the
-//! underlying algorithm is standard BPE.
+//! Estas optimizaciones son necesarias para hacer que el entrenamiento sea práctico en CPU,
+//! pero el algoritmo subyacente sigue siendo el BPE estándar.
 
+/// Librería para paralelizar tareas.
 use rayon::prelude::*;
+/// Librería para serialización y deserialización de datos.
 use serde::{Deserialize, Serialize};
+/// Librería para la estructura de datos Hashmap.
 use std::collections::HashMap;
+/// Librería para operaciones de sistema de archivos.
 use std::fs;
+/// Librería para manejar rutas de archivos.
 use std::path::Path;
 
 /// A Byte Pair Encoding tokenizer
@@ -55,41 +61,44 @@ use std::path::Path;
 /// The tokenizer maintains a vocabulary of tokens (strings mapped to IDs) and
 /// a sequence of merge rules learned during training. The merges are applied
 /// in order during encoding to convert text into token IDs.
+
+/// Genera automáticamente las implementaciones de los traits para esta struct.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BPETokenizer {
-    /// Maps token strings to their integer IDs
-    /// Always starts with 256 base tokens for byte-level encoding
+    /// Mapea cadenas de tokens a sus identificadores enteros.
+    /// Siempre comienza con 256 tokens base para codificación a nivel de byte.
     vocab: HashMap<String, usize>,
 
-    /// Sequence of merge rules learned during training
-    /// Each merge combines two tokens into a new token
-    /// Applied in order during encoding
+    /// Secuencia de reglas de fusión aprendidas durante el entrenamiento.
+    /// Cada fusión combina dos tokens en un nuevo token.
+    /// Se aplican en orden durante la codificación.
     merges: Vec<(String, String)>,
 
-    /// Unknown token (currently unused, kept for future extensibility)
-    #[allow(dead_code)]
+    /// Token desconocido.
+    #[allow(dead_code)] // No muestra warning si esta variable no se usa.
     unk_token: String,
 }
 
 impl BPETokenizer {
-    /// Create a new tokenizer with base vocabulary
+    /// Crea un nuevo tokenizador con vocabulario base.
     ///
-    /// Initializes the tokenizer with 256 base tokens representing each possible
-    /// byte value (0-255). These are encoded as hex strings like "<00>", "<01>", etc.
+    /// Inicializa el tokenizador con 256 tokens base que representan cada posible
+    /// valor de byte (0–255). Estos se codifican como cadenas hexadecimales
+    /// como "<00>", "<01>", ..., "<ff>".
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `_vocab_size` - Target vocabulary size (currently unused in constructor,
-    ///   actual vocab size is determined during training)
+    /// * `vocab_size` - Tamaño objetivo del vocabulario (actualmente no se utiliza en el constructor;
+    ///   el tamaño real del vocabulario se determina durante el entrenamiento).
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// A new tokenizer with 256 base tokens and no merges
+    /// Un nuevo tokenizador con 256 tokens base y sin fusiones aprendidas.
     pub fn new(_vocab_size: usize) -> Self {
         let mut vocab = HashMap::new();
 
-        // Initialize with byte-level tokens (256 base tokens)
-        // Each byte value is represented as a hex string: <00>, <01>, ..., <ff>
+        // Inicializa con tokens a nivel de byte (256 tokens base)
+        // Cada valor de byte se representa como una cadena hexadecimal: <00>, <01>, ..., <ff>
         for byte in 0..=255 {
             vocab.insert(format!("<{:02x}>", byte), vocab.len());
         }
@@ -101,166 +110,170 @@ impl BPETokenizer {
         }
     }
 
-    /// Train BPE on a text corpus
-    ///
-    /// Learns merge rules by iteratively finding and merging the most frequent
-    /// adjacent token pairs. This builds a vocabulary from the base 256 byte
-    /// tokens up to the target vocabulary size.
-    ///
-    /// # Arguments
-    ///
-    /// * `text` - Training corpus (typically several MB of text)
-    /// * `vocab_size` - Target vocabulary size (common values: 512, 1024, 2048, 5000)
-    ///
-    /// # Performance Optimization
-    ///
-    /// For large vocabularies (>2000 tokens), this method trains on a 200KB sample
-    /// of the corpus rather than the full text. This is much faster and still learns
-    /// the most common patterns effectively. The learned merges are then available
-    /// for encoding the full corpus.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use feste::BPETokenizer;
-    ///
-    /// // Train on a sample text corpus
-    /// let text = "hello world hello rust hello world";
-    /// let mut tokenizer = BPETokenizer::new(300);
-    /// tokenizer.train(&text, 300);
-    ///
-    /// // Verify training worked
-    /// assert!(tokenizer.vocab_size() > 256);
-    /// ```
+/// Entrena el modelo BPE sobre un corpus de texto.
+///
+/// Aprende reglas de fusión encontrando e integrando iterativamente
+/// los pares de tokens adyacentes más frecuentes. Esto construye un
+/// vocabulario partiendo de los 256 tokens base a nivel de byte
+/// hasta alcanzar el tamaño objetivo del vocabulario.
+///
+/// # Argumentos
+///
+/// * `text` - Corpus de entrenamiento (típicamente varios MB de texto).
+/// * `vocab_size` - Tamaño objetivo del vocabulario (valores comunes: 512, 1024, 2048, 5000).
+///
+/// # Optimización de rendimiento
+///
+/// Para vocabularios grandes (>2000 tokens), este método entrena sobre
+/// una muestra de 200KB del corpus en lugar del texto completo.
+/// Esto es mucho más rápido y aun así aprende eficazmente los patrones
+/// más frecuentes. Las fusiones aprendidas luego están disponibles
+/// para codificar el corpus completo.
+///
+/// # Ejemplo
+///
+/// ```rust
+/// use molineteai::BPETokenizer;
+///
+/// // Entrenar sobre un corpus de texto de ejemplo
+/// let text = "hello world hello rust hello world";
+/// let mut tokenizer = BPETokenizer::new(300);
+/// tokenizer.train(&text, 300);
+///
+/// // Verificar que el entrenamiento funcionó
+/// assert!(tokenizer.vocab_size() > 256);
+/// ```
     pub fn train(&mut self, text: &str, vocab_size: usize) {
-        // If target vocab size is 256 or less, we're already done
+        // Si el tamaño objetivo del vocabulario es 256 o menos, ya hemos terminado.
         if vocab_size <= 256 {
             return;
         }
 
-        println!("Training BPE tokenizer...");
-        println!("  Starting vocab size: {}", self.vocab.len());
-        println!("  Target vocab size: {}", vocab_size);
-        println!("  Corpus size: {} bytes", text.len());
+        println!("Entrenando el tokenizador BPE...");
+        println!("  Tamaño inicial del vocabulario: {}", self.vocab.len());
+        println!("  Tamaño objetivo del vocabulario: {}", vocab_size);
+        println!("  Tamaño del corpus: {} bytes", text.len());
 
-        // Determine number of merges needed
+        // Determina la cantidad de fusiones necesarias.
         let num_merges = vocab_size - 256;
-
-        // Optimization: For large vocab sizes (>2000), train on a smaller subset
-        // 200KB is sufficient to learn common patterns and trains much faster
+        // Optimización: Para vocabularios grandes (>2000 merges), entrenar sobre una muestra más pequeña.
+        // 200KB suelen ser suficientes para capturar los patrones más frecuentes del lenguaje
         const MAX_SAMPLE_SIZE: usize = 200_000;
         let training_text = if num_merges > 2000 && text.len() > MAX_SAMPLE_SIZE {
-           let sample_size = text.floor_char_boundary(MAX_SAMPLE_SIZE);
+            // Ajusta el tamaño al límite de carácter UTF-8 válido
+            let sample_size = text.floor_char_boundary(MAX_SAMPLE_SIZE);
+
             println!(
-                "  Using {}KB training sample for speed (learns common patterns faster). {}",
-                sample_size / 1000,
-                sample_size
+                "  Usando {}KB de muestra de entrenamiento para mayor velocidad (captura patrones frecuentes rápidamente).",
+                sample_size / 1000
             );
+            // Se usa solo el prefijo del texto como muestra de entrenamiento.
             &text[..sample_size]
         } else {
+            // Si el vocabulario es pequeño o el texto ya es corto, se entrena sobre el corpus completo.
             text
         };
-
-        // Convert training text to byte-level tokens
-        // Each byte becomes a token like "<00>", "<01>", etc.
+        
+        // Convierte el texto de entrenamiento a tokens a nivel de byte
+        // Cada byte se convierte en un token como "<00>", "<01>", etc.
         let mut tokens: Vec<String> = training_text
-            .bytes()
-            .map(|b| format!("<{:02x}>", b))
-            .collect();
+            .bytes() // Convierte el texto a bytes
+            .map(|b| format!("<{:02x}>", b)) // Formatea cada byte como un token hexadecimal
+            .collect(); // Lo convierte en un vector de tokens
 
-        // Buffer to avoid repeated allocations (Double Buffer Optimization)
+        // Buffer auxiliar para evitar realocaciones dinámicas durante los merges (Double Buffer Optimization).
         let mut new_tokens = Vec::with_capacity(tokens.len());
 
-        // Learn merges iteratively
+        // Itera hasta aprender el número deseado de fusiones o hasta que no queden pares para fusionar.
         for merge_idx in 0..num_merges {
-            // === PARALLEL PAIR COUNTING ===
-            // This is the performance bottleneck, so we parallelize it
-
-            // Chunk size: At least 50K tokens per chunk, or divide by thread count
+        // === CONTEO DE PARES EN PARALELO ===
+        // Este es el cuello de botella en rendimiento, así que lo paralelizamos.
+            
+            // Tamaño de chunk: El máximo entre 50,000 tokens o el tamaño total dividido por el número de hilos disponibles.
             let chunk_size = 50_000.max(tokens.len() / rayon::current_num_threads().max(1));
-
-            // Count all adjacent pairs in parallel across chunks
+            
+            // Cuenta todos los pares adyacentes en paralelo a través de los chunks
             let pair_counts: HashMap<(String, String), usize> = tokens
                 .par_chunks(chunk_size)
                 .enumerate()
                 .fold(HashMap::new, |mut local_counts, (chunk_idx, chunk)| {
-                    // Count pairs within this chunk
-                    for window in chunk.windows(2) {
-                        let pair = (window[0].clone(), window[1].clone());
-                        *local_counts.entry(pair).or_insert(0) += 1;
+                    // Cuenta los pares adyacentes dentro del chunk
+                    for window in chunk.windows(2) { // Crea ventanas de tamaño 2 para obtener pares adyacentes
+                        let pair = (window[0].clone(), window[1].clone()); // Crea el par de tokens adyacentes
+                        *local_counts.entry(pair).or_insert(0) += 1; // Incrementa el conteo para este par si existe, o lo inicializa a 1 si no existe
                     }
 
-                    // Handle chunk boundaries: count the pair spanning to next chunk
-                    if chunk_idx * chunk_size + chunk.len() < tokens.len() {
-                        if let Some(last) = chunk.last() {
-                            if let Some(next) = tokens.get(chunk_idx * chunk_size + chunk.len()) {
-                                let pair = (last.clone(), next.clone());
-                                *local_counts.entry(pair).or_insert(0) += 1;
+                    // Manejar los límites de los chunks: contar el par que se extiende al siguiente chunk
+                    if chunk_idx * chunk_size + chunk.len() < tokens.len() { // Verifica si hay un siguiente chunk
+                        if let Some(last) = chunk.last() { // Obtiene el último token del chunk actual
+                            if let Some(next) = tokens.get(chunk_idx * chunk_size + chunk.len()) { // Obtiene el primer token del siguiente chunk
+                                let pair = (last.clone(), next.clone()); // Crea el par que cruza el límite del chunk
+                                *local_counts.entry(pair).or_insert(0) += 1; // Incrementa el conteo para este par si existe, o lo inicializa a 1 si no existe
                             }
                         }
                     }
 
-                    local_counts
+                    local_counts // Retorna el conteo local para este chunk
                 })
                 .reduce(HashMap::new, |mut a, b| {
-                    // Merge pair counts from all chunks
+                    // Combina los conteos de pares de todos los chunks
                     for (pair, count) in b {
                         *a.entry(pair).or_insert(0) += count;
                     }
                     a
                 });
-
-            // If no pairs found, training is complete
+            
+            // Si no se encontraron pares, el entrenamiento está completo (no hay más fusiones posibles).
             if pair_counts.is_empty() {
                 break;
             }
 
-            // === DETERMINISTIC TIE-BREAKING ===
-            // HashMap iteration is random. To guarantee the exact same merges every run,
-            // we sort the pairs.
-            // Primary sort: Count (descending)
-            // Secondary sort: Token strings (lexicographically ascending)
-            let mut pairs: Vec<((String, String), usize)> = pair_counts.into_iter().collect();
+            // === DESEMPATE DETERMINISTA ===
+            // La iteración de HashMap es aleatoria. Para garantizar exactamente las mismas fusiones en cada ejecución,
+            // ordenamos los pares.
+            // Orden primario: Conteo (descendente)
+            // Orden secundario: Cadenas de los tokens (ascendente lexicográfico)
+            let mut pairs: Vec<((String, String), usize)> = pair_counts.into_iter().collect(); // Convierte el HashMap en un vector de pares y conteos
             pairs.sort_by(|a, b| {
-                b.1.cmp(&a.1) // Count descending
-                    .then_with(|| a.0.cmp(&b.0)) // String ascending
+                b.1.cmp(&a.1) // Conteo descendente
+                    .then_with(|| a.0.cmp(&b.0)) // String ascendente
             });
 
-            // The first pair is the winner
+            // El par más frecuente es el primero después de ordenar
             let (best_pair, count) = pairs[0].clone();
 
-            // Create new token by concatenating the pair
+            // Crea el nuevo token fusionado a partir del par más frecuente
             let new_token = format!("{}{}", best_pair.0, best_pair.1);
 
-            // Add to vocabulary and record the merge rule
+            // Agrega el nuevo token al vocabulario con el siguiente ID disponible
             self.vocab.insert(new_token.clone(), self.vocab.len());
             self.merges.push(best_pair.clone());
 
-            // === APPLY MERGE TO CORPUS ===
-            // Rebuild the token list with the new merge applied.
-            // We use the double-buffer strategy here to reuse memory.
+            // === APLICAR LA FUSIÓN AL CORPUS ===
+            // Reconstruimos la lista de tokens aplicando la nueva fusión.
+            // Aquí utilizamos la estrategia de doble búfer para reutilizar memoria.
             new_tokens.clear();
 
             let mut i = 0;
             while i < tokens.len() {
-                // If we find the pair, replace it with the merged token
+                // Si encontramos el par, lo reemplazamos con el token fusionado
                 if i < tokens.len() - 1 && tokens[i] == best_pair.0 && tokens[i + 1] == best_pair.1
                 {
                     new_tokens.push(new_token.clone());
-                    i += 2; // Skip both tokens in the pair
+                    i += 2; // Saltamos ambos tokens del par
                 } else {
                     new_tokens.push(tokens[i].clone());
                     i += 1;
                 }
             }
 
-            // Swap the buffers so `tokens` has the updated data for the next loop
+            // Intercambiamos los búferes para que `tokens` tenga los datos actualizados para la siguiente iteración
             std::mem::swap(&mut tokens, &mut new_tokens);
 
-            // Progress logging every 50 merges
+            // Imprime el progreso cada 50 fusiones para no saturar la salida
             if merge_idx % 50 == 0 {
                 println!(
-                    "  Merge {}/{}: {:?} (count: {}) -> vocab size: {}",
+                    "Fusión {}/{}: {:?} (conteo: {}) -> tamaño del vocabulario: {}",
                     merge_idx + 1,
                     num_merges,
                     best_pair,
@@ -270,123 +283,124 @@ impl BPETokenizer {
             }
         }
 
-        println!("Training complete! Final vocab size: {}", self.vocab.len());
-        println!("Learned {} merges\n", self.merges.len());
+        println!("¡Entrenamiento completo! Tamaño final del vocabulario: {}", self.vocab.len());
+        println!("Se aprendieron {} fusiones\n", self.merges.len());
     }
 
-    /// Convert text to byte-level token strings
+    /// Convierte texto en tokens a nivel de byte.
     ///
-    /// Internal helper that converts each byte to its hex representation.
+    /// Función interna que convierte cada byte a su representación hexadecimal.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `text` - Input text to convert
+    /// * `text` - Texto de entrada a convertir
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Vector of token strings like ["<68>", "<65>", "<6c>", "<6c>", "<6f>"] for "hello"
+    /// Vector de cadenas de tokens como ["<68>", "<65>", "<6c>", "<6c>", "<6f>"] para "hello"
     fn byte_encode(&self, text: &str) -> Vec<String> {
         text.bytes().map(|b| format!("<{:02x}>", b)).collect()
     }
 
-    /// Encode text to token IDs
+    /// Codifica texto a IDs de tokens
     ///
-    /// Converts text into a sequence of token IDs by first converting to byte-level
-    /// tokens, then applying learned merge rules in order.
+    /// Convierte el texto en una secuencia de IDs de tokens primero
+    /// transformándolo a tokens a nivel de byte y luego aplicando
+    /// las reglas de fusión aprendidas en orden.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `text` - Input text to encode
+    /// * `text` - Texto de entrada a codificar
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Vector of token IDs
+    /// Vector de IDs de tokens
     ///
-    /// # Performance Optimization
+    /// # Optimización de rendimiento
     ///
-    /// For large texts (>200KB), this method splits the text into chunks and
-    /// encodes them in parallel, providing significant speedup on multi-core systems.
+    /// Para textos grandes (>200KB), este método divide el texto en bloques
+    /// y los codifica en paralelo, proporcionando una mejora significativa
+    /// de velocidad en sistemas multinúcleo.
     ///
-    /// # Example
+    /// # Ejemplo
     ///
     /// ```rust
-    /// # use feste::BPETokenizer;
+    /// # use molineteai::BPETokenizer;
     /// # let mut tokenizer = BPETokenizer::new(256);
     /// let ids = tokenizer.encode("Hello, world!");
-    /// println!("Token IDs: {:?}", ids);
+    /// println!("IDs de tokens: {:?}", ids);
     /// ```
     pub fn encode(&self, text: &str) -> Vec<usize> {
-        // Threshold for parallel processing
-        const CHUNK_SIZE: usize = 100_000; // bytes per chunk
+        // Umbral para paralelismo
+        const CHUNK_SIZE: usize = 100_000; // bytes por chunk
 
-        if text.len() > CHUNK_SIZE * 2 {
-            // === PARALLEL ENCODING FOR LARGE TEXTS ===
-            // Split text into non-overlapping chunks for parallel encoding
-            //
-            // Note: This means we don't apply merges across chunk boundaries.
-            // This is acceptable because:
-            // 1. Boundaries are rare (every 100KB)
-            // 2. Impact on compression is negligible
-            // 3. Correctness is guaranteed (no duplicate or missing tokens)
+        if text.len() > CHUNK_SIZE * 2 { // Decidimos si paralelizar basándonos en el tamaño del texto
+        // === CODIFICACIÓN PARALELA PARA TEXTOS GRANDES ===
+        // Dividir el texto en fragmentos no superpuestos para codificarlos en paralelo
+        //
+        // Nota: Esto significa que no aplicamos fusiones (merges) a través de los límites entre fragmentos.
+        // Esto es aceptable porque:
+        // 1. Los límites son poco frecuentes (cada 100KB)
+        // 2. El impacto en la compresión es insignificante
+        // 3. La corrección está garantizada (no hay tokens duplicados ni faltantes)
 
             let mut chunks = Vec::new();
             let mut start = 0;
 
             while start < text.len() {
-                // Calculate end position
+                // Calcula el final del chunk.
                 let mut end = (start + CHUNK_SIZE).min(text.len());
 
-                // Adjust to character boundary (can't split UTF-8 characters)
+                // Ajustar el final para no cortar en medio de un carácter UTF-8
                 while end < text.len() && !text.is_char_boundary(end) {
                     end += 1;
                 }
 
                 chunks.push(&text[start..end]);
 
-                // Move to next chunk
+                // Moverse al siguiente chunk
                 start = end;
             }
 
-            // Encode each chunk in parallel
+            // Codificar cada chunk en paralelo
             let encoded_chunks: Vec<Vec<usize>> = chunks
                 .par_iter()
                 .map(|chunk| self.encode_sequential(chunk))
                 .collect();
 
-            // Concatenate all encoded chunks
+            // Concatenar los resultados de los chunks codificados
             let mut result = Vec::new();
             for chunk in encoded_chunks {
                 result.extend_from_slice(&chunk);
             }
             result
         } else {
-            // Small text: use sequential version (avoids parallel overhead)
+            // Textos pequeños: usar la versión secuencial (evita la sobrecarga del paralelismo)
             self.encode_sequential(text)
         }
     }
 
-    /// Encode text sequentially (non-parallel version)
+    /// Codifica texto de forma secuencial (versión no paralela)
     ///
-    /// Internal method that performs the actual encoding by applying merge rules.
+    /// Método interno que realiza la codificación aplicando las reglas de fusión.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `text` - Input text to encode
+    /// * `text` - Texto de entrada a codificar
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Vector of token IDs
+    /// Vector de identificadores (IDs) de tokens
     fn encode_sequential(&self, text: &str) -> Vec<usize> {
         let mut tokens = self.byte_encode(text);
-        // buffer to avoid repeated allocations
+        // Buffer para evitar realocaciones dinámicas durante la aplicación de fusiones.
         let mut new_tokens = Vec::with_capacity(tokens.len());
 
         for (pair_a, pair_b) in &self.merges {
             let merged = format!("{}{}", pair_a, pair_b);
 
-            // Fast path: if the pair isn't even in the tokens, skip this merge rule
-            // (Optional: this checks O(N) but saves the copy loop.
-            // Useful if N is large and the pair is rare.)
+            // Ruta rápida: si el par ni siquiera aparece en los tokens, se omite esta regla de fusión.
+            // Es útil si N es grande y el par es poco frecuente.)
 
             new_tokens.clear();
             let mut i = 0;
@@ -399,7 +413,7 @@ impl BPETokenizer {
                     i += 1;
                 }
             }
-            // Swap buffers: new_tokens becomes input for next iteration
+            // Intercambiamos los búferes para que `tokens` tenga los datos actualizados para la siguiente iteración
             std::mem::swap(&mut tokens, &mut new_tokens);
         }
 
@@ -409,75 +423,75 @@ impl BPETokenizer {
             .collect()
     }
 
-    /// Decode token IDs back to text
+    /// Decodifica IDs de tokens de vuelta a texto
     ///
-    /// Converts a sequence of token IDs back into the original text by looking up
-    /// each ID in the vocabulary and parsing the hex-encoded bytes.
+    /// Convierte una secuencia de IDs de tokens nuevamente en el texto original
+    /// buscando cada ID en el vocabulario y procesando los bytes codificados en hexadecimal.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `ids` - Token IDs to decode
+    /// * `ids` - IDs de tokens a decodificar
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Decoded text string
+    /// Cadena de texto decodificada
     ///
-    /// # Example
+    /// # Ejemplo
     ///
     /// ```rust
-    /// # use feste::BPETokenizer;
+    /// # use molineteai::BPETokenizer;
     /// # let tokenizer = BPETokenizer::new(256);
     /// # let ids = tokenizer.encode("Hello!");
     /// let text = tokenizer.decode(&ids);
     /// assert_eq!(text, "Hello!");
     /// ```
     pub fn decode(&self, ids: &[usize]) -> String {
-        // Create reverse vocabulary map (ID -> token string)
+        // Crea un mapa de vocabulario inverso (ID -> cadena de token)
         let id_to_token: HashMap<usize, String> = self
             .vocab
             .iter()
             .map(|(token, id)| (*id, token.clone()))
             .collect();
 
-        // Convert IDs back to token strings
+        // Convierta cada ID de token a su cadena correspondiente usando el mapa inverso
         let tokens: Vec<String> = ids
             .iter()
             .filter_map(|id| id_to_token.get(id).cloned())
             .collect();
 
-        // Join all tokens and decode using the shared hex-parsing logic
+        // Une los tokens en una sola cadena y decodifíquela usando decode_token
         let merged = tokens.join("");
         self.decode_token(&merged)
     }
 
-    /// Get the vocabulary size
+    /// Obtiene el tamaño del vocabulario actual.
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Number of tokens in the vocabulary (256 + number of merges)
+    /// Numero total de tokens en el vocabulario (256 tokens base + número de fusiones aprendidas).
     pub fn vocab_size(&self) -> usize {
         self.vocab.len()
     }
 
-    /// Save tokenizer to a JSON file
+    /// Guarda el tokenizador en un archivo JSON
     ///
-    /// Serializes the tokenizer (vocabulary and merge rules) to a JSON file
-    /// for later loading.
+    /// Serializa el tokenizador (vocabulario y reglas de fusión)
+    /// en un archivo JSON para poder cargarlo posteriormente.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `path` - Path to save the tokenizer
+    /// * `path` - Ruta donde se guardará el tokenizador
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Result indicating success or error
+    /// `Result` que indica éxito o error en la operación
     ///
-    /// # Example
+    /// # Ejemplo
     ///
     /// ```rust,no_run
-    /// # use feste::BPETokenizer;
+    /// # use molineteai::BPETokenizer;
     /// # let tokenizer = BPETokenizer::new(256);
-    /// tokenizer.save("tokenizer.json").expect("Failed to save");
+    /// tokenizer.save("tokenizer.json").expect("Error al guardar");
     /// ```
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn std::error::Error>> {
         let json = serde_json::to_string_pretty(self)?;
@@ -485,25 +499,25 @@ impl BPETokenizer {
         Ok(())
     }
 
-    /// Load tokenizer from a JSON file
+    /// Carga un tokenizador desde un archivo JSON
     ///
-    /// Deserializes a previously saved tokenizer from a JSON file.
+    /// Deserializa un tokenizador previamente guardado desde un archivo JSON.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `path` - Path to the tokenizer file
+    /// * `path` - Ruta del archivo que contiene el tokenizador
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Result containing the loaded tokenizer or an error
+    /// `Result` que contiene el tokenizador cargado o un error en caso de fallo
     ///
-    /// # Example
+    /// # Ejemplo
     ///
     /// ```rust,no_run
-    /// use feste::BPETokenizer;
+    /// use molineteai::BPETokenizer;
     ///
     /// let tokenizer = BPETokenizer::load("tokenizer.json")
-    ///     .expect("Failed to load tokenizer");
+    ///     .expect("Error al cargar el tokenizador");
     /// ```
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
         let json = fs::read_to_string(path)?;
@@ -511,11 +525,11 @@ impl BPETokenizer {
         Ok(tokenizer)
     }
 
-    /// Get statistics about the tokenizer
+    /// Obtiene estadísticas del tokenizador
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// TokenizerStats struct with vocabulary information
+    /// Estructura `TokenizerStats` con información del vocabulario
     pub fn stats(&self) -> TokenizerStats {
         TokenizerStats {
             vocab_size: self.vocab.len(),
@@ -524,23 +538,23 @@ impl BPETokenizer {
         }
     }
 
-    /// Analyze vocabulary and display insights
+    /// Analiza el vocabulario y muestra información detallada
     ///
-    /// Prints detailed information about the tokenizer's vocabulary, including:
-    /// - Token composition (base vs. learned)
-    /// - Sample of learned tokens
-    /// - Compression analysis on sample text
-    /// - Example tokenizations
+    /// Imprime información detallada sobre el vocabulario del tokenizador, incluyendo:
+    /// - Composición de los tokens (base vs. aprendidos)
+    /// - Muestra de tokens aprendidos
+    /// - Análisis de compresión sobre un texto de ejemplo
+    /// - Ejemplos de tokenización
     ///
-    /// This is useful for understanding what the tokenizer has learned.
+    /// Esto es útil para comprender qué ha aprendido el tokenizador.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `sample_text` - Text to use for compression analysis and examples
+    /// * `sample_text` - Texto utilizado para el análisis de compresión y los ejemplos de tokenización
     pub fn analyze_vocabulary(&self, sample_text: &str) {
         println!("\n=== Vocabulary Analysis ===\n");
 
-        // Find human-readable tokens (merged tokens, not just base bytes)
+        // Encontrar tokens legibles (tokens fusionados, no solo bytes base)
         let mut readable_tokens: Vec<(String, usize)> = self
             .vocab
             .iter()
@@ -548,10 +562,10 @@ impl BPETokenizer {
             .map(|(token, id)| (token.clone(), *id))
             .collect();
 
-        // Sort by token ID (roughly reflects merge order during training)
+        // Ordenar por ID de token (refleja aproximadamente el orden de las fusiones durante el entrenamiento)
         readable_tokens.sort_by_key(|(_, id)| *id);
 
-        // Display token type breakdown
+        // Desglose del tipo de token de visualización
         let base_tokens = 256;
         let merged_tokens = self.vocab.len() - base_tokens;
         println!("Token Composition:");
@@ -559,7 +573,7 @@ impl BPETokenizer {
         println!("  Learned merges: {}", merged_tokens);
         println!("  Total vocabulary: {}\n", self.vocab.len());
 
-        // Show sample of learned tokens
+        // Muestra ejemplos de los tokens aprendidos
         println!("Sample of Learned Tokens (first 30):");
         let display_count = 30.min(readable_tokens.len());
         for (token, id) in readable_tokens.iter().take(display_count) {
@@ -570,7 +584,7 @@ impl BPETokenizer {
             }
         }
 
-        // Analyze compression on sample text
+        // Analiza la compresión en un texto de ejemplo
         if !sample_text.is_empty() {
             println!("\nCompression Analysis (on sample):");
             let sample_chars: String = sample_text.chars().take(10000).collect();
@@ -585,13 +599,13 @@ impl BPETokenizer {
             println!("  Avg chars per token: {:.1}", compression_ratio);
         }
 
-        // Show example tokenizations
-        println!("\nExample Tokenizations:");
+        // Mostrar ejemplos de tokenización
+        println!("\nEjemplos de Tokenización:");
         let examples = vec![
-            "To be, or not to be",
-            "Romeo and Juliet",
-            "Wherefore art thou",
-            "The quality of mercy",
+            "En un lugar de la Mancha",
+            "De cuyo nombre no quiero acordarme",
+            "No ha mucho tiempo que vivía",
+            "La libertad, Sancho, es uno de los más preciosos dones",
         ];
 
         for example in examples {
@@ -599,7 +613,7 @@ impl BPETokenizer {
             let token_strs: Vec<String> = tokens
                 .iter()
                 .map(|&id| {
-                    // Find token string for this ID
+                    // Encuentra la cadena de token correspondiente al ID y decodifíquela para mostrarla
                     self.vocab
                         .iter()
                         .find(|(_, v)| **v == id)
@@ -618,57 +632,60 @@ impl BPETokenizer {
         println!("\n{}\n", "=".repeat(60));
     }
 
-    /// Helper to decode hex-encoded token strings back to readable text
+    /// Función auxiliar para decodificar cadenas de tokens codificadas en hexadecimal
+    /// y convertirlas nuevamente en texto legible
     ///
-    /// Parses a string containing hex-encoded bytes like "<68><65><6c><6c><6f>"
-    /// and converts them back to UTF-8 text. This method handles both single tokens
-    /// and concatenated sequences of tokens.
+    /// Analiza una cadena que contiene bytes codificados en hexadecimal como
+    /// "<68><65><6c><6c><6f>" y los convierte nuevamente en texto UTF-8.
+    /// Este método maneja tanto tokens individuales como secuencias
+    /// concatenadas de múltiples tokens.
     ///
-    /// # Arguments
+    /// # Argumentos
     ///
-    /// * `token` - Token string (or concatenated tokens) to decode
+    /// * `token` - Cadena del token (o tokens concatenados) a decodificar
     ///
-    /// # Returns
+    /// # Retorna
     ///
-    /// Decoded string representation
+    /// Representación en texto decodificada
     fn decode_token(&self, token: &str) -> String {
-        // Parse hex-encoded bytes back to UTF-8 text
+        // Analiza los bytes codificados en hexadecimal y los convierte nuevamente en texto UTF-8
         let mut bytes = Vec::new();
         let mut chars = token.chars().peekable();
 
         while let Some(ch) = chars.next() {
             if ch == '<' {
-                // Parse hex byte: <XX> -> byte value
+                // Analiza un byte en hexadecimal: <XX> -> valor del byte
                 let mut hex_str = String::new();
                 while let Some(&next_ch) = chars.peek() {
                     if next_ch == '>' {
-                        chars.next(); // consume '>'
+                        chars.next(); // consumir '>'
                         break;
                     }
                     hex_str.push(chars.next().unwrap());
                 }
 
-                // Convert hex string to byte and collect
+                // Convertir la cadena hexadecimal a byte y almacenarlo
                 if let Ok(byte) = u8::from_str_radix(&hex_str, 16) {
                     bytes.push(byte);
                 }
             }
-            // Ignore any non-hex characters (shouldn't be any in valid tokens)
+            // Ignorar cualquier carácter que no sea parte del formato hexadecimal
+            // (no debería haber ninguno en tokens válidos)
         }
 
-        // Convert collected bytes to UTF-8 string
+        // Convertir los bytes recolectados a cadena UTF-8
         String::from_utf8_lossy(&bytes).to_string()
     }
-}
+    }
 
-/// Statistics about a tokenizer's vocabulary
+/// Estadísticas sobre el vocabulario de un tokenizador
 #[derive(Debug)]
 pub struct TokenizerStats {
-    /// Total vocabulary size (base tokens + learned merges)
+    /// Tamaño total del vocabulario (tokens base + fusiones aprendidas)
     pub vocab_size: usize,
-    /// Number of merge rules learned
+    /// Número de reglas de fusión aprendidas
     pub num_merges: usize,
-    /// Number of base tokens (always 256 for byte-level BPE)
+    /// Número de tokens base (siempre 256 para BPE a nivel de byte)
     pub base_tokens: usize,
 }
 
@@ -680,7 +697,7 @@ mod tests {
     fn test_decode_token_single_byte() {
         let tokenizer = BPETokenizer::new(256);
 
-        // Single byte token: 'h' = 0x68
+        // Token de un solo byte: 'h' = 0x68
         let result = tokenizer.decode_token("<68>");
         assert_eq!(result, "h");
     }
@@ -689,7 +706,7 @@ mod tests {
     fn test_decode_token_multiple_bytes() {
         let tokenizer = BPETokenizer::new(256);
 
-        // Multiple bytes: "hello"
+        // Múltiples bytes: "hello"
         let result = tokenizer.decode_token("<68><65><6c><6c><6f>");
         assert_eq!(result, "hello");
     }
@@ -698,7 +715,7 @@ mod tests {
     fn test_decode_token_with_space() {
         let tokenizer = BPETokenizer::new(256);
 
-        // "hi " (with space, 0x20)
+        // "hi " (con espacio, 0x20)
         let result = tokenizer.decode_token("<68><69><20>");
         assert_eq!(result, "hi ");
     }
@@ -707,7 +724,7 @@ mod tests {
     fn test_decode_token_utf8_multibyte() {
         let tokenizer = BPETokenizer::new(256);
 
-        // "é" in UTF-8 is [0xc3, 0xa9]
+        // "é" en UTF-8 es [0xc3, 0xa9]
         let result = tokenizer.decode_token("<c3><a9>");
         assert_eq!(result, "é");
     }
@@ -724,7 +741,7 @@ mod tests {
     fn test_decode_basic() {
         let tokenizer = BPETokenizer::new(256);
 
-        // Create a simple test: encode "hello" as individual bytes
+        // Crear una prueba simple: codificar "hello" como bytes individuales
         let text = "hello";
         let ids = tokenizer.encode(text);
         let decoded = tokenizer.decode(&ids);
@@ -749,18 +766,18 @@ mod tests {
         for text in test_cases {
             let encoded = tokenizer.encode(text);
             let decoded = tokenizer.decode(&encoded);
-            assert_eq!(decoded, text, "Failed roundtrip for: {}", text);
+            assert_eq!(decoded, text, "Falló el roundtrip para: {}", text);
         }
     }
 
     #[test]
     fn test_encode_decode_with_merges() {
-        // Create tokenizer and train it
+        // Crear tokenizador y entrenarlo
         let mut tokenizer = BPETokenizer::new(300);
         let training_text = "hello hello world world hello";
         tokenizer.train(training_text, 300);
 
-        // Test that encode/decode still works after training
+        // Verificar que encode/decode siga funcionando después del entrenamiento
         let test_text = "hello world";
         let encoded = tokenizer.encode(test_text);
         let decoded = tokenizer.decode(&encoded);
@@ -772,13 +789,13 @@ mod tests {
     fn test_decode_token_consistency_with_decode() {
         let tokenizer = BPETokenizer::new(256);
 
-        // Test that decode_token produces same result as decode for single token
+        // Verificar que decode_token produce el mismo resultado que decode para un token individual
         let token_str = "<68><65><6c><6c><6f>"; // "hello"
 
-        // Direct decode_token
+        // Decodificación directa
         let direct_result = tokenizer.decode_token(token_str);
 
-        // Simulate what decode does: parse the token string as if it came from vocab
+        // Simulación del comportamiento de decode
         let simulated_result = tokenizer.decode_token(token_str);
 
         assert_eq!(direct_result, simulated_result);
@@ -789,7 +806,7 @@ mod tests {
     fn test_decode_token_concatenated() {
         let tokenizer = BPETokenizer::new(256);
 
-        // Multiple tokens concatenated (what decode does before calling decode_token)
+        // Múltiples tokens concatenados (lo que hace decode antes de llamar a decode_token)
         let concatenated = "<68><65><6c><6c><6f><20><77><6f><72><6c><64>";
         let result = tokenizer.decode_token(concatenated);
 
@@ -803,8 +820,9 @@ mod tests {
 
         let mut tokenizer2 = BPETokenizer::new(512);
         tokenizer2.train("hello hello world", 512);
-        // Note: actual vocab size depends on how many unique pairs exist in the corpus
-        // Small corpus won't reach target vocab size, so just verify it increased
+
+        // Nota: el tamaño real depende de cuántos pares únicos existan en el corpus
+        // Un corpus pequeño no alcanzará el tamaño objetivo, así que solo verificamos que aumente
         assert!(tokenizer2.vocab_size() > 256);
         assert!(tokenizer2.vocab_size() <= 512);
     }
@@ -813,17 +831,17 @@ mod tests {
     fn test_base_vocab_coverage() {
         let tokenizer = BPETokenizer::new(256);
 
-        // All byte values should be encodable
+        // Todos los valores posibles de byte deberían poder codificarse
         for byte in 0u8..=255u8 {
             let text = String::from_utf8(vec![byte]).unwrap_or_else(|_| {
-                // For invalid UTF-8, create string from bytes using from_utf8_lossy
+                // Para UTF-8 inválido, crear cadena usando from_utf8_lossy
                 String::from_utf8_lossy(&[byte]).to_string()
             });
 
             let encoded = tokenizer.encode(&text);
             let decoded = tokenizer.decode(&encoded);
 
-            // Should roundtrip correctly
+            // Debe mantenerse el roundtrip correctamente
             assert_eq!(decoded, text);
         }
     }
