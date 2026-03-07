@@ -18,7 +18,7 @@
 //!
 //! Menos de 1 segundo
 
-use feste::Tensor;
+use molineteai::Tensor;
 use std::time::Instant;
 
 fn main() {

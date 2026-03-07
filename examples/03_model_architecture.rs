@@ -19,7 +19,7 @@
 //!
 //! Menos de 5 segundos
 
-use feste::{Config, GPT2};
+use molineteai::{Config, GPT2};
 
 fn main() {
     println!("\n{}", "=".repeat(70));
