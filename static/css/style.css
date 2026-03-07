@@ -1,0 +1,300 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #0a0a0a;
+  --paper: #f7f4ee;
+  --accent: #e8441a;
+  --accent2: #1a3de8;
+  --glass: rgba(247, 244, 238, 0.74);
+  --border: rgba(10, 10, 10, 0.15);
+  --mono: 'DM Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--display);
+  background-color: var(--ink);
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.root-wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Background ── */
+.bg {
+  position: fixed;
+  inset: -40px;           /* oversized so parallax doesn't reveal edges */
+  background-image: url('/static/img/1.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  /* backgroundPosition driven by JS */
+  transition: background-position 0s; /* JS handles smoothing */
+  will-change: background-position;
+  z-index: 0;
+}
+
+.bg-overlay {
+  position: fixed;
+  inset: -40px;
+  background: linear-gradient(
+    135deg,
+    rgba(10,10,10,0.52) 0%,
+    rgba(10,10,10,0.22) 50%,
+    rgba(232,68,26,0.15) 100%
+  );
+  background-size: cover;
+  z-index: 1;
+  transition: opacity 0.6s ease;
+}
+
+/* Fade overlay away when card is hidden (pure bg mode) */
+.root-wrapper:has(.card--hidden) .bg-overlay {
+  opacity: 0.15;
+}
+
+/* ── Hint text when bg is revealed ── */
+.bg-hint {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+
+.bg-hint--visible {
+  opacity: 1;
+}
+
+/* ── Scene / layout ── */
+.scene {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  pointer-events: none;   /* let mouse events fall through to root-wrapper */
+}
+
+/* ── Card ── */
+.card {
+  pointer-events: auto;   /* card itself is interactive */
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1.5px solid rgba(255,255,255,0.38);
+  border-radius: 2px;
+  padding: 52px 48px 48px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow:
+    0 8px 48px rgba(0,0,0,0.28),
+    0 1px 0 rgba(255,255,255,0.6) inset;
+
+  /* Transition for show / hide */
+  transition:
+    opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.45s ease;
+  will-change: opacity, transform;
+}
+
+.card--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0px);
+  pointer-events: auto;
+}
+
+.card--hidden {
+  opacity: 0;
+  transform: translateY(14px) scale(0.97);
+  filter: blur(6px);
+  pointer-events: none;   /* clicks pass through when invisible */
+}
+
+/* ── Typography ── */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+h1 {
+  font-family: var(--display);
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 36px;
+}
+
+h1 span { color: var(--accent2); }
+
+/* ── Input field ── */
+.field {
+  display: flex;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  cursor: text;
+}
+
+.field:focus-within {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 14px;
+  background: rgba(255,255,255,0.88);
+  border: none;
+  outline: none;
+  color: var(--ink);
+  min-width: 0;
+  cursor: text;
+}
+
+input[type="text"]::placeholder {
+  color: rgba(10,10,10,0.35);
+  font-style: italic;
+}
+
+.send-btn {
+  padding: 14px 24px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+
+.send-btn:hover { background: var(--accent); }
+.send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 32px 0;
+}
+
+/* ── Response area ── */
+.response-area {
+  min-height: 80px;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(10,10,10,0.45);
+  margin-bottom: 10px;
+}
+
+.bubble {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 18px;
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 15px;
+  word-break: break-word;
+  border-left: 3px solid var(--accent);
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.bubble .tag {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 6px;
+  font-style: normal;
+}
+
+.idle-hint {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(10,10,10,0.35);
+}
+
+/* ── Loading dots ── */
+.loading-dots span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  margin: 0 3px;
+  animation: bounce 1.2s infinite ease-in-out both;
+}
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1.1); opacity: 1; }
+}
+
+/* ── History ── */
+.history {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.5);
+  border-left: 2px solid var(--accent2);
+  color: rgba(10,10,10,0.6);
+  border-radius: 2px;
+}
+
+.history-item strong { color: var(--ink); }
