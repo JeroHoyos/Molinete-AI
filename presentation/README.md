@@ -91,5 +91,5 @@ manim_slides present Presentacion
 * Cada clase de presentación debe heredar de `Slide`.
 * Los videos renderizados se guardan en la carpeta `media/`.
 
-
+# Para cambiar el path entre windows y linux
 sed -i 's/\\\\/\//g' slides/Presentacion.json
