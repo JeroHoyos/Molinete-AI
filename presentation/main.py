@@ -25,16 +25,41 @@ class Presentacion(Slide):
     def construct(self):
         self.camera.background_color = WHITE
 
-        # self.slide_introduction()
-        # self.slide_credits()
-        # self.slide_arquitectura_transformer()
-        # self.slide_molinete_ai()
+        self.slide_introduction()
+        self.slide_credits()
+        self.slide_arquitectura_transformer()
+        self.slide_molinete_ai()
         
-        # self.slide_por_que_no_python()
-        # self.slide_por_que_no_cpp()
-        # self.slide_por_que_si_rust()
+        self.slide_por_que_no_python()
+        self.slide_por_que_no_cpp()
+        self.slide_por_que_si_rust()
 
-        self.diapo_codigo_rust()
+        self.diapo_problema_strawberry()
+        self.diapo_tokenizacion()
+        self.diapo_byte_pair_encoding()
+        self.diapo_tamano_vocabulario()
+
+        self.slide_que_es_un_tensor()
+        self.diapo_matmul()
+        self.diapo_softmax()
+        self.slide_broadcasting()
+        self.slide_strides()
+        self.slide_masked_fill()
+        self.slide_reshape_transpose()
+
+        self.slide_forward_pass()
+        self.slide_embeddings()
+        self.slide_position_embeddings()
+        self.slide_layer_normalization()
+
+        self.slide_mha_acto1_intuicion()
+        self.slide_mha_acto2_formula()
+        self.slide_mha_acto3_calculo()
+        self.slide_mha_acto4_multihead()
+
+        self.slide_causal_masking()
+
+        # self.diapo_codigo_rust()
 
     # --- FUNCIONES AUXILIARES ---
 
@@ -52,6 +77,35 @@ class Presentacion(Slide):
         )
         lbl = Text(str(texto), font=FUENTE, font_size=24, color=color_texto).move_to(rect.get_center())
         return VGroup(rect, lbl)
+    
+    def crear_matriz_bloques(self, filas, columnas, color_fondo=FONDO_CAJA, color_texto=TINTA_NEGRA, valores=None, ancho=0.8, alto=0.8):
+        if valores is None:
+            valores = [""] * (filas * columnas)
+            
+        matriz = VGroup()
+        idx = 0
+        
+        for i in range(filas):
+            fila_bloques = VGroup()
+            for j in range(columnas):
+                texto = valores[idx] if idx < len(valores) else ""
+
+                bloque = self.crear_bloque(
+                    texto=texto, 
+                    color_fondo=color_fondo, 
+                    color_texto=color_texto, 
+                    ancho=ancho, 
+                    alto=alto
+                )
+                fila_bloques.add(bloque)
+                idx += 1
+                
+            fila_bloques.arrange(RIGHT, buff=0.05)
+            matriz.add(fila_bloques)
+            
+        matriz.arrange(DOWN, buff=0.05)
+        
+        return matriz
 
     def limpiar_pantalla(self):
         self.play(*[FadeOut(mob) for mob in self.mobjects])
@@ -297,6 +351,7 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.limpiar_pantalla()
+
     def slide_por_que_no_python(self):
         titulo, linea = self.crear_titulo(
         "Limitaciones de Python en sistemas de inferencia", 
@@ -484,14 +539,15 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def diapo_problema_strawberry(self):
+
         titulo, linea = self.crear_titulo(
             "¿Por qué los LLM no saben 'leer'?", 
             palabra_clave="'leer'?", 
-            color_clave=ALERT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
 
         def crear_burbuja(texto, color_fondo, color_texto, es_usuario=True, t2c_dict=None):
-            txt = Text(texto, font_size=24, color=color_texto, t2c=t2c_dict)
+            txt = Text(texto, font=FUENTE, font_size=24, color=color_texto, t2c=t2c_dict)
             
             fondo = RoundedRectangle(
                 width=txt.width + 0.8, 
@@ -499,16 +555,17 @@ class Presentacion(Slide):
                 corner_radius=0.2, 
                 fill_color=color_fondo, 
                 fill_opacity=1, 
-                stroke_width=0 if es_usuario else 1,
-                stroke_color=DARK_GRAY
+                stroke_width=0 if es_usuario else 1.5,
+                stroke_color=MARRON_OSCURO
             )
             txt.move_to(fondo.get_center())
             burbuja_base = VGroup(fondo, txt)
             
             remitente = Text(
                 "Tú" if es_usuario else "Molinete AI", 
+                font=FUENTE,
                 font_size=16, 
-                color=DARK_GRAY,
+                color=MARRON_OSCURO,
                 weight=BOLD
             )
             
@@ -521,17 +578,17 @@ class Presentacion(Slide):
 
         burbuja_pregunta = crear_burbuja(
             "¿Cuántas letras 'r' hay en 'strawberry'?", 
-            color_fondo=HIGHLIGHT_COLOR, 
-            color_texto=WHITE, 
+            color_fondo=MARRON_OSCURO, 
+            color_texto=PAPEL_CREMA, 
             es_usuario=True
         )
         
         burbuja_respuesta = crear_burbuja(
             "Hay 2 letras 'r' en 'strawberry'.", 
-            color_fondo=SOFT_BG, 
-            color_texto=BLACK, 
+            color_fondo=FONDO_CAJA, 
+            color_texto=TINTA_NEGRA, 
             es_usuario=False,
-            t2c_dict={"2": ALERT_COLOR}
+            t2c_dict={"2": NARANJA_TERRACOTA}
         )
 
         grupo_chat = VGroup(burbuja_pregunta, burbuja_respuesta).arrange(DOWN, buff=0.5)
@@ -543,18 +600,19 @@ class Presentacion(Slide):
 
         texto_explicacion = Text(
             "Para el modelo, la palabra se divide en 'pedazos' (Tokens):", 
-            font_size=24, color=DARK_GRAY
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
         )
         
-        token1 = self.crear_bloque("str", SOFT_BG, ancho=1.2)
-        token2 = self.crear_bloque("aw", SOFT_BG, ancho=1.2)
-        token3 = self.crear_bloque("berry", SOFT_BG, ancho=1.6)
+        token1 = self.crear_bloque("str", ancho=1.2)
+        token2 = self.crear_bloque("aw", ancho=1.2)
+        token3 = self.crear_bloque("berry", ancho=1.6)
         
         tokens_straw = VGroup(token1, token2, token3).arrange(RIGHT, buff=0.15)
         
         grupo_visual = VGroup(texto_explicacion, tokens_straw).arrange(DOWN, buff=0.5)
         grupo_visual.next_to(grupo_chat, DOWN, buff=1.0)
 
+        # 4. Animaciones
         self.play(Write(titulo), Create(linea))
         self.next_slide()
 
@@ -575,62 +633,77 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-        cruz = Cross(tokens_straw, stroke_color=ALERT_COLOR, stroke_width=6)
+        cruz = Cross(tokens_straw, stroke_color=NARANJA_TERRACOTA, stroke_width=6)
         self.play(Create(cruz))
         self.next_slide()
-
+        
         self.limpiar_pantalla()
+
     def diapo_tokenizacion(self):
         titulo, linea = self.crear_titulo(
             "La Tokenización", 
             palabra_clave="Tokenización", 
-            color_clave=HIGHLIGHT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
+
+        frase = "Confía en el tiempo, que suele dar dulces salidas a muchas amargas dificultades"
 
         p1 = Text(
             "1. Por palabra: Vocabulario infinito, muy ineficiente.", 
-            font_size=24, color=BLACK,
-            t2c={"Por palabra:": DARK_GRAY, "infinito": ALERT_COLOR}
+            font=FUENTE, font_size=24, color=TINTA_NEGRA,
+            t2c={"Por palabra:": MARRON_OSCURO, "infinito": NARANJA_TERRACOTA}
         )
-        tokens_palabra = ["En", "un", "lugar", "de", "la", "Mancha"]
+        tokens_palabra = frase.split(" ")
         
         ej_palabra = VGroup(*[
-            self.crear_bloque(t, color_fondo=SOFT_BG, ancho=max(0.8, len(t) * 0.25)) 
+            self.crear_bloque(t, ancho=max(0.8, len(t) * 0.25)) 
             for t in tokens_palabra
         ]).arrange(RIGHT, buff=0.15)
         
+        if ej_palabra.width > 12.5:
+            ej_palabra.scale_to_fit_width(12.5)
+            
         grupo_palabra = VGroup(p1, ej_palabra).arrange(DOWN, aligned_edge=LEFT, buff=0.25)
 
         p2 = Text(
             "2. Por carácter: Secuencias larguísimas, pierde contexto.", 
-            font_size=24, color=BLACK,
-            t2c={"Por carácter:": DARK_GRAY, "pierde contexto": ALERT_COLOR}
+            font=FUENTE, font_size=24, color=TINTA_NEGRA,
+            t2c={"Por carácter:": MARRON_OSCURO, "pierde contexto": NARANJA_TERRACOTA}
         )
-        frase = "En un lugar de la Mancha"
         tokens_caracter = [c if c != ' ' else '_' for c in frase]
         
         ej_caracter = VGroup(*[
-            self.crear_bloque(t, color_fondo=SOFT_BG, ancho=0.3) 
+            self.crear_bloque(t, ancho=0.3) 
             for t in tokens_caracter
         ]).arrange(RIGHT, buff=0.05)
         
-        if ej_caracter.width > 12:
-            ej_caracter.scale_to_fit_width(12)
+
+        if ej_caracter.width > 12.5:
+            ej_caracter.scale_to_fit_width(12.5)
             
         grupo_caracter = VGroup(p2, ej_caracter).arrange(DOWN, aligned_edge=LEFT, buff=0.25)
 
+ 
         p3 = Text(
             "3. Sub-palabras (BPE): Algo más equilibrado.", 
-            font_size=26, color=BLACK, weight=BOLD, 
-            t2c={"Sub-palabras (BPE):": HIGHLIGHT_COLOR, "equilibrio": HIGHLIGHT_COLOR}
+            font=FUENTE, font_size=26, color=TINTA_NEGRA, weight=BOLD, 
+            t2c={"Sub-palabras (BPE):": NARANJA_TERRACOTA, "equilibrado.": NARANJA_TERRACOTA}
         )
-        tokens_bpe = ["En", " un", " lugar", " de", " la", " Man", "cha"]
+    
+        tokens_bpe = [
+            "Con", "f", "ía", "en", "el", "_tiem", "po", ",", "qu", "e", 
+            "su", "ele", "d", "ar", "dul", "ces", "sali", "das", "a", 
+            "mu", "chas", "amar", "gas", "di", "fic", "ul", "ta", "des"
+        ]
         
         ej_bpe = VGroup(*[
-            self.crear_bloque(t, color_fondo=SOFT_BG, ancho=max(0.8, len(t) * 0.25)) 
+            self.crear_bloque(t, ancho=max(0.8, len(t) * 0.25)) 
             for t in tokens_bpe
         ]).arrange(RIGHT, buff=0.15)
         
+        if ej_bpe.width > 12.5:
+            ej_bpe.scale_to_fit_width(12.5)
+            
         grupo_bpe = VGroup(p3, ej_bpe).arrange(DOWN, aligned_edge=LEFT, buff=0.25)
 
         puntos = VGroup(grupo_palabra, grupo_caracter, grupo_bpe).arrange(DOWN, aligned_edge=LEFT, buff=0.5)
@@ -640,29 +713,29 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(FadeIn(p1, shift=RIGHT * 0.3))
-        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_palabra], lag_ratio=0.1))
+        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_palabra], lag_ratio=0.05))
         self.next_slide()
 
         self.play(FadeIn(p2, shift=RIGHT * 0.3))
-        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_caracter], lag_ratio=0.03)) 
+        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_caracter], lag_ratio=0.01)) 
         self.next_slide()
 
         self.play(FadeIn(p3, shift=RIGHT * 0.3))
-        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_bpe], lag_ratio=0.1))
+        self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_bpe], lag_ratio=0.05))
         self.next_slide()
 
         self.limpiar_pantalla()
-    def diapo_bpe_animacion(self):
-        # 1. Título
+
+    def diapo_byte_pair_encoding(self):
         titulo, linea = self.crear_titulo(
             "Byte Pair Encoding (BPE)", 
             palabra_clave="Byte Pair Encoding (BPE)", 
-            color_clave=TOKEN_COLOR_FINAL
+            color_clave=NARANJA_TERRACOTA
         )
 
         explicacion_bpe = Text(
             "Fusión iterativa de los pares más frecuentes:", 
-            font_size=28, color=DARK_GRAY
+            font=FUENTE, font_size=28, color=MARRON_OSCURO
         ).next_to(linea, DOWN, buff=0.5)
 
         self.play(Write(titulo), Create(linea), FadeIn(explicacion_bpe))
@@ -673,7 +746,7 @@ class Presentacion(Slide):
         letras = ["t", "a", "c", "o", "t", "a", "c", "o"]
 
         fila_actual = VGroup(*[
-            self.crear_bloque(letra, color_fondo=SOFT_BG, ancho=calc_ancho(letra)) 
+            self.crear_bloque(letra, ancho=calc_ancho(letra)) 
             for letra in letras
         ]).arrange(RIGHT, buff=0.15).center().shift(UP*0.5)
         
@@ -682,17 +755,17 @@ class Presentacion(Slide):
 
         texto_paso1 = Text(
             "Paso 1: 't' y 'a' son el par más común", 
-            font_size=24, color=BLACK
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).next_to(fila_actual, DOWN, buff=1)
         self.play(FadeIn(texto_paso1))
         
         fila_paso1 = VGroup(
-            self.crear_bloque("ta", TOKEN_COLOR_1, ancho=calc_ancho("ta")),
-            self.crear_bloque("c", SOFT_BG, ancho=calc_ancho("c")),
-            self.crear_bloque("o", SOFT_BG, ancho=calc_ancho("o")),
-            self.crear_bloque("ta", TOKEN_COLOR_1, ancho=calc_ancho("ta")),
-            self.crear_bloque("c", SOFT_BG, ancho=calc_ancho("c")),
-            self.crear_bloque("o", SOFT_BG, ancho=calc_ancho("o"))
+            self.crear_bloque("ta", color_fondo=PAPEL_TAN, ancho=calc_ancho("ta")),
+            self.crear_bloque("c", ancho=calc_ancho("c")),
+            self.crear_bloque("o", ancho=calc_ancho("o")),
+            self.crear_bloque("ta", color_fondo=PAPEL_TAN, ancho=calc_ancho("ta")),
+            self.crear_bloque("c", ancho=calc_ancho("c")),
+            self.crear_bloque("o", ancho=calc_ancho("o"))
         ).arrange(RIGHT, buff=0.15).center().shift(UP*0.5)
 
         self.play(
@@ -708,14 +781,14 @@ class Presentacion(Slide):
 
         texto_paso2 = Text(
             "Paso 2: 'c' y 'o' son el par más común", 
-            font_size=24, color=BLACK
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).next_to(fila_actual, DOWN, buff=1)
         
         fila_paso2 = VGroup(
-            self.crear_bloque("ta", TOKEN_COLOR_1, ancho=calc_ancho("ta")),
-            self.crear_bloque("co", TOKEN_COLOR_2, ancho=calc_ancho("co")),
-            self.crear_bloque("ta", TOKEN_COLOR_1, ancho=calc_ancho("ta")),
-            self.crear_bloque("co", TOKEN_COLOR_2, ancho=calc_ancho("co"))
+            self.crear_bloque("ta", color_fondo=PAPEL_TAN, ancho=calc_ancho("ta")),
+            self.crear_bloque("co", color_fondo=CAJA_INFERIOR, ancho=calc_ancho("co")),
+            self.crear_bloque("ta", color_fondo=PAPEL_TAN, ancho=calc_ancho("ta")),
+            self.crear_bloque("co", color_fondo=CAJA_INFERIOR, ancho=calc_ancho("co"))
         ).arrange(RIGHT, buff=0.15).center().shift(UP*0.5)
 
         self.play(
@@ -730,12 +803,12 @@ class Presentacion(Slide):
 
         texto_paso3 = Text(
             "Paso 3: 'ta' y 'co' forman un nuevo token", 
-            font_size=24, color=BLACK
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).next_to(fila_actual, DOWN, buff=1)
 
         fila_paso3 = VGroup(
-            self.crear_bloque("taco", TOKEN_COLOR_FINAL, ancho=calc_ancho("taco")),
-            self.crear_bloque("taco", TOKEN_COLOR_FINAL, ancho=calc_ancho("taco"))
+            self.crear_bloque("taco", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=calc_ancho("taco")),
+            self.crear_bloque("taco", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=calc_ancho("taco"))
         ).arrange(RIGHT, buff=0.15).center().shift(UP*0.5)
 
         self.play(
@@ -750,24 +823,24 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "El Tamaño del Vocabulario", 
             palabra_clave="Vocabulario", 
-            color_clave=HIGHLIGHT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
 
         encabezados = VGroup(
-            Text("Vocabulario", font_size=24, color=DARK_GRAY, weight=BOLD),
-            Text("Total Tokens", font_size=24, color=DARK_GRAY, weight=BOLD),
-            Text("Compresión", font_size=24, color=HIGHLIGHT_COLOR, weight=BOLD)
+            Text("Vocabulario", font=FUENTE, font_size=24, color=MARRON_OSCURO, weight=BOLD),
+            Text("Total Tokens", font=FUENTE, font_size=24, color=MARRON_OSCURO, weight=BOLD),
+            Text("Compresión", font=FUENTE, font_size=24, color=NARANJA_TERRACOTA, weight=BOLD)
         ).arrange(RIGHT, buff=1.5)
 
-        linea_separadora = Line(LEFT, RIGHT, color=DARK_GRAY, stroke_width=2)
+        linea_separadora = Line(LEFT, RIGHT, color=MARRON_OSCURO, stroke_width=2)
         
         def crear_fila(v, t, c, es_final=False):
-            color_c = TOKEN_COLOR_FINAL if es_final else BLACK
+            color_c = NARANJA_TERRACOTA if es_final else TINTA_NEGRA
             peso_c = BOLD if es_final else NORMAL
             return VGroup(
-                Text(v, font_size=24, color=BLACK),
-                Text(t, font_size=24, color=BLACK),
-                Text(c, font_size=24, color=color_c, weight=peso_c)
+                Text(v, font=FUENTE, font_size=24, color=TINTA_NEGRA),
+                Text(t, font=FUENTE, font_size=24, color=TINTA_NEGRA),
+                Text(c, font=FUENTE, font_size=24, color=color_c, weight=peso_c)
             )
 
         fila1 = crear_fila("256", "2,168,312", "1.00x")
@@ -786,30 +859,31 @@ class Presentacion(Slide):
         fondo_tabla = RoundedRectangle(
             width=tabla_interna.width + 1.5, 
             height=tabla_interna.height + 0.8, 
-            corner_radius=0.2, 
-            fill_color=SOFT_BG, 
+            corner_radius=0.15, 
+            fill_color=FONDO_CAJA, 
             fill_opacity=1, 
-            stroke_width=0
+            stroke_width=2,
+            stroke_color=MARRON_OSCURO
         )
         
         grupo_tabla = VGroup(fondo_tabla, tabla_interna)
         grupo_tabla.next_to(linea, DOWN, buff=0.6)
 
-        tradeoff_titulo = Text("El Trade-off (Compensación):", font_size=28, color=BLACK, weight=BOLD)
+        tradeoff_titulo = Text("El Trade-off (Compensación):", font=FUENTE, font_size=28, color=TINTA_NEGRA, weight=BOLD)
         
-        pro_icon = Text("✅", font_size=24)
+        pro_icon = Text("✅", font=FUENTE, font_size=24)
         pro_text = Text(
             "Más vocabulario = Textos cortos = Inferencia rápida", 
-            font_size=24, color=DARK_GRAY, 
-            t2c={"Inferencia rápida": TOKEN_COLOR_FINAL}
+            font=FUENTE, font_size=24, color=MARRON_OSCURO, 
+            t2c={"Inferencia rápida": NARANJA_TERRACOTA}
         )
         pro_group = VGroup(pro_icon, pro_text).arrange(RIGHT, buff=0.2)
 
-        con_icon = Text("❌", font_size=24)
+        con_icon = Text("❌", font=FUENTE, font_size=24)
         con_text = Text(
             "Más vocabulario = Matriz gigante = Más VRAM", 
-            font_size=24, color=DARK_GRAY, 
-            t2c={"Más VRAM": ALERT_COLOR}
+            font=FUENTE, font_size=24, color=MARRON_OSCURO, 
+            t2c={"Más VRAM": NARANJA_TERRACOTA}
         )
         con_group = VGroup(con_icon, con_text).arrange(RIGHT, buff=0.2)
         
@@ -838,38 +912,38 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_que_es_un_tensor(self):
-        titulo11, linea11 = self.crear_titulo("¿Qué es un Tensor?", palabra_clave="Tensor?", color_clave=HIGHLIGHT_COLOR)
+        titulo11, linea11 = self.crear_titulo("¿Qué es un Tensor?", palabra_clave="Tensor?", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo11), Create(linea11))
         
         def_tensor = Text(
             "Un Tensor es un contenedor matemático\npara almacenar datos en múltiples dimensiones.", 
-            font_size=32, 
-            color=DARK_GRAY,
-            t2c={"múltiples dimensiones.": HIGHLIGHT_COLOR}
+            font=FUENTE, font_size=32, 
+            color=MARRON_OSCURO,
+            t2c={"múltiples dimensiones.": NARANJA_TERRACOTA}
         ).next_to(linea11, DOWN, buff=0.4)
         
         self.play(Write(def_tensor))
         self.next_slide()
         
-        txt_0d = Text("Escalar (0D) - Un solo valor", font_size=28, color=DARK_GRAY).next_to(def_tensor, DOWN, buff=0.8)
-        escalar = self.crear_bloque("7", SOFT_BG, BLACK, 0.8, 0.8).next_to(txt_0d, DOWN, buff=0.5)
+        txt_0d = Text("Escalar (0D) - Un solo valor", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
+        escalar = self.crear_bloque("7", ancho=0.8, alto=0.8).next_to(txt_0d, DOWN, buff=0.5)
         
         self.play(Write(txt_0d))
         self.play(GrowFromCenter(escalar))
         self.next_slide()
         self.play(FadeOut(txt_0d), FadeOut(escalar))
         
-        txt_1d = Text("Vector (1D) - Lista de valores", font_size=28, color=DARK_GRAY).next_to(def_tensor, DOWN, buff=0.8)
-        vector = self.crear_matriz_bloques(1, 4, SOFT_BG, ["1", "5", "9", "2"]).next_to(txt_1d, DOWN, buff=0.5)
+        txt_1d = Text("Vector (1D) - Lista de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
+        vector = self.crear_matriz_bloques(1, 4, valores=["1", "5", "9", "2"]).next_to(txt_1d, DOWN, buff=0.5)
         
         self.play(Write(txt_1d))
         self.play(LaggedStart(*[FadeIn(b, shift=UP*0.2) for b in vector[0]], lag_ratio=0.1))
         self.next_slide()
         self.play(FadeOut(txt_1d), FadeOut(vector))
         
-        txt_2d = Text("Matriz (2D) - Tabla de valores", font_size=28, color=DARK_GRAY).next_to(def_tensor, DOWN, buff=0.8)
+        txt_2d = Text("Matriz (2D) - Tabla de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
         valores_matriz = ["3","1","4","2", "5","9","2","6", "5","3","5","8"]
-        matriz = self.crear_matriz_bloques(3, 4, SOFT_BG, valores_matriz).next_to(txt_2d, DOWN, buff=0.5)
+        matriz = self.crear_matriz_bloques(3, 4, valores=valores_matriz).next_to(txt_2d, DOWN, buff=0.5)
         
         self.play(Write(txt_2d))
         bloques_anim = [FadeIn(b, shift=UP*0.2) for fila in matriz for b in fila]
@@ -877,19 +951,19 @@ class Presentacion(Slide):
         self.next_slide()
         self.play(FadeOut(txt_2d), FadeOut(matriz))
         
-        txt_3d = Text("Tensor (3D+) - Cubo de valores", font_size=28, color=DARK_GRAY).next_to(def_tensor, DOWN, buff=0.5)
+        txt_3d = Text("Tensor (3D+) - Cubo de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.5)
         
-        matriz_base_3d = self.crear_matriz_bloques(3, 3, SOFT_BG, ["1","2","3","4","5","6","7","8","9"])
+        matriz_base_3d = self.crear_matriz_bloques(3, 3, valores=["1","2","3","4","5","6","7","8","9"])
         for b in matriz_base_3d.submobjects:
             for sub_b in b.submobjects:
                 sub_b[0].set_fill(opacity=0.3).set_stroke(opacity=0.3)
 
-        matriz_medio_3d = self.crear_matriz_bloques(3, 3, SOFT_GREEN, ["9","8","7","6","5","4","3","2","1"]).shift(UP*0.25 + RIGHT*0.25)
+        matriz_medio_3d = self.crear_matriz_bloques(3, 3, color_fondo=PAPEL_TAN, valores=["9","8","7","6","5","4","3","2","1"]).shift(UP*0.25 + RIGHT*0.25)
         for b in matriz_medio_3d.submobjects:
             for sub_b in b.submobjects:
                 sub_b[0].set_fill(opacity=0.6).set_stroke(opacity=0.6)
 
-        matriz_top_3d = self.crear_matriz_bloques(3, 3, HIGHLIGHT_COLOR, ["2","4","6","8","0","2","4","6","8"]).shift(UP*0.5 + RIGHT*0.5)
+        matriz_top_3d = self.crear_matriz_bloques(3, 3, color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, valores=["2","4","6","8","0","2","4","6","8"]).shift(UP*0.5 + RIGHT*0.5)
         
         tensor_3d = VGroup(matriz_base_3d, matriz_medio_3d, matriz_top_3d).next_to(txt_3d, DOWN, buff=0.5).shift(LEFT * 0.25)
         
@@ -901,46 +975,45 @@ class Presentacion(Slide):
         
         self.play(FadeOut(txt_3d), FadeOut(tensor_3d), FadeOut(def_tensor))
 
-        nota_ram = Text("Pero en memoria RAM, todos terminan siendo un arreglo plano...", font_size=26, color=RUST_COLOR).next_to(linea11, DOWN, buff=0.5)
+        nota_ram = Text("Pero en memoria RAM, todos terminan siendo un arreglo plano...", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA).next_to(linea11, DOWN, buff=0.5)
         self.play(Write(nota_ram))
         
-        matriz_ram = self.crear_matriz_bloques(3, 4, SOFT_BG, valores_matriz).next_to(nota_ram, DOWN, buff=0.8)
+        matriz_ram = self.crear_matriz_bloques(3, 4, valores=valores_matriz).next_to(nota_ram, DOWN, buff=0.8)
         self.play(FadeIn(matriz_ram))
         self.next_slide()
 
         bloques_individuales = [bloque for fila in matriz_ram for bloque in fila]
         grupo_plano = VGroup(*bloques_individuales)
-        
+
         self.play(
             grupo_plano.animate.arrange(RIGHT, buff=0.05).scale(0.8).next_to(nota_ram, DOWN, buff=1.5),
             run_time=2
         )
-        self.play(Indicate(grupo_plano, color=GHOST_COLOR))
+        self.play(Indicate(grupo_plano, color=PAPEL_TAN))
         self.next_slide()
 
         self.limpiar_pantalla()
 
     def diapo_matmul(self):
-
         titulo, linea = self.crear_titulo(
             "Multiplicación: El 'Dot Product'", 
             palabra_clave="'Dot Product'", 
-            color_clave=HIGHLIGHT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
-        
 
         val_A = ["1","2","3",  "4","5","6",  "7","8","9"]
         val_B = ["2","1","0",  "0","2","1",  "1","0","3"]
         val_C = ["","","",  "","","",  "","",""]
-        
-        mat_A = self.crear_matriz_bloques(3, 3, SOFT_BG, val_A)
-        signo_por = Text("×", font_size=40, color=BLACK)
-        mat_B = self.crear_matriz_bloques(3, 3, SOFT_BG, val_B)
-        signo_igual = Text("=", font_size=40, color=BLACK)
-        mat_C = self.crear_matriz_bloques(3, 3, SOFT_BG, val_C)
+
+        mat_A = self.crear_matriz_bloques(3, 3, valores=val_A)
+        signo_por = Text("×", font=FUENTE, font_size=40, color=TINTA_NEGRA)
+        mat_B = self.crear_matriz_bloques(3, 3, valores=val_B)
+        signo_igual = Text("=", font=FUENTE, font_size=40, color=TINTA_NEGRA)
+        mat_C = self.crear_matriz_bloques(3, 3, valores=val_C)
 
         grupo_matmul = VGroup(mat_A, signo_por, mat_B, signo_igual, mat_C).arrange(RIGHT, buff=0.4)
         grupo_matmul.shift(UP * 0.5) 
+        
         fila_A = mat_A[0] 
         col_B = VGroup(mat_B[0][2], mat_B[1][2], mat_B[2][2]) 
         celda_C = mat_C[0][2] 
@@ -950,15 +1023,15 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(
-            *[b[0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.4) for b in fila_A],
-            *[b[0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.4) for b in col_B]
+            *[b[0].animate.set_fill(PAPEL_TAN, opacity=0.8) for b in fila_A],
+            *[b[0].animate.set_fill(PAPEL_TAN, opacity=0.8) for b in col_B]
         )
         self.next_slide()
 
         calculo_texto = Text(
             "(1 × 0) + (2 × 1) + (3 × 3) = 11", 
-            font_size=32, color=DARK_GRAY,
-            t2c={"11": TOKEN_COLOR_FINAL}
+            font=FUENTE, font_size=32, color=MARRON_OSCURO,
+            t2c={"11": NARANJA_TERRACOTA}
         ).next_to(grupo_matmul, DOWN, buff=1.0)
         
         fila_copia = fila_A.copy()
@@ -970,22 +1043,21 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-
-        dot_calc = self.crear_bloque("11", TOKEN_COLOR_FINAL, WHITE, ancho=0.8)
+        dot_calc = self.crear_bloque("11", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=0.8)
         dot_calc.move_to(calculo_texto.get_center())
 
         self.play(ReplacementTransform(calculo_texto, dot_calc))
         
         self.play(
             dot_calc.animate.move_to(celda_C.get_center()),
-            celda_C[0].animate.set_fill(TOKEN_COLOR_FINAL, opacity=0.2) 
+            celda_C[0].animate.set_fill(PAPEL_TAN, opacity=0.4) 
         )
-        self.play(Indicate(dot_calc, color=HIGHLIGHT_COLOR, scale_factor=1.2))
+        self.play(Indicate(dot_calc, color=PAPEL_TAN, scale_factor=1.2))
         self.next_slide()
         
         def_matmul = Text(
             "Combina cada elemento de la fila con su pareja en la columna.\nSe multiplican y se suman para obtener un único número.", 
-            font_size=24, color=BLACK
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).to_edge(DOWN, buff=1.0)
         
         self.play(Write(def_matmul))
@@ -994,16 +1066,15 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def diapo_softmax(self):
-
             titulo, linea = self.crear_titulo(
                 "Softmax", 
                 palabra_clave="Probabilidades", 
-                color_clave=TOKEN_COLOR_FINAL
+                color_clave=NARANJA_TERRACOTA
             )
             
             formula = MathTex(
                 r"\text{Softmax}(x_i) = \frac{e^{x_i}}{\sum_{j} e^{x_j}}", 
-                color=BLACK, font_size=38
+                color=TINTA_NEGRA, font_size=38
             ).next_to(linea, DOWN, buff=0.4)
 
             self.play(Write(titulo), Create(linea))
@@ -1013,26 +1084,26 @@ class Presentacion(Slide):
             ancho_caja = 1.1
             
             col1 = VGroup(
-                Text("1. Logits", font_size=18, color=DARK_GRAY, weight=BOLD),
-                VGroup(*[self.crear_bloque(v, SOFT_BG, ancho=ancho_caja) for v in ["2.0", "1.0", "0.1"]]).arrange(DOWN, buff=0.1)
+                Text("1. Logits", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
+                VGroup(*[self.crear_bloque(v, ancho=ancho_caja) for v in ["2.0", "1.0", "0.1"]]).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
-            flecha1 = Arrow(LEFT, RIGHT, color=BLACK).scale(0.5)
-            txt_op1 = MathTex(r"\exp(x)", font_size=22, color=BLACK).next_to(flecha1, UP, buff=0.1)
+            flecha1 = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).scale(0.5)
+            txt_op1 = MathTex(r"\exp(x)", font_size=22, color=TINTA_NEGRA).next_to(flecha1, UP, buff=0.1)
             conector1 = VGroup(flecha1, txt_op1)
 
             col2 = VGroup(
-                Text("2. Exp", font_size=18, color=DARK_GRAY, weight=BOLD),
-                VGroup(*[self.crear_bloque(v, HIGHLIGHT_COLOR, ancho=ancho_caja) for v in ["7.39", "2.72", "1.10"]]).arrange(DOWN, buff=0.1)
+                Text("2. Exp", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
+                VGroup(*[self.crear_bloque(v, color_fondo=PAPEL_TAN, ancho=ancho_caja) for v in ["7.39", "2.72", "1.10"]]).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
-            flecha2 = Arrow(LEFT, RIGHT, color=BLACK).scale(0.5)
-            txt_op2 = MathTex(r"\div \sum", font_size=22, color=BLACK).next_to(flecha2, UP, buff=0.1)
+            flecha2 = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).scale(0.5)
+            txt_op2 = MathTex(r"\div \sum", font_size=22, color=TINTA_NEGRA).next_to(flecha2, UP, buff=0.1)
             conector2 = VGroup(flecha2, txt_op2)
 
             col3 = VGroup(
-                Text("3. Prob", font_size=18, color=TOKEN_COLOR_FINAL, weight=BOLD),
-                VGroup(*[self.crear_bloque(v, TOKEN_COLOR_FINAL, WHITE, ancho=ancho_caja) for v in ["66%", "24%", "10%"]]).arrange(DOWN, buff=0.1)
+                Text("3. Prob", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD),
+                VGroup(*[self.crear_bloque(v, color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja) for v in ["66%", "24%", "10%"]]).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
             acto1_horiz = VGroup(col1, conector1, col2, conector2, col3).arrange(RIGHT, buff=0.5).move_to(DOWN * 0.5)
@@ -1044,80 +1115,81 @@ class Presentacion(Slide):
 
             self.play(FadeOut(acto1_horiz), FadeOut(formula))
 
-            titulo_error = Text("Problema: Un valor arruina el vector", font_size=32, color=ALERT_COLOR).move_to(titulo)
+            titulo_error = Text("Problema: Un valor arruina el vector", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo)
             self.play(ReplacementTransform(titulo, titulo_error))
 
             col_err_1 = VGroup(
-                Text("Logits", font_size=18, color=DARK_GRAY, weight=BOLD),
+                Text("Logits", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
                 VGroup(
-                    self.crear_bloque("800.0", ALERT_COLOR, WHITE, ancho=ancho_caja),
-                    self.crear_bloque("2.0", SOFT_BG, ancho=ancho_caja),
-                    self.crear_bloque("-1.0", SOFT_BG, ancho=ancho_caja)
+                    self.crear_bloque("800.0", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja),
+                    self.crear_bloque("2.0", ancho=ancho_caja),
+                    self.crear_bloque("-1.0", ancho=ancho_caja)
                 ).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
-            f_err = Arrow(LEFT, RIGHT, color=BLACK).scale(0.5)
-            t_err = MathTex(r"\exp(x)", font_size=22, color=BLACK).next_to(f_err, UP, buff=0.1)
+            f_err = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).scale(0.5)
+            t_err = MathTex(r"\exp(x)", font_size=22, color=TINTA_NEGRA).next_to(f_err, UP, buff=0.1)
             conector_err = VGroup(f_err, t_err)
 
             col_err_2 = VGroup(
-                Text("Exp", font_size=18, color=DARK_GRAY, weight=BOLD),
+                Text("Exp", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
                 VGroup(
-                    self.crear_bloque("inf", ALERT_COLOR, WHITE, ancho=ancho_caja),
-                    self.crear_bloque("7.39", HIGHLIGHT_COLOR, ancho=ancho_caja),
-                    self.crear_bloque("0.37", HIGHLIGHT_COLOR, ancho=ancho_caja)
+                    self.crear_bloque("inf", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja),
+                    self.crear_bloque("7.39", color_fondo=PAPEL_TAN, ancho=ancho_caja),
+                    self.crear_bloque("0.37", color_fondo=PAPEL_TAN, ancho=ancho_caja)
                 ).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
             flujo_error = VGroup(col_err_1, conector_err, col_err_2).arrange(RIGHT, buff=0.8).move_to(DOWN * 0.2)
 
             self.play(FadeIn(col_err_1))
-            self.play(Flash(col_err_1[1][0], color=ALERT_COLOR))
+            self.play(Flash(col_err_1[1][0], color=NARANJA_TERRACOTA))
             self.play(Write(conector_err))
             self.play(ReplacementTransform(col_err_1[1].copy(), col_err_2[1]), FadeIn(col_err_2[0]))
             self.play(Wiggle(col_err_2[1][0])) 
             
-            nota_error = Text("Si intentamos dividir por 'inf', todo el vector se vuelve NaN.", font_size=20, color=DARK_GRAY).next_to(flujo_error, DOWN, buff=0.6)
+            nota_error = Text("Si intentamos dividir por 'inf', todo el vector se vuelve NaN.", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(flujo_error, DOWN, buff=0.6)
             self.play(Write(nota_error))
             self.next_slide()
 
             self.play(FadeOut(flujo_error), FadeOut(nota_error))
             
-            titulo_fix = Text("Solución: Restar el Máximo (Shift)", font_size=32, color=TOKEN_COLOR_FINAL).move_to(titulo_error)
+            # --- ACTO 3: LA SOLUCIÓN (SHIFT) ---
+            titulo_fix = Text("Solución: Restar el Máximo (Shift)", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo_error)
             self.play(ReplacementTransform(titulo_error, titulo_fix))
 
             col_fix_1 = VGroup(
-                Text("Logits", font_size=18, color=DARK_GRAY, weight=BOLD),
+                Text("Logits", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
                 VGroup(
-                    self.crear_bloque("800.0", SOFT_BG, ancho=ancho_caja),
-                    self.crear_bloque("2.0", SOFT_BG, ancho=ancho_caja),
-                    self.crear_bloque("-1.0", SOFT_BG, ancho=ancho_caja)
+                    self.crear_bloque("800.0", ancho=ancho_caja),
+                    self.crear_bloque("2.0", ancho=ancho_caja),
+                    self.crear_bloque("-1.0", ancho=ancho_caja)
                 ).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
-            f_shift = Arrow(LEFT, RIGHT, color=BLACK).scale(0.5)
-            t_shift = Text("- Max (x)", font_size=16, color=TOKEN_COLOR_FINAL, weight=BOLD).next_to(f_shift, UP, buff=0.1)
+            f_shift = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).scale(0.5)
+            t_shift = Text("- Max (x)", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA, weight=BOLD).next_to(f_shift, UP, buff=0.1)
             conector_shift = VGroup(f_shift, t_shift)
 
             col_fix_2 = VGroup(
-                Text("Shifted", font_size=18, color=TOKEN_COLOR_FINAL, weight=BOLD),
+                Text("Shifted", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD),
                 VGroup(
-                    self.crear_bloque("0.0", TOKEN_COLOR_FINAL, WHITE, ancho=ancho_caja), 
-                    self.crear_bloque("-798.0", HIGHLIGHT_COLOR, ancho=ancho_caja),
-                    self.crear_bloque("-801.0", HIGHLIGHT_COLOR, ancho=ancho_caja)
+                    self.crear_bloque("0.0", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja), 
+                    self.crear_bloque("-798.0", color_fondo=PAPEL_TAN, ancho=ancho_caja),
+                    self.crear_bloque("-801.0", color_fondo=PAPEL_TAN, ancho=ancho_caja)
                 ).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
-            f_exp2 = Arrow(LEFT, RIGHT, color=BLACK).scale(0.5)
-            t_exp2 = MathTex(r"\exp(x)", font_size=22, color=BLACK).next_to(f_exp2, UP, buff=0.1)
+            f_exp2 = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).scale(0.5)
+            t_exp2 = MathTex(r"\exp(x)", font_size=22, color=TINTA_NEGRA).next_to(f_exp2, UP, buff=0.1)
             conector_exp2 = VGroup(f_exp2, t_exp2)
 
             col_fix_3 = VGroup(
-                Text("Exp Seguro", font_size=18, color=DARK_GRAY, weight=BOLD),
+                Text("Exp Seguro", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
                 VGroup(
-                    self.crear_bloque("1.0", TOKEN_COLOR_FINAL, WHITE, ancho=ancho_caja),
-                    self.crear_bloque("0.0", SOFT_BG, ancho=ancho_caja), 
-                    self.crear_bloque("0.0", SOFT_BG, ancho=ancho_caja)
+                    self.crear_bloque("1.0", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja),
+                    self.crear_bloque("0.0", ancho=ancho_caja), 
+                    self.crear_bloque("0.0", ancho=ancho_caja)
                 ).arrange(DOWN, buff=0.1)
             ).arrange(DOWN, buff=0.2)
 
@@ -1131,7 +1203,7 @@ class Presentacion(Slide):
             
             nota_fix = Text(
                 "Los valores gigantes se vuelven 0.0 y los demás se acercan a 0.\n¡El vector es matemáticamente idéntico pero 100% estable!", 
-                font_size=18, color=BLACK
+                font=FUENTE, font_size=18, color=TINTA_NEGRA
             ).next_to(flujo_fix, DOWN, buff=0.5)
             
             self.play(FadeIn(nota_fix, shift=UP*0.2))
@@ -1140,24 +1212,23 @@ class Presentacion(Slide):
             self.limpiar_pantalla()
 
     def slide_broadcasting(self):
-
         titulo, linea = self.crear_titulo(
             "Broadcasting: Expansión Virtual", 
             palabra_clave="Expansión Virtual", 
-            color_clave=SOFT_GREEN
+            color_clave=PAPEL_TAN
         )
 
         val_base = ["1", "2", "3", "4", "5", "6"]
         val_vec = ["10", "20", "30"]
         val_res = ["11", "22", "33", "14", "25", "36"]
 
-
-        matriz_base = self.crear_matriz_bloques(2, 3, SOFT_BG, val_base)
-        signo_mas = Text("+", font_size=40, color=BLACK)
+        matriz_base = self.crear_matriz_bloques(2, 3, valores=val_base)
+        signo_mas = Text("+", font=FUENTE, font_size=40, color=TINTA_NEGRA)
         
-        vector_real = VGroup(*[self.crear_bloque(val, SOFT_GREEN) for val in val_vec]).arrange(RIGHT, buff=0.05)
+        vector_real = VGroup(*[self.crear_bloque(val, color_fondo=PAPEL_TAN) for val in val_vec]).arrange(RIGHT, buff=0.05)
     
         ecuacion = VGroup(matriz_base, signo_mas, vector_real).arrange(RIGHT, buff=0.5).shift(LEFT * 2.5 + UP * 0.5)
+
         vector_real.align_to(matriz_base, UP)
 
         self.play(Write(titulo), Create(linea))
@@ -1180,17 +1251,18 @@ class Presentacion(Slide):
         
         rectangulo_base = SurroundingRectangle(
             VGroup(vector_real, vector_fantasma), 
-            color=SOFT_GREEN, buff=0.1, corner_radius=0.1
+            color=MARRON_OSCURO, buff=0.1, corner_radius=0.1
         )
         caja_virtual = DashedVMobject(rectangulo_base, num_dashes=35)
         
-        texto_virtual = Text("Matriz Virtual", font_size=16, color=DARK_GRAY).next_to(caja_virtual, DOWN, buff=0.15)
+        texto_virtual = Text("Matriz Virtual", font=FUENTE, font_size=16, color=MARRON_OSCURO).next_to(caja_virtual, DOWN, buff=0.15)
 
         self.play(Create(caja_virtual), Write(texto_virtual))
         self.next_slide()
 
-        flecha_res = Arrow(LEFT, RIGHT, color=BLACK).next_to(caja_virtual, RIGHT, buff=0.5)
-        matriz_res = self.crear_matriz_bloques(2, 3, HIGHLIGHT_COLOR, val_res).next_to(flecha_res, RIGHT, buff=0.5)
+        flecha_res = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).next_to(caja_virtual, RIGHT, buff=0.5)
+
+        matriz_res = self.crear_matriz_bloques(2, 3, color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, valores=val_res).next_to(flecha_res, RIGHT, buff=0.5)
 
         self.play(GrowArrow(flecha_res))
         
@@ -1202,24 +1274,25 @@ class Presentacion(Slide):
         
         def_broad = Text(
             "Se duplica el vector pequeño 'virtualmente' para coincidir\ncon la matriz grande, ahorrando muchísima memoria.", 
-            font_size=24, color=BLACK, t2c={"virtualmente": SOFT_GREEN, "ahorrando muchísima memoria": TOKEN_COLOR_FINAL}
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, 
+            t2c={"virtualmente": PAPEL_TAN, "ahorrando muchísima memoria": NARANJA_TERRACOTA}
         ).to_edge(DOWN, buff=1.0)
         
         self.play(FadeIn(def_broad, shift=UP*0.2))
         self.next_slide()
         self.limpiar_pantalla()
-    def slide_strides(self):
 
+    def slide_strides(self):
         titulo, linea = self.crear_titulo(
             "Strides: Saltando en Memoria 1D", 
             palabra_clave="Strides:", 
-            color_clave=HIGHLIGHT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
 
-        arr_1d = VGroup(*[self.crear_bloque(str(i), SOFT_BG) for i in range(6)])
+        arr_1d = VGroup(*[self.crear_bloque(str(i)) for i in range(6)])
         arr_1d.arrange(RIGHT, buff=0.1).shift(UP * 1.5)
         
-        lbl_1d = Text("Memoria RAM (Física, 1D)", font_size=20, color=DARK_GRAY).next_to(arr_1d, UP, buff=0.3)
+        lbl_1d = Text("Memoria RAM (Física, 1D)", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(arr_1d, UP, buff=0.3)
 
         self.play(Write(titulo), Create(linea))
         self.play(FadeIn(arr_1d, shift=UP*0.2), FadeIn(lbl_1d, shift=UP*0.2))
@@ -1229,7 +1302,7 @@ class Presentacion(Slide):
         fila2 = VGroup(*[arr_1d[i].copy() for i in range(3, 6)]).arrange(RIGHT, buff=0.1)
         
         mat_shape = VGroup(fila1, fila2).arrange(DOWN, buff=0.1).shift(DOWN * 0.5)
-        lbl_2d = Text("Shape Lógica (2x3)", font_size=20, color=DARK_GRAY).next_to(mat_shape, DOWN, buff=0.3)
+        lbl_2d = Text("Shape Lógica (2x3)", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(mat_shape, DOWN, buff=0.3)
 
         self.play(
             TransformFromCopy(VGroup(*arr_1d[0:3]), fila1),
@@ -1240,17 +1313,17 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(
-            arr_1d[0][0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.5),
-            arr_1d[3][0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.5),
-            mat_shape[0][0][0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.5),
-            mat_shape[1][0][0].animate.set_fill(HIGHLIGHT_COLOR, opacity=0.5),
+            arr_1d[0][0].animate.set_fill(PAPEL_TAN, opacity=0.8),
+            arr_1d[3][0].animate.set_fill(PAPEL_TAN, opacity=0.8),
+            mat_shape[0][0][0].animate.set_fill(PAPEL_TAN, opacity=0.8),
+            mat_shape[1][0][0].animate.set_fill(PAPEL_TAN, opacity=0.8),
         )
 
-        arco_1d = CurvedArrow(arr_1d[0].get_top(), arr_1d[3].get_top(), angle=-PI/2, color=HIGHLIGHT_COLOR)
-        txt_stride_1d = Text("Stride = 3 pasos", font_size=20, color=HIGHLIGHT_COLOR).next_to(arco_1d, UP, buff=0.1)
+        arco_1d = CurvedArrow(arr_1d[0].get_top(), arr_1d[3].get_top(), angle=-PI/2, color=NARANJA_TERRACOTA)
+        txt_stride_1d = Text("Stride = 3 pasos", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA).next_to(arco_1d, UP, buff=0.1)
         
-        arco_2d = CurvedArrow(mat_shape[0][0].get_left(), mat_shape[1][0].get_left(), angle=PI/2, color=HIGHLIGHT_COLOR).shift(LEFT*0.1)
-        txt_stride_2d = Text("+1 Fila", font_size=16, color=HIGHLIGHT_COLOR).next_to(arco_2d, LEFT, buff=0.1)
+        arco_2d = CurvedArrow(mat_shape[0][0].get_left(), mat_shape[1][0].get_left(), angle=PI/2, color=NARANJA_TERRACOTA).shift(LEFT*0.1)
+        txt_stride_2d = Text("+1 Fila", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(arco_2d, LEFT, buff=0.1)
 
         self.play(
             Create(arco_1d), Write(txt_stride_1d),
@@ -1260,19 +1333,20 @@ class Presentacion(Slide):
         
         def_stride = Text(
             "Como todo es 1D en RAM, los 'strides' dictan\ncuántos casilleros avanzar para encontrar la siguiente fila.", 
-            font_size=24, color=BLACK, t2c={"1D en RAM": DARK_GRAY, "'strides'": HIGHLIGHT_COLOR}
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, 
+            t2c={"1D en RAM": MARRON_OSCURO, "'strides'": NARANJA_TERRACOTA}
         ).to_edge(DOWN, buff=1.0) 
         
         self.play(FadeIn(def_stride, shift=UP*0.2))
         self.next_slide()
+        
         self.limpiar_pantalla()
 
     def slide_masked_fill(self):
-
         titulo, linea = self.crear_titulo(
             "Masked Fill: Causalidad", 
             palabra_clave="Causalidad", 
-            color_clave=ALERT_COLOR
+            color_clave=NARANJA_TERRACOTA
         )
 
         val_mask = [
@@ -1282,9 +1356,9 @@ class Presentacion(Slide):
             "0.8", "1.7", "3.0", "7.1"
         ]
         
-        matriz_mask = self.crear_matriz_bloques(4, 4, SOFT_BG, val_mask).scale(1.2).shift(DOWN * 0.2)
+        matriz_mask = self.crear_matriz_bloques(4, 4, valores=val_mask).scale(1.2).shift(DOWN * 0.2)
         
-        lbl_matriz = Text("Scores de Atención (Previo al Masking)", font_size=20, color=DARK_GRAY).next_to(matriz_mask, UP, buff=0.3)
+        lbl_matriz = Text("Scores de Atención (Previo al Masking)", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(matriz_mask, UP, buff=0.3)
         
         self.play(Write(titulo), Create(linea))
         self.play(FadeIn(matriz_mask, shift=UP*0.2), FadeIn(lbl_matriz, shift=UP*0.2))
@@ -1297,15 +1371,15 @@ class Presentacion(Slide):
             for j in range(4):
                 bloque = matriz_mask[i][j]
                 if j > i: 
-                    nuevo_bloque = self.crear_bloque("-∞", DARK_GRAY, WHITE)
+                    nuevo_bloque = self.crear_bloque("-∞", color_fondo=MARRON_OSCURO, color_texto=PAPEL_CREMA)
                     nuevo_bloque.match_height(bloque).move_to(bloque)
                     animaciones_mask.append(ReplacementTransform(bloque, nuevo_bloque))
                 else:
                     animaciones_keep.append(
-                        bloque[0].animate.set_stroke(color=SOFT_GREEN, width=2)
+                        bloque[0].animate.set_stroke(color=PAPEL_TAN, width=3)
                     )
 
-        lbl_mask = Text("Máscara Causal Aplicada (Masked Fill)", font_size=20, color=ALERT_COLOR).move_to(lbl_matriz)
+        lbl_mask = Text("Máscara Causal Aplicada (Masked Fill)", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA).move_to(lbl_matriz)
 
         self.play(
             LaggedStart(*animaciones_mask, lag_ratio=0.15),
@@ -1314,33 +1388,40 @@ class Presentacion(Slide):
             run_time=2
         )
         self.next_slide()
-        
+
         def_mask = Text(
             "Se tapan los valores del 'futuro' con menos infinito (-∞).\nAl pasar por Softmax, esto se convierte en 0% de probabilidad.", 
-            font_size=24, color=BLACK, 
-            t2c={"-∞": ALERT_COLOR, "0% de probabilidad": ALERT_COLOR, "'futuro'": DARK_GRAY}
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, 
+            t2c={"-∞": NARANJA_TERRACOTA, "0% de probabilidad": NARANJA_TERRACOTA, "'futuro'": MARRON_OSCURO}
         ).to_edge(DOWN, buff=1.0)
         
         self.play(FadeIn(def_mask, shift=UP*0.2))
         self.next_slide()
-        self.limpiar_pantalla()
-    def slide_reshape_transpose(self):
-        diccionario_t2c = {"Reshaping": HIGHLIGHT_COLOR, "Transposing": RUST_COLOR}
-        titulo, linea = self.crear_titulo("Reshaping vs Transposing", t2c_dict=diccionario_t2c)
         
-        linea_central = DashedLine(UP*2.2, DOWN*2.5, color=GRAY)
+        self.limpiar_pantalla()
+
+    def slide_reshape_transpose(self):
+        titulo, linea = self.crear_titulo(
+            "Reshaping vs Transposing", 
+            palabra_clave="vs", 
+            color_clave=MARRON_OSCURO
+        )
+        
+        titulo.set_color_by_t2c({"Reshaping": MARRON_OSCURO, "Transposing": NARANJA_TERRACOTA})
+        
+        linea_central = DashedLine(UP*2.2, DOWN*2.5, color=MARRON_OSCURO)
 
         self.play(Write(titulo), Create(linea), Create(linea_central))
         self.next_slide()
 
-        txt_reshape = Text("Reshape", font_size=28, color=HIGHLIGHT_COLOR).move_to(LEFT * 3.5 + UP * 2.2)
-        sub_reshape = Text("(Misma memoria)", font_size=16, color=DARK_GRAY).next_to(txt_reshape, DOWN, buff=0.1)
+        txt_reshape = Text("Reshape", font=FUENTE, font_size=28, color=MARRON_OSCURO).move_to(LEFT * 3.5 + UP * 2.2)
+        sub_reshape = Text("(Misma memoria)", font=FUENTE, font_size=16, color=TINTA_NEGRA).next_to(txt_reshape, DOWN, buff=0.1)
         
         valores_orig = ["1", "2", "3", "4", "5", "6"]
         
-        mat_r_orig = self.crear_matriz_bloques(2, 3, SOFT_BG, valores_orig).scale(0.8).next_to(sub_reshape, DOWN, buff=0.4)
-        flecha_r = Arrow(mat_r_orig.get_bottom(), mat_r_orig.get_bottom() + DOWN * 0.8, color=HIGHLIGHT_COLOR)
-        mat_r_final = self.crear_matriz_bloques(3, 2, SOFT_GREEN, valores_orig).scale(0.8).next_to(flecha_r, DOWN, buff=0.2)
+        mat_r_orig = self.crear_matriz_bloques(2, 3, valores=valores_orig).scale(0.8).next_to(sub_reshape, DOWN, buff=0.4)
+        flecha_r = Arrow(mat_r_orig.get_bottom(), mat_r_orig.get_bottom() + DOWN * 0.8, color=MARRON_OSCURO)
+        mat_r_final = self.crear_matriz_bloques(3, 2, color_fondo=PAPEL_TAN, valores=valores_orig).scale(0.8).next_to(flecha_r, DOWN, buff=0.2)
 
         self.play(Write(txt_reshape), Write(sub_reshape), FadeIn(mat_r_orig))
         self.play(GrowArrow(flecha_r))
@@ -1356,14 +1437,14 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-        txt_transpose = Text("Transpose", font_size=28, color=RUST_COLOR).move_to(RIGHT * 3.5 + UP * 2.2)
-        sub_transpose = Text("(Reorganización física)", font_size=16, color=DARK_GRAY).next_to(txt_transpose, DOWN, buff=0.1)
+        txt_transpose = Text("Transpose", font=FUENTE, font_size=28, color=NARANJA_TERRACOTA).move_to(RIGHT * 3.5 + UP * 2.2)
+        sub_transpose = Text("(Reorganización física)", font=FUENTE, font_size=16, color=TINTA_NEGRA).next_to(txt_transpose, DOWN, buff=0.1)
 
-        mat_t_orig = self.crear_matriz_bloques(2, 3, SOFT_BG, valores_orig).scale(0.8).next_to(sub_transpose, DOWN, buff=0.4)
-        flecha_t = Arrow(mat_t_orig.get_bottom(), mat_t_orig.get_bottom() + DOWN * 0.8, color=RUST_COLOR)
+        mat_t_orig = self.crear_matriz_bloques(2, 3, valores=valores_orig).scale(0.8).next_to(sub_transpose, DOWN, buff=0.4)
+        flecha_t = Arrow(mat_t_orig.get_bottom(), mat_t_orig.get_bottom() + DOWN * 0.8, color=NARANJA_TERRACOTA)
         
         valores_trans = ["1", "4", "2", "5", "3", "6"]
-        mat_t_final = self.crear_matriz_bloques(3, 2, RUST_COLOR, valores_trans).scale(0.8).next_to(flecha_t, DOWN, buff=0.2)
+        mat_t_final = self.crear_matriz_bloques(3, 2, color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, valores=valores_trans).scale(0.8).next_to(flecha_t, DOWN, buff=0.2)
 
         self.play(Write(txt_transpose), Write(sub_transpose), FadeIn(mat_t_orig))
         self.play(GrowArrow(flecha_t))
@@ -1381,21 +1462,22 @@ class Presentacion(Slide):
 
         def_res_trans = Text(
             "Reshape solo cambia cómo leemos la lista.\nTranspose requiere copiar y cambiar el orden físico.", 
-            font_size=22, color=BLACK, 
-            t2c={"Reshape": HIGHLIGHT_COLOR, "Transpose": RUST_COLOR}
+            font=FUENTE, font_size=22, color=TINTA_NEGRA, 
+            t2c={"Reshape": MARRON_OSCURO, "Transpose": NARANJA_TERRACOTA}
         ).to_edge(DOWN, buff=0.5)
         
         self.play(FadeIn(def_res_trans, shift=UP*0.2))
         self.next_slide()
+        
         self.limpiar_pantalla()
-    def slide_forward_pass(self):
 
-        titulo, linea = self.crear_titulo("Arquitectura: El Forward Pass", color_clave=BLUE)
+    def slide_forward_pass(self):
+        titulo, linea = self.crear_titulo("Arquitectura: El Forward Pass", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
         
         frase_completa = VGroup(
-            Text('"En un lugar de la', font_size=42, color=DARK_GRAY),
-            Text(' Mancha"', font_size=42, color="#D9534F")
+            Text('"En un lugar de la', font=FUENTE, font_size=42, color=TINTA_NEGRA),
+            Text(' Mancha"', font=FUENTE, font_size=42, color=NARANJA_TERRACOTA)
         ).arrange(RIGHT, buff=0.1).move_to(UP * 1.8)
 
         frase_base = frase_completa[0]
@@ -1404,30 +1486,30 @@ class Presentacion(Slide):
         self.play(Write(frase_base))
         self.next_slide()
 
-        BG_CAJA = "#F8F9FA"
-        BORDE_CAJA = "#343A40"
-        TXT_PRINCIPAL = BLACK
-        TXT_SECUNDARIO = BLUE_D 
+        BG_CAJA = PAPEL_CREMA
+        BORDE_CAJA = MARRON_OSCURO
+        TXT_PRINCIPAL = TINTA_NEGRA
+        TXT_SECUNDARIO = MARRON_OSCURO 
 
         def crear_caja_nodo(label_sup, valor_array, label_inf, is_stack=False, highlight_last=False):
             grupo = VGroup()
             
-            txt_sup = Text(label_sup, font_size=18, font="Monospace", weight=BOLD, color=TXT_SECUNDARIO)
+            txt_sup = Text(label_sup, font="Monospace", font_size=18, weight=BOLD, color=TXT_SECUNDARIO)
             
             ANCHO = 2.65
             ALTO = 1.7
             RADIO = 0.15
             
             sombra = RoundedRectangle(corner_radius=RADIO, width=ANCHO, height=ALTO)
-            sombra.set_fill(BLACK, opacity=0.15).set_stroke(width=0)
+            sombra.set_fill(MARRON_OSCURO, opacity=0.15).set_stroke(width=0)
             sombra.shift(RIGHT * 0.06 + DOWN * 0.06)
             
             caja = RoundedRectangle(corner_radius=RADIO, width=ANCHO, height=ALTO)
             caja.set_fill(color=BG_CAJA, opacity=1).set_stroke(color=BORDE_CAJA, width=2.5)
             
-            color_array = "#D9534F" if highlight_last else TXT_PRINCIPAL
-            txt_arr = Text(valor_array, font_size=18, font="Monospace", weight=BOLD, color=color_array) 
-            txt_inf = Text(label_inf, font_size=16, color=TXT_PRINCIPAL) 
+            color_array = NARANJA_TERRACOTA if highlight_last else TXT_PRINCIPAL
+            txt_arr = Text(valor_array, font="Monospace", font_size=18, weight=BOLD, color=color_array) 
+            txt_inf = Text(label_inf, font=FUENTE, font_size=16, color=TXT_PRINCIPAL) 
             
             if txt_arr.width > (ANCHO - 0.3):
                 txt_arr.scale_to_fit_width(ANCHO - 0.3)
@@ -1464,7 +1546,7 @@ class Presentacion(Slide):
             flecha = Arrow(
                 pipeline[i].caja_principal.get_right(), 
                 pipeline[i+1].caja_principal.get_left(), 
-                buff=0.08, color=BLUE_D, stroke_width=5, max_tip_length_to_length_ratio=0.15
+                buff=0.08, color=MARRON_OSCURO, stroke_width=5, max_tip_length_to_length_ratio=0.15
             )
             flechas.add(flecha)
 
@@ -1473,10 +1555,10 @@ class Presentacion(Slide):
 
         tokens_viajeros = frase_base.copy()
         centro_primera_caja = pipeline[0].caja_principal.get_center()
-        punto_flujo = Dot(color=BLUE, radius=0.18).move_to(centro_primera_caja)
+        punto_flujo = Dot(color=PAPEL_TAN, radius=0.18).move_to(centro_primera_caja)
         
         self.play(ReplacementTransform(tokens_viajeros, punto_flujo, path_arc=-PI/3), run_time=1.2)
-        self.play(Indicate(pipeline[0].caja_principal, color=BLUE, scale_factor=1.05))
+        self.play(Indicate(pipeline[0].caja_principal, color=PAPEL_TAN, scale_factor=1.05))
         
         for i in range(len(flechas)):
             centro_siguiente_caja = pipeline[i+1].caja_principal.get_center()
@@ -1485,9 +1567,9 @@ class Presentacion(Slide):
                 run_time=0.6, 
                 rate_func=linear
             )
-            self.play(Indicate(pipeline[i+1].caja_principal, color=BLUE, scale_factor=1.05), run_time=0.4)
+            self.play(Indicate(pipeline[i+1].caja_principal, color=PAPEL_TAN, scale_factor=1.05), run_time=0.4)
 
-        prediccion_txt = Text(' Mancha"', font_size=42, color="#D9534F").move_to(pipeline[-1].caja_principal.get_center())
+        prediccion_txt = Text(' Mancha"', font=FUENTE, font_size=42, color=NARANJA_TERRACOTA).move_to(pipeline[-1].caja_principal.get_center())
         self.play(ReplacementTransform(punto_flujo, prediccion_txt), run_time=0.8)
         self.next_slide()
 
@@ -1498,16 +1580,15 @@ class Presentacion(Slide):
         )
         
         frase_final = VGroup(frase_base, prediccion_txt)
-        self.play(Circumscribe(frase_final, color=BLUE, time_width=2, stroke_width=4))
+        self.play(Circumscribe(frase_final, color=NARANJA_TERRACOTA, time_width=2, stroke_width=4))
         self.next_slide()
 
         self.limpiar_pantalla()
-
     def slide_embeddings(self):
-        titulo_p1 = Text("Embeddings: ", font_size=42, weight=BOLD, color=BLACK)
-        titulo_p2 = Text("De IDs a Vectores", font_size=42, weight=BOLD, color=BLUE_D)
+        titulo_p1 = Text("Embeddings: ", font_size=42, weight=BOLD, color=TINTA_NEGRA)
+        titulo_p2 = Text("De IDs a Vectores", font_size=42, weight=BOLD, color=NARANJA_TERRACOTA)
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
-        linea = Line(LEFT * 5, RIGHT * 5, color=BLUE_D).next_to(titulo_completo, DOWN)
+        linea = Line(LEFT * 5, RIGHT * 5, color=MARRON_OSCURO).next_to(titulo_completo, DOWN)
         grupo_titulo = VGroup(titulo_completo, linea).to_edge(UP)
         
         self.play(Write(titulo_completo), Create(linea))
@@ -1515,71 +1596,71 @@ class Presentacion(Slide):
         ejes = Axes(
             x_range=[-4, 4, 1], y_range=[-3, 4, 1],
             x_length=8, y_length=5.0, 
-            axis_config={"color": BLACK, "stroke_width": 2, "include_ticks": False}
+            axis_config={"color": TINTA_NEGRA, "stroke_width": 2, "include_ticks": False}
         ).shift(DOWN * 0.1) 
         
         self.play(Create(ejes))
 
-        v_hombre = np.array([2, -1, 0])
-        v_caballero = np.array([2, 2, 0])
-        v_mujer = np.array([-2, -1, 0])
-        v_dama = np.array([-2, 2, 0])
+        v_feliz = np.array([2, -1.5, 0])
+        v_triste = np.array([-2, -1.5, 0])
+        v_caballero = np.array([2, 1.5, 0])
+        v_quijote = np.array([-2, 1.5, 0])
 
         def crear_vector_2d(coord, color, label_text, direccion):
             p = ejes.c2p(*coord)
             flecha = Arrow(start=ejes.c2p(0,0), end=p, color=color, buff=0, stroke_width=5)
             lbl = Text(label_text, font_size=24, weight=BOLD, color=color)
-            lbl.set_background_stroke(color=WHITE, width=4)
+            lbl.set_background_stroke(color=PAPEL_CREMA, width=4)
             lbl.next_to(p, direccion, buff=0.2)
             return VGroup(flecha, lbl)
 
-        caballero = crear_vector_2d(v_caballero, BLUE_D, "Caballero", UR)
-        hombre = crear_vector_2d(v_hombre, BLUE_C, "Hombre", DR)
-        mujer = crear_vector_2d(v_mujer, RED_B, "Mujer", DL)
-        dama = crear_vector_2d(v_dama, GOLD, "Dama", UL)
+        feliz = crear_vector_2d(v_feliz, MARRON_OSCURO, "Feliz", DR)
+        triste = crear_vector_2d(v_triste, PAPEL_TAN, "Triste", DL)
+        caballero = crear_vector_2d(v_caballero, MARRON_OSCURO, "Caballero", UR)
+        quijote = crear_vector_2d(v_quijote, NARANJA_TERRACOTA, "Don Quijote", UL)
 
-        self.play(Create(caballero), Create(hombre))
+        self.play(Create(feliz), Create(triste))
         
-        v_relacion = DashedLine(ejes.c2p(*v_hombre), ejes.c2p(*v_caballero), color=GRAY).set_stroke(width=4)
+        v_relacion = DashedLine(ejes.c2p(*v_feliz), ejes.c2p(*v_triste), color=CAJA_INFERIOR).set_stroke(width=4)
         v_relacion.add_tip()
         
-        lbl_relacion = Text("+ Nobleza", font_size=20, color=BLACK, weight=BOLD)
-        lbl_relacion.set_background_stroke(color=WHITE, width=4)
-        lbl_relacion.next_to(v_relacion, RIGHT, buff=0.2)
+        lbl_relacion = Text("- Felicidad", font_size=20, color=TINTA_NEGRA, weight=BOLD)
+        lbl_relacion.set_background_stroke(color=PAPEL_CREMA, width=4)
+        lbl_relacion.next_to(v_relacion, DOWN, buff=0.2)
         
         self.play(Create(v_relacion), Write(lbl_relacion))
         self.next_slide()
 
-        self.play(Create(mujer))
+        self.play(Create(caballero))
         
-        v_relacion_movida = v_relacion.copy().shift(ejes.c2p(*v_mujer) - ejes.c2p(*v_hombre))
-        lbl_relacion_movida = lbl_relacion.copy().next_to(v_relacion_movida, LEFT, buff=0.2)
+        v_relacion_movida = v_relacion.copy().shift(ejes.c2p(*v_quijote) - ejes.c2p(*v_triste))
+        lbl_relacion_movida = lbl_relacion.copy().next_to(v_relacion_movida, UP, buff=0.2)
         
         self.play(
             Transform(v_relacion, v_relacion_movida),
             Transform(lbl_relacion, lbl_relacion_movida)
         )
         
-        punto_llegada = Dot(ejes.c2p(*v_dama), color=GOLD, radius=0.08)
+        punto_llegada = Dot(ejes.c2p(*v_quijote), color=NARANJA_TERRACOTA, radius=0.08)
         self.play(FadeIn(punto_llegada))
         
-        self.play(ReplacementTransform(punto_llegada, dama))
-        self.play(Indicate(dama))
+        self.play(ReplacementTransform(punto_llegada, quijote))
+        self.play(Indicate(quijote, color=NARANJA_TERRACOTA))
 
         formula = MathTex(
-            "\\vec{Mujer} + (\\vec{Caballero} - \\vec{Hombre}) \\approx \\vec{Dama}",
-            font_size=38, color=BLACK
+            "\\vec{Triste} - \\vec{Feliz} + \\vec{Caballero} \\approx \\vec{Don\\ Quijote}",
+            font_size=38, color=TINTA_NEGRA
         ).to_edge(DOWN, buff=1.0) 
         
         self.play(Write(formula))
         self.next_slide()
 
-        self.play(FadeOut(ejes, caballero, hombre, mujer, dama, v_relacion, lbl_relacion, formula))
+        self.play(FadeOut(ejes, feliz, triste, caballero, quijote, v_relacion, lbl_relacion, formula))
 
-        input_word = Text('"lugar"', font_size=40, color=BLACK, weight=BOLD).move_to(LEFT * 4.5 + UP * 1.5)
+        input_word = Text('"quijote"', font_size=40, color=TINTA_NEGRA, weight=BOLD).move_to(LEFT * 4.5 + UP * 1.5)
         
-        id_token = Text("ID: 301", font_size=36, weight=BOLD, color=WHITE)
-        bg_id = RoundedRectangle(corner_radius=0.2, width=2.5, height=1, color=BLUE_D).set_fill(BLUE_D, 1)
+        id_token = Text("ID: 1605", font_size=36, weight=BOLD, color=FONDO_CAJA) 
+        bg_id = RoundedRectangle(corner_radius=0.2, width=2.5, height=1, color=MARRON_OSCURO).set_fill(MARRON_OSCURO, 1)
         grupo_id = VGroup(bg_id, id_token).move_to(LEFT * 4.5 + DOWN * 0.2)
 
         self.play(FadeIn(input_word))
@@ -1590,34 +1671,34 @@ class Presentacion(Slide):
 
         matriz_v = VGroup()
         filas, cols = 8, 10
-        COLOR_VECTOR = RED_D
+        COLOR_VECTOR = NARANJA_TERRACOTA
         for i in range(filas):
             fila = VGroup()
             for j in range(cols):
-                cuadro = RoundedRectangle(corner_radius=0.05, width=0.35, height=0.35).set_stroke(GRAY, opacity=0.4)
+                cuadro = RoundedRectangle(corner_radius=0.05, width=0.35, height=0.35).set_stroke(CAJA_INFERIOR, opacity=0.6)
                 if i == 4:
-                    cuadro.set_fill(COLOR_VECTOR, opacity=0.15).set_stroke(COLOR_VECTOR, opacity=0.6)
+                    cuadro.set_fill(COLOR_VECTOR, opacity=0.2).set_stroke(COLOR_VECTOR, opacity=0.8)
                 fila.add(cuadro)
             matriz_v.add(fila.arrange(RIGHT, buff=0.08))
             
         matriz_v.arrange(DOWN, buff=0.08).move_to(RIGHT * 3 + DOWN * 0)
-        lbl_matriz = Text("Matriz de Embeddings", font_size=20, weight=BOLD, color=GRAY).next_to(matriz_v, UP, buff=0.4)
+        lbl_matriz = Text("Matriz de Embeddings", font_size=20, weight=BOLD, color=PAPEL_TAN).next_to(matriz_v, UP, buff=0.4)
 
         self.play(FadeIn(matriz_v), Write(lbl_matriz))
         self.next_slide()
 
-        flecha_busqueda = Arrow(grupo_id.get_right(), matriz_v[4].get_left(), color=BLUE_C, buff=0.2)
+        flecha_busqueda = Arrow(grupo_id.get_right(), matriz_v[4].get_left(), color=MARRON_OSCURO, buff=0.2)
         self.play(GrowArrow(flecha_busqueda))
         
-        fila_sel = matriz_v[4].copy().set_fill(RED_D, 0.8).set_stroke(RED_D, 2)
+        fila_sel = matriz_v[4].copy().set_fill(COLOR_VECTOR, 0.9).set_stroke(MARRON_OSCURO, 2)
         self.play(Transform(matriz_v[4], fila_sel))
         self.next_slide()
 
-        vector_final = Text("[  0.12,  -0.45,  0.88,  ...  ]", font_size=36, font="Monospace", color=RED_D)
+        vector_final = Text("[  0.12,  -0.45,  0.88,  ...  ]", font_size=36, font="Monospace", color=NARANJA_TERRACOTA)
         vector_final.move_to(DOWN * 2.8)
         
-        lbl_final = Text("Vector Semántico", font_size=24, weight=BOLD, color=BLACK)
-        lbl_size = Text("(768 dimensiones)", font_size=18, color=GRAY)
+        lbl_final = Text("Vector Semántico", font_size=24, weight=BOLD, color=TINTA_NEGRA)
+        lbl_size = Text("(768 dimensiones)", font_size=18, color=PAPEL_TAN)
         
         grupo_lbl_final = VGroup(lbl_final, lbl_size).arrange(DOWN, buff=0.1).next_to(vector_final, UP, buff=0.2)
 
@@ -1626,36 +1707,40 @@ class Presentacion(Slide):
             Write(grupo_lbl_final),
             run_time=1.5
         )
-        self.play(Indicate(vector_final, color=RED_B))
+        self.play(Indicate(vector_final, color=NARANJA_TERRACOTA))
         
         self.next_slide()
         self.limpiar_pantalla()
+
     def slide_position_embeddings(self):
-        # --- 1. TÍTULO CON ÉNFASIS ---
-        titulo_p1 = Text("Embeddings de ", font_size=42, weight=BOLD, color=BLACK)
-        titulo_p2 = Text("Posición", font_size=42, weight=BOLD, color=BLUE_D) 
+        titulo_p1 = Text("Embeddings de ", font_size=42, weight=BOLD, color=TINTA_NEGRA)
+        titulo_p2 = Text("Posición", font_size=42, weight=BOLD, color=NARANJA_TERRACOTA) 
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
-        linea = Line(LEFT * 4, RIGHT * 4, color=GRAY).next_to(titulo_completo, DOWN)
+        linea = Line(LEFT * 4, RIGHT * 4, color=MARRON_OSCURO).next_to(titulo_completo, DOWN)
         grupo_titulo = VGroup(titulo_completo, linea).to_edge(UP)
         
         self.play(Write(titulo_completo), Create(linea))
         self.next_slide()
 
-        # --- 2. EL PROBLEMA: PROCESAMIENTO EN PARALELO ---
-        # Volvemos a Cervantes
-        frase = Text("En un lugar de la Mancha", font_size=40, color=BLACK)
-        nota_problema = Text("Los Transformers procesan todo en paralelo.\n¡Se pierde el orden de las palabras!", font_size=20, color=RED_D).next_to(frase, DOWN, buff=0.5)
+        frase_l1 = Text("La virtud más es perseguida de los malos", font_size=32, color=TINTA_NEGRA)
+        frase_l2 = Text("que amada de los buenos.", font_size=32, color=TINTA_NEGRA)
+        frase = VGroup(frase_l1, frase_l2).arrange(DOWN, buff=0.15)
+        
+        nota_problema = Text("Los Transformers procesan todo en paralelo.\n¡Se pierde el orden de las palabras!", font_size=20, color=NARANJA_TERRACOTA).next_to(frase, DOWN, buff=0.5)
         
         self.play(FadeIn(frase))
         self.play(Write(nota_problema))
         self.next_slide()
 
-        palabras = ["En", "un", "lugar", "de", "la", "Mancha"]
-        tokens = VGroup(*[Text(w, font_size=32, color=BLACK) for w in palabras]).arrange(RIGHT, buff=0.4)
-        posiciones = VGroup(*[Text(f"Pos: {i}", font_size=18, color=GRAY) for i in range(len(palabras))])
-
-        for t, p in zip(tokens, posiciones):
-            p.next_to(t, DOWN, buff=0.2)
+        palabras = ["La", "virtud", "más", "es", "perseguida", "..."]
+        tokens = VGroup(*[Text(w, font_size=28, color=TINTA_NEGRA) for w in palabras]).arrange(RIGHT, buff=0.3)
+        
+        posiciones = VGroup()
+        for i, w in enumerate(palabras):
+            texto_pos = f"Pos: {i}" if w != "..." else ""
+            pos_token = Text(texto_pos, font_size=16, color=PAPEL_TAN)
+            pos_token.next_to(tokens[i], DOWN, buff=0.2)
+            posiciones.add(pos_token)
 
         grupo_tokens = VGroup(tokens, posiciones).move_to(UP * 1.5)
         
@@ -1665,7 +1750,6 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-        # --- 3. AISLAMIENTO Y DIMENSIONES (768) ---
         self.play(
             *[FadeOut(t) for t in tokens[1:]],
             *[FadeOut(p) for p in posiciones[1:]],
@@ -1673,21 +1757,19 @@ class Presentacion(Slide):
             posiciones[0].animate.move_to(LEFT * 4.5 + DOWN * 0.8)
         )
 
-        # Vector Semántico (d=768)
-        vec_token = Text("[ 0.10, -0.30, 0.20, ... ]", font_size=26, font="Monospace", color=BLACK)
-        lbl_token = Text("Token Embedding (Significado)", font_size=16, weight=BOLD, color=GRAY).next_to(vec_token, UP, buff=0.1)
+        vec_token = Text("[ 0.10, -0.30,  0.20, ... ]", font_size=26, font="Monospace", color=TINTA_NEGRA)
+        lbl_token = Text("Token Embedding (Significado)", font_size=16, weight=BOLD, color=PAPEL_TAN).next_to(vec_token, UP, buff=0.1)
         grupo_vec_token = VGroup(lbl_token, vec_token).move_to(RIGHT * 1 + UP * 1.2)
 
-        # Vector de Posición (d=768) - Valores exactos del texto
-        vec_pos = Text("[ 0.05, -0.02, 0.01, ... ]", font_size=26, font="Monospace", color=BLACK)
-        lbl_pos = Text("Position Embedding (Orden)", font_size=16, weight=BOLD, color=GRAY).next_to(vec_pos, UP, buff=0.1)
+        vec_pos = Text("[ 0.05, -0.02,  0.01, ... ]", font_size=26, font="Monospace", color=TINTA_NEGRA)
+        lbl_pos = Text("Position Embedding (Orden)", font_size=16, weight=BOLD, color=PAPEL_TAN).next_to(vec_pos, UP, buff=0.1)
         grupo_vec_pos = VGroup(lbl_pos, vec_pos).move_to(RIGHT * 1 + DOWN * 0.4)
 
-        signo_mas = Text("+", font_size=36, weight=BOLD, color=BLACK).move_to(RIGHT * 1 + UP * 0.4)
-        nota_suma = Text("Suma elemento a elemento (Ambos de 768 dimensiones)", font_size=16, color=BLUE_D).next_to(vec_pos, DOWN, buff=0.5)
+        signo_mas = Text("+", font_size=36, weight=BOLD, color=TINTA_NEGRA).move_to(RIGHT * 1 + UP * 0.4)
+        nota_suma = Text("Suma elemento a elemento (Ambos de 768 dimensiones)", font_size=16, color=MARRON_OSCURO).next_to(vec_pos, DOWN, buff=0.5)
 
-        flecha_token = Arrow(tokens[0].get_right(), grupo_vec_token.get_left(), color=GRAY, buff=0.2)
-        flecha_pos = Arrow(posiciones[0].get_right(), grupo_vec_pos.get_left(), color=GRAY, buff=0.2)
+        flecha_token = Arrow(tokens[0].get_right(), grupo_vec_token.get_left(), color=PAPEL_TAN, buff=0.2)
+        flecha_pos = Arrow(posiciones[0].get_right(), grupo_vec_pos.get_left(), color=PAPEL_TAN, buff=0.2)
 
         self.play(
             GrowArrow(flecha_token), FadeIn(grupo_vec_token),
@@ -1696,10 +1778,9 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-        # --- 4. RESULTADO FINAL DE LA SUMA ---
-        linea_suma = Line(LEFT * 2, RIGHT * 4, color=GRAY).next_to(nota_suma, DOWN, buff=0.2)
-        vec_comb = Text("[ 0.15, -0.32, 0.21, ... ]", font_size=26, font="Monospace", color=RED_D)
-        lbl_comb = Text("Combined Vector (Listo para el Transformer)", font_size=18, weight=BOLD, color=GRAY).next_to(vec_comb, UP, buff=0.1)
+        linea_suma = Line(LEFT * 2, RIGHT * 4, color=CAJA_INFERIOR).next_to(nota_suma, DOWN, buff=0.2)
+        vec_comb = Text("[ 0.15, -0.32,  0.21, ... ]", font_size=26, font="Monospace", color=NARANJA_TERRACOTA)
+        lbl_comb = Text("Combined Vector (Listo para el Transformer)", font_size=18, weight=BOLD, color=MARRON_OSCURO).next_to(vec_comb, UP, buff=0.1)
         grupo_vec_comb = VGroup(lbl_comb, vec_comb).next_to(linea_suma, DOWN, buff=0.3)
 
         self.play(Create(linea_suma))
@@ -1707,31 +1788,25 @@ class Presentacion(Slide):
             ReplacementTransform(VGroup(vec_token.copy(), vec_pos.copy()), vec_comb),
             Write(lbl_comb)
         )
-        self.play(Indicate(vec_comb, color=RED_B))
+        self.play(Indicate(vec_comb, color=NARANJA_TERRACOTA))
         self.next_slide()
 
-        # --- 5. NOTA TÉCNICA FINAL: LA MATRIZ Y EL CONTEXT WINDOW ---
-        # Limpiamos todo excepto el título
         elementos_a_borrar = [grupo_vec_token, grupo_vec_pos, signo_mas, nota_suma, linea_suma, grupo_vec_comb, tokens[0], posiciones[0], flecha_token, flecha_pos]
         self.play(*[FadeOut(el) for el in elementos_a_borrar])
 
-        # Construimos la ilustración de la matriz
-        titulo_matriz = Text("Tabla de Position Embeddings (GPT-2)", font_size=28, weight=BOLD, color=BLACK).move_to(UP * 2)
-        
-        # Filas de la matriz
-        fila_0 = Text("Pos 0:    [ 0.05, -0.02, 0.01, ... (768) ]", font_size=22, font="Monospace", color=GRAY)
-        fila_1 = Text("Pos 1:    [ 0.12,  0.45, -0.3, ... (768) ]", font_size=22, font="Monospace", color=GRAY)
-        puntos = Text("...", font_size=30, color=BLACK).rotate(PI/2) # Puntos suspensivos verticales
-        fila_n = Text("Pos 1023: [ -0.8,  0.11,  0.9, ... (768) ]", font_size=22, font="Monospace", color=GRAY)
+        titulo_matriz = Text("Tabla de Position Embeddings (GPT-2)", font_size=28, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 2)
+
+        fila_0 = Text("Pos 0:    [  0.05, -0.02,  0.01, ... (768) ]", font_size=22, font="Monospace", color=PAPEL_TAN)
+        fila_1 = Text("Pos 1:    [  0.12,  0.45, -0.30, ... (768) ]", font_size=22, font="Monospace", color=PAPEL_TAN)
+        puntos = Text("...", font_size=30, color=TINTA_NEGRA).rotate(PI/2) 
+        fila_n = Text("Pos 1023: [ -0.80,  0.11,  0.90, ... (768) ]", font_size=22, font="Monospace", color=PAPEL_TAN)
 
         matriz = VGroup(fila_0, fila_1, puntos, fila_n).arrange(DOWN, buff=0.3).next_to(titulo_matriz, DOWN, buff=0.5)
-        
-        # Agregamos una llave (Brace) para indicar el block size
-        llave = Brace(matriz, direction=LEFT, color=BLUE_D)
-        texto_llave = Text("1024 filas\n(block_size)", font_size=20, color=BLUE_D).next_to(llave, LEFT, buff=0.2)
 
-        # Nota final sobre el Context Window
-        nota_context = Text("¡Este límite físico es el Context Window del modelo!", font_size=26, weight=BOLD, color=RED_D).next_to(matriz, DOWN, buff=0.6)
+        llave = Brace(matriz, direction=LEFT, color=MARRON_OSCURO)
+        texto_llave = Text("1024 filas\n(block_size)", font_size=20, color=MARRON_OSCURO).next_to(llave, LEFT, buff=0.2)
+
+        nota_context = Text("¡Este límite físico es el Context Window del modelo!", font_size=26, weight=BOLD, color=NARANJA_TERRACOTA).next_to(matriz, DOWN, buff=0.6)
 
         self.play(Write(titulo_matriz))
         self.play(
@@ -1744,35 +1819,33 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(Write(nota_context))
-        self.play(Indicate(nota_context, color=RED_B, scale_factor=1.1))
+        self.play(Indicate(nota_context, color=NARANJA_TERRACOTA, scale_factor=1.1))
         self.next_slide()
 
         self.limpiar_pantalla()
+
     def slide_layer_normalization(self):
-        # --- 1. TÍTULO CON ÉNFASIS ---
-        titulo_p1 = Text("Layer ", font_size=42, weight=BOLD, color=BLACK)
-        titulo_p2 = Text("Normalization", font_size=42, weight=BOLD, color=BLUE_D) 
+        titulo_p1 = Text("Layer ", font_size=42, weight=BOLD, color=TINTA_NEGRA)
+        titulo_p2 = Text("Normalization", font_size=42, weight=BOLD, color=NARANJA_TERRACOTA) 
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
-        linea = Line(LEFT * 4, RIGHT * 4, color=GRAY).next_to(titulo_completo, DOWN)
+        linea = Line(LEFT * 4, RIGHT * 4, color=MARRON_OSCURO).next_to(titulo_completo, DOWN)
         grupo_titulo = VGroup(titulo_completo, linea).to_edge(UP)
         
         self.play(Write(titulo_completo), Create(linea))
         self.next_slide()
 
-        # --- 2. EL PROBLEMA: INESTABILIDAD ---
-        nota_caos = Text("Sin normalización: Los valores explotan o desaparecen", font_size=24, color=RED_D).move_to(UP * 1.5)
+        nota_caos = Text("Sin normalización: Los valores explotan o desaparecen", font_size=24, color=NARANJA_TERRACOTA).move_to(UP * 1.5)
         
-        vec_inestable = Text("[ 1045.2,  0.0001, -532.8, ... ]", font_size=32, font="Monospace", color=BLACK)
+        vec_inestable = Text("[ 1045.2,  0.0001, -532.8, ... ]", font_size=32, font="Monospace", color=TINTA_NEGRA)
         
         self.play(Write(nota_caos))
         self.play(FadeIn(vec_inestable, shift=UP))
-        self.play(Indicate(vec_inestable, color=RED, scale_factor=1.2))
+        self.play(Indicate(vec_inestable, color=NARANJA_TERRACOTA, scale_factor=1.2))
         self.next_slide()
 
-        # --- 3. LA SOLUCIÓN: ESTANDARIZACIÓN ---
-        nota_estable = Text("Con LayerNorm: Se fuerza una Media=0 y Varianza=1", font_size=24, color=BLUE_D).move_to(UP * 1.5)
+        nota_estable = Text("Con LayerNorm: Se fuerza una Media=0 y Varianza=1", font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
         
-        vec_estable = Text("[  1.23,  -0.45,   0.89, ... ]", font_size=32, font="Monospace", color=BLUE_E)
+        vec_estable = Text("[  1.23,  -0.45,   0.89, ... ]", font_size=32, font="Monospace", color=TINTA_NEGRA)
         
         self.play(
             ReplacementTransform(nota_caos, nota_estable),
@@ -1780,504 +1853,520 @@ class Presentacion(Slide):
         )
         self.next_slide()
 
-        # --- 4. LA FÓRMULA MATEMÁTICA ---
         self.play(FadeOut(nota_estable), FadeOut(vec_estable))
         
-        # SOLUCIÓN EPSILON: Usamos substrings_to_isolate para encontrar las partes exactas
         formula = MathTex(
             r"\text{output} = \frac{\text{input} - \mu}{\sqrt{\sigma^2 + \epsilon}} \times \gamma + \beta",
             substrings_to_isolate=[r"\epsilon", r"\times \gamma + \beta"],
-            color=BLACK
+            color=TINTA_NEGRA
         ).scale(1.2).move_to(UP * 0.5)
 
-        lbl_formula = Text("La Fórmula (por cada token):", font_size=20, weight=BOLD, color=GRAY).next_to(formula, UP, buff=0.5)
+        lbl_formula = Text("La Fórmula (por cada token):", font_size=20, weight=BOLD, color=MARRON_OSCURO).next_to(formula, UP, buff=0.5)
 
         self.play(Write(lbl_formula), FadeIn(formula))
         self.next_slide()
 
-        # --- 5. EXPLICACIÓN DE LOS COMPONENTES ---
-        # Resaltando Epsilon (Buscamos la parte exacta por su texto)
         parte_eps = formula.get_part_by_tex(r"\epsilon")
-        caja_eps = SurroundingRectangle(parte_eps, color=RED_B, buff=0.05)
-        nota_eps = Text("eps: Evita dividir por cero (ej. 0.00001)", font_size=18, color=RED_D).next_to(caja_eps, DOWN, buff=0.5)
+        caja_eps = SurroundingRectangle(parte_eps, color=NARANJA_TERRACOTA, buff=0.05)
+        nota_eps = Text("eps: Evita dividir por cero (ej. 0.00001)", font_size=18, color=NARANJA_TERRACOTA).next_to(caja_eps, DOWN, buff=0.5)
         
         self.play(Create(caja_eps), FadeIn(nota_eps, shift=UP))
         self.next_slide()
 
-        # Resaltando Gamma y Beta
         self.play(FadeOut(caja_eps), FadeOut(nota_eps))
         
         parte_params = formula.get_part_by_tex(r"\times \gamma + \beta")
-        caja_params = SurroundingRectangle(parte_params, color=GREEN_D, buff=0.1)
-        nota_params = Text("gamma / beta: Parámetros aprendidos\n¡Le dan flexibilidad al modelo!", font_size=18, color=GREEN_D).next_to(caja_params, DOWN, buff=0.5)
+        caja_params = SurroundingRectangle(parte_params, color=MARRON_OSCURO, buff=0.1)
+        nota_params = Text("gamma / beta: Parámetros aprendidos\n¡Le dan flexibilidad al modelo!", font_size=18, color=MARRON_OSCURO).next_to(caja_params, DOWN, buff=0.5)
 
         self.play(Create(caja_params), FadeIn(nota_params, shift=UP))
         self.next_slide()
 
-        # --- 6. CONTEXTO EN LA ARQUITECTURA (DIAGRAMA SIMPLIFICADO) ---
         self.play(
             *[FadeOut(m) for m in [lbl_formula, formula, caja_params, nota_params]]
         )
 
-        # Textos a la izquierda
-        nota_final = Text("Se aplica 2 veces por capa:", font_size=28, weight=BOLD, color=BLACK)
-        paso_1 = Text("1. Antes de Attention", font_size=24, color=BLUE_D)
-        paso_2 = Text("2. Antes de FFN (MLP)", font_size=24, color=BLUE_D)
+        nota_final = Text("Se aplica 2 veces por capa:", font_size=28, weight=BOLD, color=TINTA_NEGRA)
+        paso_1 = Text("1. Antes de Attention", font_size=24, color=MARRON_OSCURO)
+        paso_2 = Text("2. Antes de FFN (MLP)", font_size=24, color=MARRON_OSCURO)
         
         textos_izq = VGroup(nota_final, paso_1, paso_2).arrange(DOWN, aligned_edge=LEFT, buff=0.4).to_edge(LEFT, buff=1).shift(UP * 0.5)
 
-        # Función auxiliar para crear bloques
-        def crear_cajita(texto, bg_color, borde_color="#137B85", w=2.6, h=0.7):
+        def crear_cajita(texto, bg_color, borde_color=MARRON_OSCURO, w=2.6, h=0.7):
             caja = RoundedRectangle(corner_radius=0.1, width=w, height=h, 
                                     fill_color=bg_color, fill_opacity=1, 
                                     stroke_color=borde_color, stroke_width=2)
-            lbl = Text(texto, font_size=20, color=BLACK).move_to(caja.get_center())
+            lbl = Text(texto, font_size=20, color=TINTA_NEGRA).move_to(caja.get_center())
             return VGroup(caja, lbl)
 
-        # Construcción de los bloques
-        b_in = crear_cajita("Input", "#D4EAF2")
-        b_ln1 = crear_cajita("LayerNorm 1", "#EBEBEB")
-        b_attn = crear_cajita("Attention", "#FFF566", "#F28C00")
-        b_ln2 = crear_cajita("LayerNorm 2", "#EBEBEB")
-        b_mlp = crear_cajita("MLP (FFN)", "#9DF28F")
-        b_out = crear_cajita("Output", "#D4EAF2")
+        b_in = crear_cajita("Input", "#E8DCC4")       
+        b_ln1 = crear_cajita("LayerNorm 1", "#D9C8AA")  
+        b_attn = crear_cajita("Attention", "#E6A87C", borde_color="#C0573E")
+        b_ln2 = crear_cajita("LayerNorm 2", "#D9C8AA") 
+        b_mlp = crear_cajita("MLP (FFN)", "#C2B280")    
+        b_out = crear_cajita("Output", "#E8DCC4")      
 
         bloques = VGroup(b_in, b_ln1, b_attn, b_ln2, b_mlp, b_out).arrange(DOWN, buff=0.4)
         
         flechas = VGroup(*[
             Arrow(bloques[i].get_bottom(), bloques[i+1].get_top(), buff=0.1, 
-                  max_tip_length_to_length_ratio=0.15, color=GRAY) 
+                  max_tip_length_to_length_ratio=0.15, color=MARRON_OSCURO) 
             for i in range(len(bloques)-1)
         ])
 
         diagrama_simplificado = VGroup(bloques, flechas)
 
-        # SOLUCIÓN DIAGRAMA: Lo hacemos más pequeño (75%) y lo empujamos más a la izquierda (buff=3.5)
         diagrama_simplificado.scale(0.75).to_edge(RIGHT, buff=3.5).shift(DOWN * 0.2)
 
-        # Animación de la estructura base
         self.play(Write(nota_final), FadeIn(diagrama_simplificado, shift=LEFT))
         self.next_slide()
 
-        # Animación del Paso 1
-        resalto_1 = SurroundingRectangle(b_ln1, color=RED, stroke_width=4, buff=0.05)
+        resalto_1 = SurroundingRectangle(b_ln1, color=NARANJA_TERRACOTA, stroke_width=4, buff=0.05)
         self.play(
             FadeIn(paso_1, shift=RIGHT), 
             Create(resalto_1), 
-            b_ln1[0].animate.set_fill("#FFD1D1")
+            b_ln1[0].animate.set_fill("#C0573E") 
         )
         self.next_slide()
 
-        # Animación del Paso 2
-        resalto_2 = SurroundingRectangle(b_ln2, color=RED, stroke_width=4, buff=0.05)
+        resalto_2 = SurroundingRectangle(b_ln2, color=NARANJA_TERRACOTA, stroke_width=4, buff=0.05)
         self.play(
             FadeIn(paso_2, shift=RIGHT), 
             Create(resalto_2), 
-            b_ln2[0].animate.set_fill("#FFD1D1")
+            b_ln2[0].animate.set_fill("#C0573E") 
         )
         self.next_slide()
 
         self.limpiar_pantalla()
-    def slide_multihead_attention(self):
-        # =========================================================================
-        # --- TÍTULO PRINCIPAL (Se mantiene fijo en toda la diapositiva) ---
-        # =========================================================================
-        titulo = Text("Multi-Head Self-Attention", font_size=42, weight=BOLD, color=BLACK).to_edge(UP)
-        subtitulo = Text("El corazón del Transformer", font_size=24, color=DARK_GRAY).next_to(titulo, DOWN)
-        self.play(Write(titulo), FadeIn(subtitulo, shift=UP))
+
+    def slide_mha_acto1_intuicion(self):
+
+        titulo, linea = self.crear_titulo(
+            "Multi-Head Self-Attention",
+            palabra_clave="Attention",
+            color_clave=NARANJA_TERRACOTA
+        )
+
+        subtitulo = Text(
+            "La Intuición (Q, K, V)",
+            font=FUENTE, font_size=24, color=MARRON_OSCURO
+        ).next_to(linea, DOWN, buff=0.5)
+
+        self.play(Write(titulo), Create(linea), FadeIn(subtitulo, shift=DOWN))
         self.next_slide()
 
-        # Función auxiliar para limpiar la pantalla sin borrar los títulos
-        def limpiar_escena():
-            mobs_a_borrar = [m for m in self.mobjects if m not in [titulo, subtitulo]]
-            if mobs_a_borrar:
-                self.play(*[FadeOut(m) for m in mobs_a_borrar])
+        nota_qkv = Text(
+            "Para entender su contexto, cada palabra genera tres vectores:",
+            font=FUENTE, font_size=24, color=MARRON_OSCURO
+        ).next_to(subtitulo, DOWN, buff=0.8)
 
-        # =========================================================================
-        # --- ACTO 1: LA INTUICIÓN (Q, K, V) - ESPACIADO EXPANDIDO ---
-        # =========================================================================
-        nota_qkv = Text("Por cada token, el modelo genera 3 matrices:", 
-                        font_size=24, color=GRAY_D).move_to(UP * 1.5)
-        self.play(FadeIn(nota_qkv, shift=DOWN))
-
-        def crear_tarjeta_premium(letra, nombre, pregunta, color_base):
-            # Reducimos un poco el ancho (de 3.2 a 2.8) para ganar más espacio entre ellas
+        self.play(FadeIn(nota_qkv, shift=UP))
+        
+        def crear_tarjeta(letra, nombre, pregunta, color):
             caja = RoundedRectangle(
-                corner_radius=0.3, width=2.8, height=2.2, 
-                fill_color=color_base, fill_opacity=0.05, 
-                stroke_color=color_base, stroke_width=2
+                corner_radius=0.2, width=3, height=2.2,
+                fill_color=FONDO_CAJA, fill_opacity=1,
+                stroke_color=color, stroke_width=2
             )
-            header = Rectangle(
-                width=2.8, height=0.6, fill_color=color_base, 
-                fill_opacity=0.8, stroke_width=0
+            header_rect = Rectangle(
+                width=3, height=0.7, fill_color=color, fill_opacity=1, stroke_width=0
             ).move_to(caja.get_top(), aligned_edge=UP)
             
-            # Recorte para que el header siga la redondez de la caja
-            header = Intersection(header, caja, fill_opacity=0.8, color=color_base, stroke_width=0)
-            
-            txt_letra = Text(letra, font_size=32, weight=BOLD, color=WHITE).move_to(header.get_center())
-            txt_nombre = Text(nombre, font_size=20, weight=BOLD, color=color_base).next_to(header, DOWN, buff=0.3)
-            txt_pregunta = Text(pregunta, font_size=16, slant=ITALIC, color=BLACK).next_to(txt_nombre, DOWN, buff=0.2)
-            
-            return VGroup(caja, header, txt_letra, txt_nombre, txt_pregunta)
+            header = Intersection(header_rect, caja, color=color, fill_opacity=1, stroke_width=0)
 
-        tarjeta_q = crear_tarjeta_premium("Q", "Query", "¿Qué busco?", RED_D)
-        tarjeta_k = crear_tarjeta_premium("K", "Key", "¿Qué tengo?", GREEN_D)
-        tarjeta_v = crear_tarjeta_premium("V", "Value", "Contenido", BLUE_D)
+            letra_txt = Text(letra, font=FUENTE, font_size=36, weight=BOLD, color=FONDO_CAJA).move_to(header.get_center())
+            nombre_txt = Text(nombre, font=FUENTE, font_size=22, weight=BOLD, color=color).next_to(header, DOWN, buff=0.3)
+            pregunta_txt = Text(pregunta, font=FUENTE, font_size=18, slant=ITALIC, color=TINTA_NEGRA).next_to(nombre_txt, DOWN, buff=0.15)
 
-        # --- CAMBIO CLAVE: buff=1.5 para máxima separación ---
-        tarjetas_qkv = VGroup(tarjeta_q, tarjeta_k, tarjeta_v).arrange(RIGHT, buff=1.5).next_to(nota_qkv, DOWN, buff=0.8)
+            return VGroup(caja, header, letra_txt, nombre_txt, pregunta_txt)
 
-        self.play(
-            LaggedStart(
-                *[FadeIn(t, shift=UP) for t in tarjetas_qkv],
-                lag_ratio=0.2,
-                run_time=1.5
-            )
-        )
+        tarjetas_qkv = VGroup(
+            crear_tarjeta("Q", "Query", "¿Qué busco?", NARANJA_TERRACOTA),
+            crear_tarjeta("K", "Key", "¿Qué ofrezco?", MARRON_OSCURO),
+            crear_tarjeta("V", "Value", "Contenido", PAPEL_TAN)
+        ).arrange(RIGHT, buff=0.6).next_to(nota_qkv, DOWN, buff=0.8)
+
+        self.play(LaggedStart(*[FadeIn(t, shift=UP) for t in tarjetas_qkv], lag_ratio=0.2), run_time=1.5)
         self.next_slide()
 
-        # Conexión elegante Q -> K con la distancia ampliada
-        linea_conexion = Line(
-            tarjeta_q.get_right(), 
-            tarjeta_k.get_left(), 
-            color=ORANGE, 
-            stroke_width=2
-        ).set_z_index(-1)
-
-        dot_product_label = MathTex(r"Q \cdot K^T", color=ORANGE, font_size=30).next_to(linea_conexion, UP, buff=0.2)
-        
-        self.play(Create(linea_conexion), Write(dot_product_label))
-        
-        # Efecto de pulso
         self.play(
-            linea_conexion.animate.set_stroke(width=5),
-            Flash(linea_conexion.get_center(), color=ORANGE, flash_radius=0.5),
-            Indicate(tarjeta_q[0], color=ORANGE, scale_factor=1.05),
-            Indicate(tarjeta_k[0], color=ORANGE, scale_factor=1.05),
+            FadeOut(nota_qkv),
+            FadeOut(tarjetas_qkv),
+            FadeOut(subtitulo)
+        )
+
+        palabras = ["El", "hidalgo", "vio", "al", "gigante,", "pero", "este", "era", "un", "molino."]
+        oracion = VGroup(*[Text(p, font=FUENTE, font_size=28, color=TINTA_NEGRA) for p in palabras]).arrange(RIGHT, buff=0.2)
+
+        oracion.set_z_index(1)
+        oracion.shift(DOWN * 1.0)
+
+        nota_ejemplo = Text(
+            "Ejemplo:",
+            font=FUENTE, font_size=24, weight=BOLD, color=MARRON_OSCURO
+        ).next_to(linea, DOWN, buff=0.8)
+
+        self.play(Write(nota_ejemplo), FadeIn(oracion, shift=UP))
+        self.next_slide()
+
+        idx_query = 6        # "este"
+        idx_key_fuerte = 4   # "gigante,"
+        idx_key_debil = 1    # "hidalgo"
+
+        caja_query = SurroundingRectangle(oracion[idx_query], color=NARANJA_TERRACOTA, corner_radius=0.1, buff=0.1)
+        caja_query.set_z_index(1)
+        label_q = Text("Query (busca antecedente)", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(caja_query, DOWN, buff=0.2)
+
+        self.play(Create(caja_query), Write(label_q), oracion[idx_query].animate.set_color(NARANJA_TERRACOTA))
+        self.next_slide()
+
+        punto_inicio = oracion[idx_query].get_center() + UP * 0.4
+        punto_fin_fuerte = oracion[idx_key_fuerte].get_center() + UP * 0.4
+        punto_fin_debil = oracion[idx_key_debil].get_center() + UP * 0.4
+
+        label_k_fuerte = Text("Key", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA).next_to(oracion[idx_key_fuerte], UP, buff=0.1)
+        label_k_debil = Text("Key", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(oracion[idx_key_debil], UP, buff=0.1).set_opacity(0.5)
+
+        flecha_fuerte = CurvedArrow(
+            start_point=punto_inicio, end_point=punto_fin_fuerte,
+            angle=PI/1.2, color=NARANJA_TERRACOTA, stroke_width=3
+        ).set_z_index(-1) 
+        
+        peso_fuerte = Text("0.85", font=FUENTE, font_size=22, color=NARANJA_TERRACOTA).next_to(flecha_fuerte.point_from_proportion(0.5), UP, buff=0.1).set_z_index(-1)
+
+        flecha_debil = CurvedArrow(
+            start_point=punto_inicio, end_point=punto_fin_debil,
+            angle=PI/2, color=MARRON_OSCURO, stroke_width=3
+        ).set_z_index(-1)
+        
+        flecha_debil.set_stroke(opacity=0.4)
+        flecha_debil.get_tip().set_fill(opacity=0.4)
+        flecha_debil.get_tip().set_stroke(opacity=0.4)
+        
+        peso_debil = Text("0.10", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(flecha_debil.point_from_proportion(0.5), UP, buff=0.1).set_opacity(0.4).set_z_index(-1)
+
+        self.play(
+            FadeIn(label_k_debil, shift=DOWN*0.2), oracion[idx_key_debil].animate.set_opacity(0.5),
+            FadeIn(label_k_fuerte, shift=DOWN*0.2), oracion[idx_key_fuerte].animate.set_color(NARANJA_TERRACOTA),
             run_time=1
         )
-        self.play(linea_conexion.animate.set_stroke(width=2))
         
+        self.play(
+            Create(flecha_debil), 
+            Create(flecha_fuerte),
+            run_time=1.2
+        )
+        
+        self.play(
+            FadeIn(peso_debil, shift=DOWN*0.1),
+            FadeIn(peso_fuerte, shift=DOWN*0.1),
+            run_time=0.8
+        )
         self.next_slide()
-        limpiar_escena()
 
-        # =========================================================================
-        # --- ACTO 2: LA FÓRMULA MATEMÁTICA PASO A PASO ---
-        # =========================================================================
-        lbl_formula = Text("La Matemática:", font_size=28, weight=BOLD, color=BLUE_E).move_to(UP * 1.2)
+        nota_final = Text(
+            "Value: 'este' absorbe el significado de 'gigante'",
+            font=FUENTE, font_size=22, color=MARRON_OSCURO
+        ).next_to(label_q, DOWN, buff=0.8)
         
-        # TRUCO: Usamos {V} al final de la ecuación para que Manim la diferencie de la primera V
+        self.play(Write(nota_final))
+
+        particulas = VGroup(*[
+            Dot(point=oracion[idx_key_fuerte].get_center() + np.random.uniform(-0.2, 0.2, 3), radius=0.04, color=NARANJA_TERRACOTA).set_z_index(2)
+            for _ in range(20)
+        ])
+
+        self.play(FadeIn(particulas, lag_ratio=0.1), run_time=0.5)
+        self.play(
+            LaggedStart(*[p.animate.move_to(oracion[idx_query].get_center() + np.random.uniform(-0.1, 0.1, 3)) for p in particulas], lag_ratio=0.03),
+            oracion[idx_query].animate.scale(1.15).set_color(NARANJA_TERRACOTA),
+            run_time=1.5
+        )
+        self.play(
+            FadeOut(particulas, shift=DOWN*0.2), 
+            oracion[idx_query].animate.scale(1/1.15)
+        )
+        self.next_slide()
+
+        elementos_escena = VGroup(
+            oracion, caja_query, label_q, flecha_fuerte, flecha_debil,
+            peso_fuerte, peso_debil, nota_ejemplo, nota_final, label_k_fuerte, label_k_debil
+        )
+        self.play(FadeOut(elementos_escena))
+        
+    def slide_mha_acto2_formula(self):
+        titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
+        subtitulo = Text("La Ecuación de Atención", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
+        
+        self.play(Write(titulo), Create(linea), FadeIn(subtitulo, shift=DOWN))
+        self.next_slide()
+        
         formula = MathTex(
-            r"\text{Attention}(Q, K, V) = \text{softmax}\left( \frac{Q K^T}{\sqrt{d}} \right) {V}",
-            substrings_to_isolate=[r"Q K^T", r"\sqrt{d}", r"\text{softmax}", r"{V}"],
-            color=BLACK, font_size=52
-        ).next_to(lbl_formula, DOWN, buff=1)
+            r"\text{Attention}(Q, K, V) = ", # Índice 0
+            r"\text{softmax}",               # Índice 1
+            r"\left( \frac{",                # Índice 2
+            r"Q K^T",                        # Índice 3
+            r"}{",                           # Índice 4
+            r"\sqrt{d_k}",                   # Índice 5
+            r"} \right) ",                   # Índice 6
+            r"V",                            # Índice 7
+            color=TINTA_NEGRA, font_size=48
+        ).move_to(UP * 0.5)
 
-        self.play(Write(lbl_formula), FadeIn(formula, shift=UP))
+        self.play(FadeIn(formula, shift=UP))
         self.next_slide()
 
-        partes = [
-            (r"Q K^T", "1. Similitud: ¿Qué tanto se parecen Q y K?", RED_D),
-            (r"\sqrt{d}", "2. Escalado: Evita que los números exploten", ORANGE),
-            (r"\text{softmax}", "3. Softmax: Convierte a porcentajes (0 a 100%)", PURPLE_D),
-            (r"{V}", "4. Valor: Se aplica el % al contenido real", BLUE_D)
+        partes_explicacion = [
+            (3, "Similitud: Medimos qué tanto se relacionan los tokens.", NARANJA_TERRACOTA),
+            (5, "Escalado: Estabilizamos gradientes.", MARRON_OSCURO),
+            (1, "Normalización: Convertimos scores a probabilidades.", TINTA_NEGRA),
+            (7, "Contexto: Extraemos la información ponderada.", PAPEL_TAN)
         ]
 
-        caja_actual = None
-        texto_actual = None
+        caja_enfoque = None
+        txt_enfoque = None
 
-        for tex_string, texto, color in partes:
-            parte_tex = formula.get_part_by_tex(tex_string)
+        for idx, desc, col in partes_explicacion:
+            parte_formula = formula[idx]
+            nueva_caja = SurroundingRectangle(parte_formula, color=col, buff=0.1)
             
-            nueva_caja = SurroundingRectangle(parte_tex, color=color, buff=0.1, stroke_width=4)
-            nuevo_texto = Text(texto, font_size=24, weight=BOLD, color=color).next_to(formula, DOWN, buff=1.5)
+            nuevo_txt = Text(desc, font=FUENTE, font_size=22, color=col).next_to(formula, DOWN, buff=1.5)
             
-            if caja_actual is not None:
-                self.play(FadeOut(caja_actual), FadeOut(texto_actual, shift=UP))
-            self.play(Create(nueva_caja), FadeIn(nuevo_texto, shift=UP))
+            if caja_enfoque:
+                self.play(ReplacementTransform(caja_enfoque, nueva_caja), ReplacementTransform(txt_enfoque, nuevo_txt))
+            else:
+                self.play(Create(nueva_caja), FadeIn(nuevo_txt, shift=UP))
+            
+            caja_enfoque, txt_enfoque = nueva_caja, nuevo_txt
             self.next_slide()
-            
-            caja_actual = nueva_caja
-            texto_actual = nuevo_texto
 
-        limpiar_escena()
+        self.limpiar_pantalla()
 
-        # =========================================================================
-        # --- ACTO 3: EJEMPLO PASO A PASO CON MATRICES ---
-        # =========================================================================
+    def slide_mha_acto3_calculo(self):
+        titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
+        subtitulo = Text("Visualizando el Flujo de Datos", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
         
-        # --- PASO 1: Presentación de Q, K, V ---
-        explicacion = Text("Paso 1: Tenemos las matrices Q, K y V (Ej. 2 tokens, 3 dimensiones)", font_size=24, color=DARK_GRAY).move_to(UP * 1.5)
-        self.play(FadeIn(explicacion, shift=DOWN))
-
-        # Valores inventados sencillos para que la matemática cuadre fácil
-        val_q = ["1", "0", "2",  "0", "1", "0"]
-        val_k = ["1", "1", "0",  "0", "1", "1"]
-        val_v = ["3", "0", "0",  "0", "3", "0"]
-
-        # Construcción visual usando tus funciones y colores
-        mat_q = self.crear_matriz_bloques(2, 3, color_fondo=RUST_COLOR, valores=val_q)
-        mat_k = self.crear_matriz_bloques(2, 3, color_fondo=SOFT_GREEN, valores=val_k)
-        mat_v = self.crear_matriz_bloques(2, 3, color_fondo=HIGHLIGHT_COLOR, valores=val_v)
-
-        lbl_q = MathTex("Q", color=BLACK).next_to(mat_q, UP)
-        lbl_k = MathTex("K", color=BLACK).next_to(mat_k, UP)
-        lbl_v = MathTex("V", color=BLACK).next_to(mat_v, UP)
-
-        grupo_q = VGroup(lbl_q, mat_q)
-        grupo_k = VGroup(lbl_k, mat_k)
-        grupo_v = VGroup(lbl_v, mat_v)
-
-        # Ubicamos Q, K, V alineados horizontalmente
-        matrices_iniciales = VGroup(grupo_q, grupo_k, grupo_v).arrange(RIGHT, buff=1.2).next_to(explicacion, DOWN, buff=1)
-
-        self.play(LaggedStart(FadeIn(grupo_q), FadeIn(grupo_k), FadeIn(grupo_v), lag_ratio=0.3))
+        self.play(Write(titulo), Create(linea), FadeIn(subtitulo, shift=DOWN))
         self.next_slide()
 
-        # --- PASO 2: Q * K^T (Scores) ---
-        explicacion_2 = Text("Paso 2: Multiplicamos Q por K transpuesta (Scores de Similitud)", font_size=24, color=DARK_GRAY).move_to(explicacion)
+        escala_mat = 0.75 
+        buff_espacio = 0.3
+
+        txt_paso1 = Text("1. Calculamos los 'Scores' crudos (Similitud)", font=FUENTE, font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
         
-        # K transpuesta (ahora es 3x2)
-        val_kt = ["1", "0",  "1", "1",  "0", "1"]
-        mat_kt = self.crear_matriz_bloques(3, 2, color_fondo=SOFT_GREEN, valores=val_kt)
-        lbl_kt = MathTex("K^T", color=BLACK).next_to(mat_kt, UP)
-        grupo_kt = VGroup(lbl_kt, mat_kt)
+        m_q = self.crear_matriz_bloques(3, 3, color_fondo=FONDO_CAJA, valores=["1","1","0", "0","1","1", "1","0","1"]).scale(escala_mat)
+        m_kt = self.crear_matriz_bloques(3, 3, color_fondo=CAJA_INFERIOR, valores=["1","0","1", "1","1","0", "0","1","1"]).scale(escala_mat)
+        m_scores = self.crear_matriz_bloques(3, 3, color_fondo=PAPEL_TAN, valores=["2","1","1", "1","2","1", "1","1","2"]).scale(escala_mat)
+        
+        q_lbl = MathTex("Q", color=TINTA_NEGRA).next_to(m_q, UP, buff=0.2)
+        kt_lbl = MathTex("K^T", color=TINTA_NEGRA).next_to(m_kt, UP, buff=0.2)
+        scores_lbl = MathTex("Scores", color=TINTA_NEGRA).next_to(m_scores, UP, buff=0.2)
 
-        # Resultado de Q * K^T (Matriz 2x2)
-        val_scores = ["1", "2",  "1", "1"]
-        mat_scores = self.crear_matriz_bloques(2, 2, color_fondo=GHOST_COLOR, valores=val_scores)
-        lbl_scores = MathTex(r"Q \cdot K^T", color=BLACK).next_to(mat_scores, UP)
-        grupo_scores = VGroup(lbl_scores, mat_scores)
+        grupo_q = VGroup(q_lbl, m_q)
+        grupo_kt = VGroup(kt_lbl, m_kt)
+        grupo_scores = VGroup(scores_lbl, m_scores)
 
-        # Ecuación visual: Q x K^T = Scores
-        ec_paso2 = VGroup(grupo_q, MathTex(r"\times", color=BLACK).scale(1.2), grupo_kt, MathTex("=", color=BLACK).scale(1.2), grupo_scores)
-        ec_paso2.arrange(RIGHT, buff=0.5).next_to(explicacion_2, DOWN, buff=0.8)
+        signo_por_1 = MathTex(r"\times", color=TINTA_NEGRA).scale(1.2)
+        signo_igual_1 = MathTex("=", color=TINTA_NEGRA).scale(1.2)
+
+        grupo_p1 = VGroup(grupo_q, signo_por_1, grupo_kt, signo_igual_1, grupo_scores)
+        grupo_p1.arrange(RIGHT, buff=buff_espacio).move_to(DOWN * 0.5) 
+
+        self.play(FadeIn(txt_paso1, shift=DOWN))
+        self.play(FadeIn(VGroup(grupo_q, signo_por_1, grupo_kt), lag_ratio=0.2)) 
+        self.next_slide()
+        
+        self.play(Write(signo_igual_1), TransformFromCopy(VGroup(m_q, m_kt), m_scores), FadeIn(scores_lbl, shift=DOWN)) 
+        self.next_slide()
+
+        txt_paso2 = Text("2. Aplicamos Softmax (Convertir a Porcentajes)", font=FUENTE, font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
+        
+        m_soft = self.crear_matriz_bloques(3, 3, color_fondo=FONDO_CAJA, valores=["0.6","0.2","0.2", "0.2","0.6","0.2", "0.2","0.2","0.6"]).scale(escala_mat)
+        soft_lbl = MathTex("Softmax", color=TINTA_NEGRA).next_to(m_soft, UP, buff=0.2)
+        grupo_soft = VGroup(soft_lbl, m_soft)
+        
+        flecha_soft = Arrow(LEFT, RIGHT, buff=0.2, color=MARRON_OSCURO)
+
+        grupo_p2 = VGroup(grupo_scores.copy(), flecha_soft, grupo_soft)
+        grupo_p2.arrange(RIGHT, buff=0.8).move_to(DOWN * 0.5)
 
         self.play(
-            Transform(explicacion, explicacion_2),
-            FadeOut(grupo_k), FadeOut(grupo_v),
-            grupo_q.animate.move_to(ec_paso2[0]),
-            FadeIn(ec_paso2[1]),
-            FadeIn(ec_paso2[2], shift=LEFT),
-            FadeIn(ec_paso2[3]),
-            FadeIn(ec_paso2[4], shift=LEFT)
+            ReplacementTransform(txt_paso1, txt_paso2),
+            FadeOut(VGroup(grupo_q, signo_por_1, grupo_kt, signo_igual_1)), 
+            grupo_scores.animate.move_to(grupo_p2[0].get_center()) 
         )
+
+        self.play(GrowArrow(flecha_soft))
+        self.play(TransformFromCopy(m_scores, m_soft), FadeIn(soft_lbl, shift=DOWN))
         self.next_slide()
 
-        # --- PASO 3: Softmax ---
-        explicacion_3 = Text("Paso 3: Escalamos y aplicamos Softmax (Probabilidades %)", font_size=24, color=DARK_GRAY).move_to(explicacion)
-
-        # Valores aplicando Softmax (aproximados para 1,2 y 1,1)
-        val_soft = ["0.3", "0.7",  "0.5", "0.5"]
-        mat_soft = self.crear_matriz_bloques(2, 2, color_fondo=TOKEN_COLOR_2, valores=val_soft)
-        lbl_soft = MathTex("Softmax", color=BLACK).next_to(mat_soft, UP)
-        grupo_soft = VGroup(lbl_soft, mat_soft)
-
-        # Animamos la transformación de Scores a Softmax
-        self.play(
-            Transform(explicacion, explicacion_3),
-            FadeOut(ec_paso2[0:4]), # Ocultamos Q, x, K^T, =
-            grupo_scores.animate.move_to(LEFT * 2.5 + DOWN * 0.5)
-        )
+        txt_paso3 = Text("3. Multiplicamos por V (Extracción de Contexto)", font=FUENTE, font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
         
-        flecha_soft = Arrow(grupo_scores.get_right(), grupo_scores.get_right() + RIGHT * 1.5, color=DARK_GRAY, buff=0.2)
-        grupo_soft.next_to(flecha_soft, RIGHT, buff=0.2).align_to(grupo_scores, DOWN)
+        m_v = self.crear_matriz_bloques(3, 3, color_fondo=CAJA_INFERIOR, valores=["10","0","0", "0","10","0", "0","0","10"]).scale(escala_mat)
+        v_lbl = MathTex("V", color=TINTA_NEGRA).next_to(m_v, UP, buff=0.2)
+        grupo_v = VGroup(v_lbl, m_v)
 
-        self.play(Create(flecha_soft), TransformFromCopy(grupo_scores, grupo_soft))
-        self.next_slide()
+        m_out = self.crear_matriz_bloques(3, 3, color_fondo=NARANJA_TERRACOTA, color_texto=FONDO_CAJA, valores=["6","2","2", "2","6","2", "2","2","6"]).scale(escala_mat)
+        out_lbl = MathTex("Output", color=TINTA_NEGRA).next_to(m_out, UP, buff=0.2)
+        grupo_out = VGroup(out_lbl, m_out)
 
-        # --- PASO 4: Multiplicar por V ---
-        explicacion_4 = Text("Paso 4: Multiplicamos por V (Matriz de Contexto Final)", font_size=24, color=DARK_GRAY).move_to(explicacion)
+        signo_por_2 = MathTex(r"\times", color=TINTA_NEGRA).scale(1.2)
+        signo_igual_2 = MathTex("=", color=TINTA_NEGRA).scale(1.2)
 
-        # Resultado final (Matriz 2x3): Softmax * V
-        val_final = ["0.9", "2.1", "0",  "1.5", "1.5", "0"]
-        mat_final = self.crear_matriz_bloques(2, 3, color_fondo=TOKEN_COLOR_FINAL, valores=val_final)
-        lbl_final = MathTex("Z", color=BLACK).next_to(mat_final, UP)
-        grupo_final = VGroup(lbl_final, mat_final)
-
-        # Recreamos V para la ecuación final
-        grupo_v_paso4 = VGroup(MathTex("V", color=BLACK), self.crear_matriz_bloques(2, 3, color_fondo=HIGHLIGHT_COLOR, valores=val_v))
-        grupo_v_paso4[1].next_to(grupo_v_paso4[0], DOWN)
-
-        # Ecuación visual: Softmax x V = Z
-        grupo_soft.generate_target()
-        ec_paso4 = VGroup(grupo_soft.target, MathTex(r"\times", color=BLACK).scale(1.2), grupo_v_paso4, MathTex("=", color=BLACK).scale(1.2), grupo_final)
-        ec_paso4.arrange(RIGHT, buff=0.4).next_to(explicacion_4, DOWN, buff=1)
+        grupo_p3 = VGroup(grupo_soft.copy(), signo_por_2, grupo_v, signo_igual_2, grupo_out)
+        grupo_p3.arrange(RIGHT, buff=buff_espacio).move_to(DOWN * 0.5)
 
         self.play(
-            Transform(explicacion, explicacion_4),
-            FadeOut(grupo_scores), FadeOut(flecha_soft),
-            MoveToTarget(grupo_soft),
-            FadeIn(ec_paso4[1]),
-            FadeIn(ec_paso4[2], shift=LEFT),
-            FadeIn(ec_paso4[3]),
-            FadeIn(ec_paso4[4], shift=LEFT)
+            ReplacementTransform(txt_paso2, txt_paso3), 
+            FadeOut(grupo_scores), 
+            FadeOut(flecha_soft),
+            grupo_soft.animate.move_to(grupo_p3[0].get_center())
         )
-        self.next_slide()
-
-        # Limpiamos antes de entrar al Acto 4 (Multi-head)
-        limpiar_escena()
-
-        # =========================================================================
-        # --- ACTO 4: MULTI-HEAD (EL PARALELISMO) ---
-        # =========================================================================
-        desc_mh = Text("El modelo se divide en 'cabezas' para analizar múltiples contextos a la vez.", font_size=24, color=BLACK).move_to(UP * 1.5)
-        self.play(Write(desc_mh))
-
-        caja_768 = Rectangle(width=10, height=1, fill_color=LIGHT_GRAY, fill_opacity=0.6, stroke_color=BLACK, stroke_width=2)
-        txt_768 = Text("Vectores Originales (Ej. 768 dimensiones)", font_size=26, color=BLACK).move_to(caja_768.get_center())
-        grupo_768 = VGroup(caja_768, txt_768).next_to(desc_mh, DOWN, buff=1.2)
-
-        self.play(FadeIn(grupo_768, shift=DOWN))
-        self.next_slide()
-
-        colores_cabezas = [
-            RED_E, BLUE_E, GREEN_E, TEAL_E, 
-            ORANGE, PURPLE_E, MAROON_E, GOLD_E, 
-            PINK, LIGHT_PINK, DARK_BROWN, GRAY_BROWN
-        ]
         
-        ancho_cabeza = 10 / 12
+        self.play(FadeIn(signo_por_2), FadeIn(grupo_v, shift=LEFT))
+        self.next_slide()
+        
+        self.play(Write(signo_igual_2), TransformFromCopy(VGroup(m_soft, m_v), m_out), FadeIn(out_lbl, shift=DOWN))
+        self.next_slide()
+        
+        elementos_finales = VGroup(txt_paso3, grupo_soft, signo_por_2, grupo_v, signo_igual_2, grupo_out)
+        self.play(FadeOut(elementos_finales))
+        self.limpiar_pantalla()
+
+    def slide_mha_acto4_multihead(self):
+        titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
+        subtitulo = Text("¿Por qué 'Multi-Head'?", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
+        
+        self.play(Write(titulo), Create(linea), FadeIn(subtitulo, shift=DOWN))
+        self.next_slide()
+
+        vector_completo = Rectangle(width=10, height=0.8, fill_color=FONDO_CAJA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2)
+        txt_dim = Text("Vector de Incrustación (ej. 768 dimensiones)", font=FUENTE, font_size=20, color=TINTA_NEGRA).move_to(vector_completo)
+        
+        self.play(FadeIn(vector_completo), FadeIn(txt_dim))
+        self.next_slide()
+
+        colores_h = [NARANJA_TERRACOTA, MARRON_OSCURO, PAPEL_TAN, CAJA_INFERIOR] * 3 
         
         cabezas = VGroup(*[
-            Rectangle(width=ancho_cabeza, height=1.5, fill_color=colores_cabezas[i], fill_opacity=0.8, stroke_color=BLACK, stroke_width=1.5) 
+            Rectangle(width=10/12, height=1.2, fill_color=colores_h[i], fill_opacity=0.9, stroke_color=FONDO_CAJA, stroke_width=1)
             for i in range(12)
-        ]).arrange(RIGHT, buff=0.05).move_to(grupo_768.get_center())
-        
-        txt_cabezas = Text("12 Cabezas de Atención (64 dims c/u)", font_size=24, weight=BOLD, color=BLUE_E).next_to(cabezas, DOWN, buff=0.6)
+        ]).arrange(RIGHT, buff=0.02).move_to(vector_completo)
+
+        txt_mh = Text("12 Cabezas de Atención (64 dims c/u)", 
+                      font=FUENTE, font_size=22, color=MARRON_OSCURO).next_to(cabezas, DOWN, buff=1)
 
         self.play(
-            ReplacementTransform(caja_768, cabezas),
-            FadeOut(txt_768),
-            FadeIn(txt_cabezas, shift=UP)
-        )
-        self.next_slide()
-
-        self.play(
-            LaggedStart(
-                *[Indicate(cabeza, scale_factor=1.2, color=BLACK) for cabeza in cabezas],
-                lag_ratio=0.05,
-                run_time=1.5
-            )
+            ReplacementTransform(vector_completo, cabezas),
+            FadeOut(txt_dim),
+            FadeIn(txt_mh, shift=UP)
         )
         
-        nota_final = Text("Cada cabeza hace su propia multiplicación de matrices Q, K, V", font_size=24, color=DARK_GRAY).next_to(txt_cabezas, DOWN, buff=0.4)
-        self.play(Write(nota_final))
+        self.play(LaggedStart(*[Indicate(c, scale_factor=1.1, color=PAPEL_CREMA) for c in cabezas], lag_ratio=0.1))
         self.next_slide()
 
-        if self.mobjects:
-            self.play(*[FadeOut(m) for m in self.mobjects])
+        final_msg = Text("Cada cabeza hace su propia multiplicación de matrices Q, K, V", 
+                         font=FUENTE, font_size=20, color=TINTA_NEGRA).next_to(txt_mh, DOWN, buff=0.5)
+        self.play(Write(final_msg))
+        self.next_slide()
+
+        self.limpiar_pantalla()
 
     def slide_causal_masking(self):
-        # =========================================================================
-        # --- TÍTULO Y LIMPIEZA INICIAL ---
-        # =========================================================================
-        titulo, linea = self.crear_titulo("Causal Masking", palabra_clave="Causal Masking", color_clave=HIGHLIGHT_COLOR)
+        titulo, linea = self.crear_titulo("Causal Masking", palabra_clave="Masking", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
         
-        subtitulo = Text("El 'Triángulo de No Mirar' (No Peeking)", font_size=32, color=DARK_GRAY)
-        frase = VGroup(
-            Text("Secuencia: ", font_size=32, color=BLACK, weight=BOLD),
-            Text("[better] [a] [witty] [fool]", font_size=32, color=TOKEN_COLOR_FINAL)
+        subtitulo = Text("El 'Triángulo de No Mirar' (No Peeking)", font=FUENTE, font_size=26, color=MARRON_OSCURO)
+        
+        tokens = ["El", "amor", "nunca", "hizo", "ningún", "cobarde"]
+        frase_display = VGroup(
+            Text("Secuencia: ", font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD),
+            Text(" ".join([f"[{t}]" for t in tokens]), font=FUENTE, font_size=24, color=NARANJA_TERRACOTA)
         ).arrange(RIGHT)
 
-        grupo_intro = VGroup(subtitulo, frase).arrange(DOWN, buff=0.8).move_to(ORIGIN)
+        grupo_intro = VGroup(subtitulo, frase_display).arrange(DOWN, buff=0.5).next_to(linea, DOWN, buff=0.6)
 
         self.play(FadeIn(grupo_intro, shift=UP))
         self.next_slide()
-        
         self.play(FadeOut(grupo_intro))
 
-        # =========================================================================
-        # --- PASO 1: LA MATRIZ DE ATENCIÓN Y EL PROBLEMA ---
-        # =========================================================================
-        texto_explicativo = Text("Matriz de Atención: ¡El modelo ve el futuro!", font_size=24, color=ALERT_COLOR).next_to(linea, DOWN, buff=0.3)
+        texto_explicativo = Text("Sin máscara: 'El' ya sabe que la frase termina en 'cobarde'", 
+                                 font=FUENTE, font_size=20, weight=BOLD, color=NARANJA_TERRACOTA).next_to(linea, DOWN, buff=0.4)
         self.play(FadeIn(texto_explicativo))
 
-        val_scores = [
-            "2.1", "1.5", "0.8", "-0.5",
-            "0.5", "3.0", "1.2", "0.9",
-            "-1.0", "0.2", "2.5", "1.8",
-            "0.1", "-0.2", "0.4", "2.2"
-        ]
-        mat_scores = self.crear_matriz_bloques(4, 4, color_fondo=SOFT_BG, valores=val_scores)
+        val_scores = [f"{random.uniform(0.1, 3.5):.1f}" for _ in range(36)]
         
-        tokens = ["better", "a", "witty", "fool"]
-        etiquetas_filas = VGroup(*[Text(t, font_size=18, color=DARK_GRAY) for t in tokens]).arrange(DOWN, buff=0.6).next_to(mat_scores, LEFT, buff=0.4)
-        etiquetas_cols = VGroup(*[Text(t, font_size=18, color=DARK_GRAY).rotate(PI/4) for t in tokens]).arrange(RIGHT, buff=0.4).next_to(mat_scores, UP, buff=0.2)
+        
 
-        # Matriz estática en el centro exacto
-        grupo_atencion = VGroup(mat_scores, etiquetas_filas, etiquetas_cols).move_to(ORIGIN)
+        mat_scores = self.crear_matriz_bloques(6, 6, color_fondo=FONDO_CAJA, valores=val_scores)
+        
+        etiquetas_filas = VGroup(*[Text(t, font=FUENTE, font_size=14, color=MARRON_OSCURO) for t in tokens]).arrange(DOWN, buff=0.42).next_to(mat_scores, LEFT, buff=0.25)
+        etiquetas_cols = VGroup(*[Text(t, font=FUENTE, font_size=14, color=MARRON_OSCURO).rotate(PI/4) for t in tokens]).arrange(RIGHT, buff=0.28).next_to(mat_scores, UP, buff=0.15)
+
+        grupo_atencion = VGroup(mat_scores, etiquetas_filas, etiquetas_cols).scale(0.85).move_to(DOWN * 0.6)
         
         self.play(FadeIn(grupo_atencion, shift=UP))
         self.next_slide()
 
-        # Resaltamos directamente la "trampa" en rojo (el triángulo superior)
         animaciones_trampa = []
-        for i in range(4):
-            for j in range(4):
+        for i in range(6):
+            for j in range(6):
                 if j > i: 
                     bloque = mat_scores[i][j]
-                    animaciones_trampa.append(bloque[0].animate.set_fill(ALERT_COLOR, opacity=0.3))
-                    animaciones_trampa.append(bloque[0].animate.set_stroke(ALERT_COLOR, width=3))
+                    animaciones_trampa.append(bloque[0].animate.set_fill(NARANJA_TERRACOTA, opacity=0.3))
+                    animaciones_trampa.append(bloque[0].animate.set_stroke(NARANJA_TERRACOTA, width=2))
 
-        self.play(*animaciones_trampa, run_time=1.5)
+        self.play(*animaciones_trampa, run_time=1.2)
         self.next_slide()
 
-        # =========================================================================
-        # --- PASO 2: APLICANDO -INFINITO (Sin mover la matriz) ---
-        # =========================================================================
-        # Actualizamos el texto para indicar qué estamos haciendo con esa zona roja
-        texto_infinito = Text("Solución: Enmascarar las posiciones futuras con -Infinito", font_size=24, color=RUST_COLOR).move_to(texto_explicativo)
+        texto_infinito = Text("Solución: Forzar el valor -Infinito en el triángulo superior", 
+                              font=FUENTE, font_size=20, weight=BOLD, color=MARRON_OSCURO).move_to(texto_explicativo)
         self.play(Transform(texto_explicativo, texto_infinito))
 
         animaciones_infinito = []
-        for i in range(4):
-            for j in range(4):
+        textos_a_reemplazar = []
+        
+        for i in range(6):
+            for j in range(6):
                 if j > i:
                     bloque_score = mat_scores[i][j]
-                    nuevo_texto = MathTex(r"-\infty", font_size=32, color=WHITE).move_to(bloque_score.get_center())
-                    # Rellenamos sólido y cambiamos el texto en el mismo lugar
-                    animaciones_infinito.append(bloque_score[0].animate.set_fill(RUST_COLOR, opacity=1).set_stroke(BLACK, width=1))
-                    animaciones_infinito.append(Transform(bloque_score[1], nuevo_texto))
+                    inf_text = MathTex(r"-\infty", font_size=24, color=FONDO_CAJA).move_to(bloque_score.get_center())
+                    
+                    animaciones_infinito.append(bloque_score[0].animate.set_fill(MARRON_OSCURO, opacity=1))
+                    animaciones_infinito.append(FadeIn(inf_text))
+                    textos_a_reemplazar.append(bloque_score[1])
+                    bloque_score[1] = inf_text
 
-        # Reproducimos el castigo matemático sin mover nada
-        self.play(*animaciones_infinito, run_time=1.5)
+        self.play(*[FadeOut(t) for t in textos_a_reemplazar], *animaciones_infinito, run_time=1.5)
         self.next_slide()
 
-        # =========================================================================
-        # --- PASO 3: EL EFECTO DEL SOFTMAX ---
-        # =========================================================================
-        texto_softmax = Text("Después del Softmax: exp(-inf) = 0", font_size=24, color=TOKEN_COLOR_FINAL).move_to(texto_explicativo)
+        texto_softmax = Text("Resultado: Probabilidad 0 de 'mirar' hacia adelante", 
+                             font=FUENTE, font_size=20, weight=BOLD, color=TINTA_NEGRA).move_to(texto_explicativo)
         self.play(Transform(texto_explicativo, texto_softmax))
 
-        animaciones_ceros = []
-        for i in range(4):
-            for j in range(4):
-                if j > i:
-                    bloque_score = mat_scores[i][j]
-                    cero_texto = Text("0", font_size=24, color=DARK_GRAY).move_to(bloque_score.get_center())
-                    # Apagamos las celdas prohibidas
-                    animaciones_ceros.append(bloque_score[0].animate.set_fill(DARK_GRAY, opacity=0.2).set_stroke(DARK_GRAY, width=1))
-                    animaciones_ceros.append(Transform(bloque_score[1], cero_texto))
-                else:
-                    bloque_score = mat_scores[i][j]
-                    bloque_score[0].generate_target()
-                    # Iluminamos las celdas válidas simulando el Softmax
-                    bloque_score[0].target.set_fill(TOKEN_COLOR_FINAL, opacity=0.6)
-                    animaciones_ceros.append(MoveToTarget(bloque_score[0]))
+        animaciones_finales = []
+        textos_viejos = []
 
-        self.play(*animaciones_ceros, run_time=1.5)
+        for i in range(6):
+            for j in range(6):
+                bloque = mat_scores[i][j]
+                if j > i:
+                    cero = Text("0", font=FUENTE, font_size=18, color=MARRON_OSCURO).move_to(bloque.get_center())
+                    animaciones_finales.append(bloque[0].animate.set_fill(TINTA_NEGRA, opacity=0.05).set_stroke(MARRON_OSCURO, width=1))
+                    animaciones_finales.append(FadeIn(cero))
+                    textos_viejos.append(bloque[1])
+                else:
+                    animaciones_finales.append(bloque[0].animate.set_fill(PAPEL_TAN, opacity=1))
+
+        self.play(*[FadeOut(t) for t in textos_viejos], *animaciones_finales, run_time=1.5)
         
-        # Nota final asegurada con buen margen inferior
-        nota_final = Text("Cada posición solo atiende al pasado.", font_size=24, weight=BOLD, color=BLACK).next_to(grupo_atencion, DOWN, buff=0.5)
+        nota_final = Text("Para predecir 'cobarde', el modelo solo puede usar 'El amor nunca hizo ningún'.", 
+                          font=FUENTE, font_size=18, color=TINTA_NEGRA).to_edge(DOWN, buff=0.6)
+        
         self.play(FadeIn(nota_final, shift=UP))
         self.next_slide()
 
-        # Limpiamos todo
         self.limpiar_pantalla()
-
 
     def slide_mlp_layer(self):
 
