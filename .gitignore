@@ -43,6 +43,7 @@ Tex/
 *.svg
 *.txt
 *.json
+*.zip
 
 # Manim LaTeX auxiliary files
 *.aux

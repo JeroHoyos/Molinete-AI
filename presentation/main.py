@@ -25,47 +25,56 @@ class Presentacion(Slide):
     def construct(self):
         self.camera.background_color = WHITE
 
-        # self.slide_introduction()
-        # self.slide_credits()
-        # self.slide_arquitectura_transformer()
-        # self.slide_molinete_ai()
-        
-        # self.slide_por_que_no_python()
-        # self.slide_por_que_no_cpp()
-        # self.slide_por_que_si_rust()
+        self.slide_introduction()
+        self.slide_credits()
+        self.slide_arquitectura_transformer()
+        self.slide_molinete_ai()
 
-        # self.diapo_problema_strawberry()
-        # self.diapo_tokenizacion()
-        # self.diapo_byte_pair_encoding()
-        # self.diapo_tamano_vocabulario()
+        self.slide_por_que_no_python()
+        self.slide_por_que_no_cpp()
+        self.slide_por_que_si_rust()
 
-        # self.slide_que_es_un_tensor()
-        # self.diapo_matmul()
-        # self.diapo_softmax()
-        # self.slide_broadcasting()
-        # self.slide_strides()
-        # self.slide_masked_fill()
-        # self.slide_reshape_transpose()
+        self.diapo_problema_strawberry()
+        self.diapo_tokenizacion()
+        self.diapo_byte_pair_encoding()
+        self.diapo_tamano_vocabulario()
 
-        # self.slide_forward_pass()
-        # self.slide_embeddings()
-        # self.slide_position_embeddings()
-        # self.slide_layer_normalization()
+        self.slide_que_es_un_tensor()
+        self.diapo_matmul()
+        self.diapo_softmax()
+        self.slide_broadcasting()
+        self.slide_strides()
+        self.slide_masked_fill()
+        self.slide_reshape_transpose()
 
-        # self.slide_mha_acto1_intuicion()
-        # self.slide_mha_acto2_formula()
-        # self.slide_mha_acto3_calculo()
-        # self.slide_mha_acto4_multihead()
+        self.slide_forward_pass()
+        self.slide_embeddings()
+        self.slide_position_embeddings()
+        self.slide_layer_normalization()
 
-        # self.slide_causal_masking()
+        self.slide_mha_acto1_intuicion()
+        self.slide_mha_acto2_formula()
+        self.slide_mha_acto3_calculo()
+        self.slide_mha_acto4_multihead()
 
-        # self.mostrar_acto_arquitectura()
-        # self.mostrar_acto_zoom_neurona()
-        # self.mostrar_acto_activacion()
-        # self.slide_capa_transformer()
+        self.slide_causal_masking()
+
+        self.mostrar_acto_arquitectura()
+        self.mostrar_acto_zoom_neurona()
+        self.mostrar_acto_activacion()
+        self.slide_capa_transformer()
 
         self.slide_entrenamiento()
+        self.slide_linear_gradient()
+        self.slide_layer_norm_gradient()
+        self.slide_attention_backward()
+        self.slide_residual_connections()
+        self.slide_training_techniques()
+        self.slide_training_metrics()
 
+        self.slide_model_in_action()
+        self.slide_final()
+        
         # self.diapo_codigo_rust()
 
     # --- FUNCIONES AUXILIARES ---
@@ -2739,145 +2748,119 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_entrenamiento(self):
-        # --- COLORES BASADOS EN TU PALETA ---
-        COLOR_NODO_BG = PAPEL_TAN
-        COLOR_BORDE = MARRON_OSCURO
-        COLOR_TEXTO = TINTA_NEGRA
-        COLOR_RESALTE = NARANJA_TERRACOTA
-        COLOR_ERROR = RED
-        COLOR_CORRECTO = "#28A745" # Verde suave
-        
-        titulo, linea = self.crear_titulo("Entrenamiento: Next-Token Prediction", palabra_clave="Entrenamiento:", color_clave=COLOR_RESALTE)
+        titulo, linea = self.crear_titulo("Entrenamiento: Next-Token Prediction", palabra_clave="Entrenamiento:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # Indicador de estado superior (UI)
         estado_ui = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=6, height=0.6, fill_color=COLOR_NODO_BG, fill_opacity=1, stroke_color=GRAY),
-            Text("Iniciando Motor de Entrenamiento...", font=FUENTE, font_size=18, color=COLOR_TEXTO)
+            RoundedRectangle(corner_radius=0.1, width=7, height=0.6, fill_color=FONDO_CAJA, fill_opacity=1, stroke_color=MARRON_OSCURO),
+            Text("Iniciando Motor de Entrenamiento...", font=FUENTE, font_size=18, color=TINTA_NEGRA)
         ).to_edge(UP, buff=1.2)
         
         self.play(FadeIn(estado_ui, shift=DOWN))
 
-        # =========================================================================
-        # --- FASE 1: FORWARD PASS (La Alucinación Inicial) ---
-        # =========================================================================
+        EJE_Y = DOWN * 0.2
+
         self.play(
             estado_ui[1].animate.set_text("FASE 1: Forward Pass (Predicción)"), 
-            estado_ui[0].animate.set_stroke(COLOR_RESALTE, width=2)
+            estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=2)
         )
 
-        # 1. Secuencia de Entrada (Tokens)
-        lbl_in = Text("Contexto (Tokens)", font=FUENTE, font_size=16, color=COLOR_TEXTO, weight=BOLD).move_to(LEFT * 4.5 + UP * 1.5)
+        lbl_in = Text("Contexto (Tokens)", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
         tokens_in = VGroup(*[
             VGroup(
-                RoundedRectangle(corner_radius=0.1, width=1.2, height=0.6, fill_color=COLOR_NODO_BG, fill_opacity=1, stroke_color=COLOR_BORDE),
-                Text(word, font=FUENTE, font_size=16, color=COLOR_TEXTO)
+                RoundedRectangle(corner_radius=0.1, width=1.1, height=0.6, fill_color=FONDO_CAJA, fill_opacity=1, stroke_color=MARRON_OSCURO),
+                Text(word, font=FUENTE, font_size=16, color=TINTA_NEGRA)
             ) for word in ["En un", "lugar", "de la"]
-        ]).arrange(RIGHT, buff=0.1).next_to(lbl_in, DOWN, buff=0.2)
+        ]).arrange(DOWN, buff=0.1)
+        
+        grupo_entrada = VGroup(lbl_in, tokens_in).arrange(DOWN, buff=0.3).move_to(LEFT * 4.5 + EJE_Y)
 
-        # 2. El Modelo (Transformer)
-        modelo_bg = RoundedRectangle(corner_radius=0.2, width=3, height=2.5, fill_color=COLOR_NODO_BG, fill_opacity=0.5, stroke_color=COLOR_RESALTE, stroke_width=3).move_to(DOWN * 0.5)
-        lbl_modelo = Text("Transformer\n(Pesos Aleatorios)", font=FUENTE, font_size=18, color=COLOR_RESALTE)
+        modelo_bg = RoundedRectangle(corner_radius=0.2, width=3.2, height=2.5, fill_color=PAPEL_CREMA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2)
+        lbl_modelo = Text("Transformer\n(Pesos Aleatorios)", font=FUENTE, font_size=18, color=TINTA_NEGRA).move_to(modelo_bg)
+        grupo_modelo = VGroup(modelo_bg, lbl_modelo).move_to(EJE_Y)
+
+        lbl_out = Text("Predicción (Logits)", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
         
-        # 3. Salida (Distribución de Probabilidades)
-        lbl_out = Text("Predicción (Logits)", font=FUENTE, font_size=16, color=COLOR_TEXTO, weight=BOLD).move_to(RIGHT * 4.5 + UP * 1.5)
-        
-        # Simulamos las probabilidades incorrectas
         prob_incorrecta = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=COLOR_ERROR, fill_opacity=0.2, stroke_color=COLOR_ERROR),
-            Text("playa? (85%)", font=FUENTE, font_size=16, color=COLOR_ERROR)
+            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=PAPEL_TAN, fill_opacity=0.8, stroke_color=NARANJA_TERRACOTA, stroke_width=2),
+            Text("playa? (85%)", font=FUENTE, font_size=16, color=TINTA_NEGRA)
         )
         prob_correcta = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=GRAY, fill_opacity=0.1, stroke_color=GRAY),
-            Text("Mancha (2%)", font=FUENTE, font_size=16, color=GRAY)
+            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=CAJA_INFERIOR, fill_opacity=0.5, stroke_color=CAJA_INFERIOR),
+            Text("Mancha (2%)", font=FUENTE, font_size=16, color=MARRON_OSCURO)
         )
-        grupo_probs = VGroup(prob_incorrecta, prob_correcta).arrange(DOWN, buff=0.1).next_to(lbl_out, DOWN, buff=0.2)
+        grupo_probs = VGroup(prob_incorrecta, prob_correcta).arrange(DOWN, buff=0.1)
+        grupo_salida = VGroup(lbl_out, grupo_probs).arrange(DOWN, buff=0.3).move_to(RIGHT * 4.5 + EJE_Y)
 
-        # Conexiones
-        flecha_in = Arrow(tokens_in.get_right(), modelo_bg.get_left(), color=COLOR_BORDE, buff=0.2)
-        flecha_out = Arrow(modelo_bg.get_right(), grupo_probs.get_left(), color=COLOR_BORDE, buff=0.2)
+        flecha_in = Arrow(grupo_entrada.get_right(), modelo_bg.get_left(), color=MARRON_OSCURO, buff=0.2)
+        flecha_out = Arrow(modelo_bg.get_right(), grupo_salida.get_left(), color=MARRON_OSCURO, buff=0.2)
 
-        # Animación Forward
-        self.play(FadeIn(lbl_in), Create(tokens_in, lag_ratio=0.2))
+        self.play(FadeIn(grupo_entrada, shift=RIGHT))
         self.play(GrowArrow(flecha_in))
-        self.play(FadeIn(modelo_bg), Write(lbl_modelo))
-        self.play(Indicate(modelo_bg, color=COLOR_RESALTE)) # El modelo "piensa"
+        self.play(FadeIn(grupo_modelo, scale=0.9))
+        self.play(Indicate(modelo_bg, color=NARANJA_TERRACOTA))
         self.play(GrowArrow(flecha_out))
-        self.play(FadeIn(lbl_out), FadeIn(grupo_probs, shift=RIGHT))
+        self.play(FadeIn(grupo_salida, shift=LEFT))
         self.next_slide()
 
-        # =========================================================================
-        # --- FASE 2: CÁLCULO DE LA PÉRDIDA (Cross-Entropy Loss) ---
-        # =========================================================================
         self.play(
             estado_ui[1].animate.set_text("FASE 2: Función de Pérdida (Error)"), 
-            estado_ui[0].animate.set_stroke(COLOR_ERROR, width=2)
+            estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=2)
         )
 
-        # Target real
-        lbl_target = Text("Target Real:", font=FUENTE, font_size=16, color=COLOR_CORRECTO, weight=BOLD)
+        lbl_target = Text("Target Real:", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
         caja_target = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=COLOR_CORRECTO, fill_opacity=0.2, stroke_color=COLOR_CORRECTO),
-            Text("Mancha (100%)", font=FUENTE, font_size=16, color=COLOR_CORRECTO)
+            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=PAPEL_TAN, fill_opacity=1, stroke_color=MARRON_OSCURO),
+            Text("Mancha (100%)", font=FUENTE, font_size=16, color=TINTA_NEGRA)
         )
-        grupo_target = VGroup(lbl_target, caja_target).arrange(DOWN, buff=0.1).next_to(grupo_probs, DOWN, buff=0.8)
+        grupo_target = VGroup(lbl_target, caja_target).arrange(DOWN, buff=0.1).next_to(grupo_salida, DOWN, buff=0.6)
 
-        # Nodo de cálculo de Loss
-        nodo_loss = MathTex(r"\mathcal{L}", font_size=40, color=COLOR_ERROR).move_to(RIGHT * 1.5 + DOWN * 2.5)
-        caja_error = Text("Loss = Alto", font=FUENTE, font_size=18, color=COLOR_ERROR, weight=BOLD).next_to(nodo_loss, RIGHT, buff=0.3)
+        nodo_loss = MathTex(r"\mathcal{L}", font_size=40, color=NARANJA_TERRACOTA).move_to(RIGHT * 2.2 + DOWN * 2.8)
+        caja_error = Text("Loss = Alto", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD).next_to(nodo_loss, RIGHT, buff=0.3)
         
-        flecha_err_pred = Arrow(grupo_probs.get_bottom(), nodo_loss.get_top(), color=COLOR_ERROR, buff=0.1)
-        flecha_err_targ = Arrow(grupo_target.get_left(), nodo_loss.get_right(), color=COLOR_ERROR, buff=0.1)
+        flecha_err_pred = Arrow(grupo_probs.get_bottom(), nodo_loss.get_top(), color=NARANJA_TERRACOTA, buff=0.1)
+        flecha_err_targ = Arrow(grupo_target.get_left(), nodo_loss.get_right(), color=NARANJA_TERRACOTA, buff=0.1)
 
         self.play(FadeIn(grupo_target, shift=UP))
         self.play(GrowArrow(flecha_err_pred), GrowArrow(flecha_err_targ))
         self.play(Write(nodo_loss))
         self.play(FadeIn(caja_error, shift=RIGHT))
-        self.play(Wiggle(nodo_loss, scale_value=1.3, rotation_angle=0.1)) # Remarcamos el error
+        self.play(Wiggle(nodo_loss, scale_value=1.3, rotation_angle=0.1))
         self.next_slide()
 
-        # =========================================================================
-        # --- FASE 3: BACKWARD PASS (Backpropagation) ---
-        # =========================================================================
         self.play(
             estado_ui[1].animate.set_text("FASE 3: Backpropagation & Optimización"), 
-            estado_ui[0].animate.set_stroke(COLOR_RESALTE, width=2)
+            estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=3)
         )
 
-        # El gradiente viaja hacia atrás
-        flecha_back = CurvedArrow(nodo_loss.get_left(), modelo_bg.get_bottom(), angle=TAU/4, color=COLOR_ERROR, stroke_width=4)
-        lbl_grad = MathTex(r"\nabla W", font_size=24, color=COLOR_ERROR).next_to(flecha_back, DOWN, buff=0.1)
+        flecha_back = CurvedArrow(nodo_loss.get_left(), modelo_bg.get_bottom(), angle=TAU/4, color=NARANJA_TERRACOTA, stroke_width=4)
+        lbl_grad = MathTex(r"\nabla W", font_size=24, color=NARANJA_TERRACOTA).next_to(flecha_back, DOWN, buff=0.1)
 
         self.play(Create(flecha_back), Write(lbl_grad), run_time=1.5)
 
-        # Efecto de actualización en el modelo
-        lbl_modelo_nuevo = Text("Transformer\n(Pesos Ajustados)", font=FUENTE, font_size=18, color=COLOR_CORRECTO, text_align="center").move_to(modelo_bg)
+        lbl_modelo_nuevo = Text("Transformer\n(Pesos Ajustados)", font=FUENTE, font_size=18, color=FONDO_CAJA).move_to(modelo_bg)
         
         self.play(
-            modelo_bg.animate.set_stroke(COLOR_CORRECTO, width=4).set_fill(COLOR_CORRECTO, opacity=0.1),
+            modelo_bg.animate.set_fill(MARRON_OSCURO, opacity=1).set_stroke(MARRON_OSCURO, width=2),
             Transform(lbl_modelo, lbl_modelo_nuevo),
             FadeOut(flecha_back), FadeOut(lbl_grad)
         )
-        self.play(Indicate(modelo_bg, color=COLOR_CORRECTO))
+        self.play(Indicate(modelo_bg, color=PAPEL_TAN))
         self.next_slide()
 
-        # =========================================================================
-        # --- FASE 4: EL RESULTADO APRENDIDO ---
-        # =========================================================================
         self.play(
             estado_ui[1].animate.set_text("FASE 4: Nuevo Forward Pass (Éxito)"), 
-            estado_ui[0].animate.set_stroke(COLOR_CORRECTO, width=2)
+            estado_ui[0].animate.set_stroke(MARRON_OSCURO, width=2)
         )
 
-        # Actualizamos las probabilidades para mostrar que aprendió
         prob_correcta_nueva = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=COLOR_CORRECTO, fill_opacity=0.2, stroke_color=COLOR_CORRECTO),
-            Text("Mancha (98%)", font=FUENTE, font_size=16, color=COLOR_CORRECTO, weight=BOLD)
-        ).move_to(prob_incorrecta) # Toma el primer lugar
+            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=PAPEL_TAN, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2),
+            Text("Mancha (98%)", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
+        ).move_to(prob_incorrecta) 
         
         prob_incorrecta_nueva = VGroup(
-            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=GRAY, fill_opacity=0.1, stroke_color=GRAY),
-            Text("playa? (1%)", font=FUENTE, font_size=16, color=GRAY)
+            RoundedRectangle(corner_radius=0.1, width=2.5, height=0.6, fill_color=CAJA_INFERIOR, fill_opacity=0.5, stroke_color=CAJA_INFERIOR),
+            Text("playa? (1%)", font=FUENTE, font_size=16, color=MARRON_OSCURO)
         ).move_to(prob_correcta)
 
         self.play(
@@ -2886,432 +2869,545 @@ class Presentacion(Slide):
             Transform(prob_correcta, prob_correcta_nueva)
         )
         
-        # Celebración visual final
-        self.play(Wiggle(prob_correcta, scale_value=1.1))
+        self.play(Wiggle(prob_correcta, scale_value=1.05))
         self.next_slide()
         
         self.limpiar_pantalla()
 
     def slide_linear_gradient(self):
-        """
-        Escena simplificada y elegante que muestra directamente 
-        las derivadas (gradientes) de una capa lineal, todo centrado.
-        """
-        # =========================================================================
-        # --- TÍTULO ---
-        # =========================================================================
-        titulo = Text("Linear Gradient", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
-        
+        titulo, linea = self.crear_titulo("Capa Lineal: Repartiendo la Culpa", palabra_clave="Capa Lineal:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- ECUACIÓN ORIGINAL (FORWARD PASS) - CENTRADO ---
-        # =========================================================================
-        lbl_original = Text("Forward Pass", font_size=24, color=DARK_GRAY)
-        eq_original = MathTex(r"y = x \cdot W + b", font_size=48)
+        eq_forward = MathTex(r"y = x \cdot W + b", font_size=40, color=MARRON_OSCURO)
         
-        # Agrupamos y centramos verticalmente
-        grupo_original = VGroup(lbl_original, eq_original).arrange(DOWN, buff=0.3).move_to(UP * 1.5)
+        lbl_ejemplo = Text("Predicción: [2.5, 3.1]  →  Ideal: [2.6, 3.0]", font=FUENTE, font_size=20, color=TINTA_NEGRA)
+
+        lbl_error = Text("Error a corregir (", font=FUENTE, font_size=22, color=NARANJA_TERRACOTA, weight=BOLD)
+        math_error = MathTex(r"\nabla y", font_size=28, color=NARANJA_TERRACOTA)
+        lbl_error_val = Text(") = [+0.1, -0.1]", font=FUENTE, font_size=22, color=NARANJA_TERRACOTA, weight=BOLD)
+        grupo_error_txt = VGroup(lbl_error, math_error, lbl_error_val).arrange(RIGHT, buff=0.1)
+
+        grupo_top = VGroup(eq_forward, lbl_ejemplo, grupo_error_txt).arrange(DOWN, buff=0.3).to_edge(UP, buff=1.5)
         
-        self.play(FadeIn(grupo_original, shift=DOWN))
-        self.play(Indicate(eq_original, color=BLUE))
+        caja_top = SurroundingRectangle(grupo_top, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.3)
+
+        self.play(Create(caja_top), Write(eq_forward))
+        self.play(FadeIn(lbl_ejemplo, shift=UP))
+        self.play(Write(grupo_error_txt))
+        self.play(Indicate(grupo_error_txt, color=NARANJA_TERRACOTA))
         self.next_slide()
 
-        # =========================================================================
-        # --- LAS DERIVADAS (BACKWARD PASS) - CENTRADO ---
-        # =========================================================================
-        lbl_derivadas = Text("Backward Pass (Gradientes)", font_size=24, color=DARK_GRAY)
-        
-        # Fórmulas de los gradientes matemáticos formales
-        grad_W = MathTex(r"\frac{\partial L}{\partial W} = x^T \cdot \nabla y", font_size=42, color=SOFT_GREEN)
-        grad_b = MathTex(r"\frac{\partial L}{\partial b} = \sum \nabla y", font_size=42, color=SOFT_GREEN)
-        grad_x = MathTex(r"\frac{\partial L}{\partial x} = \nabla y \cdot W^T", font_size=42, color=BLUE)
+        lbl_backward = Text("Backward Pass: ¿Qué ajustamos?", font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD)
+        lbl_backward.next_to(caja_top, DOWN, buff=0.5)
+        self.play(FadeIn(lbl_backward, shift=UP))
 
-        # Agrupamos las ecuaciones centradas entre sí
-        grupo_grads_eqs = VGroup(grad_W, grad_b, grad_x).arrange(DOWN, buff=0)
-        
-        # Agrupamos el título del backward y las ecuaciones, y lo ponemos debajo del forward
-        grupo_derivadas = VGroup(lbl_derivadas, grupo_grads_eqs).arrange(DOWN, buff=0.5).next_to(grupo_original, DOWN, buff=0.8)
+        t1 = Text("1. ¿Culpa de los Pesos?", font=FUENTE, font_size=16, color=MARRON_OSCURO)
+        eq1 = MathTex(r"\nabla W = x^T \cdot \nabla y", font_size=32, color=NARANJA_TERRACOTA)
+        desc1 = Text("Si la entrada era alta,\nel peso aportó más al error.", font=FUENTE, font_size=12, color=TINTA_NEGRA).set_opacity(0.8)
+        col1 = VGroup(t1, eq1, desc1).arrange(DOWN, buff=0.2)
+        caja1 = SurroundingRectangle(col1, color=PAPEL_TAN, fill_color=PAPEL_CREMA, fill_opacity=1, corner_radius=0.1, buff=0.2)
+        grupo_w = VGroup(caja1, col1)
 
-        self.play(FadeIn(lbl_derivadas, shift=UP))
-        
-        # Aparecen una por una en el centro
-        self.play(Write(grad_W))
-        self.play(Write(grad_b))
-        self.play(Write(grad_x))
+        t2 = Text("2. ¿Culpa del Sesgo?", font=FUENTE, font_size=16, color=MARRON_OSCURO)
+        eq2 = MathTex(r"\nabla b = \sum \nabla y", font_size=32, color=NARANJA_TERRACOTA)
+        desc2 = Text("Si falla constantemente,\nsumamos todos los errores.", font=FUENTE, font_size=12, color=TINTA_NEGRA).set_opacity(0.8)
+        col2 = VGroup(t2, eq2, desc2).arrange(DOWN, buff=0.2)
+        caja2 = SurroundingRectangle(col2, color=PAPEL_TAN, fill_color=PAPEL_CREMA, fill_opacity=1, corner_radius=0.1, buff=0.2)
+        grupo_b = VGroup(caja2, col2)
 
-        # Recuadro elegante centrado para enmarcar el resultado matemático
-        caja_grads = SurroundingRectangle(grupo_grads_eqs, color=DARK_GRAY, corner_radius=0.2, buff=0.4)
-        self.play(Create(caja_grads))
+        t3 = Text("3. ¿Culpa de capa anterior?", font=FUENTE, font_size=16, color=MARRON_OSCURO)
+        eq3 = MathTex(r"\nabla x = \nabla y \cdot W^T", font_size=32, color=MARRON_OSCURO)
+        desc3 = Text("Pasamos el error hacia\natrás para que ellos ajusten.", font=FUENTE, font_size=12, color=TINTA_NEGRA).set_opacity(0.8)
+        col3 = VGroup(t3, eq3, desc3).arrange(DOWN, buff=0.2)
+        caja3 = SurroundingRectangle(col3, color=CAJA_INFERIOR, fill_color=CAJA_INFERIOR, fill_opacity=0.5, corner_radius=0.1, buff=0.2)
+        grupo_x = VGroup(caja3, col3)
+
+        grupo_columnas = VGroup(grupo_w, grupo_b, grupo_x).arrange(RIGHT, buff=0.4).next_to(lbl_backward, DOWN, buff=0.4)
+
+        self.play(FadeIn(grupo_w, shift=UP))
+        self.next_slide()
+        
+        self.play(FadeIn(grupo_b, shift=UP))
+        self.next_slide()
+
+        self.play(FadeIn(grupo_x, shift=LEFT))
+        self.play(Indicate(grupo_x, color=PAPEL_TAN))
         
         self.next_slide()
-        # Asegúrate de tener tu función limpiar_pantalla() o usa self.play(FadeOut(*self.mobjects))
         self.limpiar_pantalla()
 
     def slide_layer_norm_gradient(self):
-        """
-        Escena que muestra las derivadas de Layer Normalization, 
-        destacando las 3 vías de dependencia en el gradiente de X.
-        """
-        # =========================================================================
-        # --- TÍTULO ---
-        # =========================================================================
-        titulo = Text("Layer Norm Gradient", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
-        
+        titulo, linea = self.crear_titulo("Layer Norm: Dependencias Enredadas", palabra_clave="Layer Norm:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- GRADIENTES DE LOS PARÁMETROS (GAMMA Y BETA) - CENTRADO ---
-        # =========================================================================
-        lbl_params = Text("Parámetros de Escala y Desplazamiento", font_size=24, color=DARK_GRAY)
+        lbl_params = Text("1. Parámetros de Escala y Desplazamiento (Sin enredos)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
-        # Gamma (pesos) y Beta (sesgos)
-        grad_gamma = MathTex(r"\frac{\partial L}{\partial \gamma} = \sum (\nabla y \cdot \hat{x})", font_size=38, color=SOFT_GREEN)
-        grad_beta = MathTex(r"\frac{\partial L}{\partial \beta} = \sum \nabla y", font_size=38, color=SOFT_GREEN)
+        grad_gamma = MathTex(r"\nabla \gamma = \sum (\nabla y \cdot \hat{x})", font_size=32, color=MARRON_OSCURO)
+        grad_beta = MathTex(r"\nabla \beta = \sum \nabla y", font_size=32, color=MARRON_OSCURO)
         
-        grupo_params_eqs = VGroup(grad_gamma, grad_beta).arrange(DOWN, buff=0.4)
-        grupo_params = VGroup(lbl_params, grupo_params_eqs).arrange(DOWN, buff=0.4).move_to(UP * 1.2)
+        grupo_eq_params = VGroup(grad_gamma, grad_beta).arrange(RIGHT, buff=1.5)
+        desc_params = Text("Simplemente sumamos los gradientes (multiplicados por la entrada normalizada para gamma).", font=FUENTE, font_size=14, color=TINTA_NEGRA).set_opacity(0.8)
         
-        self.play(FadeIn(grupo_params, shift=DOWN))
+        grupo_params = VGroup(lbl_params, grupo_eq_params, desc_params).arrange(DOWN, buff=0.25)
+        caja_params = SurroundingRectangle(grupo_params, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.25)
+        
+        bloque1_completo = VGroup(caja_params, grupo_params).next_to(linea, DOWN, buff=0.3)
+
+        self.play(FadeIn(bloque1_completo, shift=DOWN))
         self.next_slide()
 
-        # =========================================================================
-        # --- GRADIENTE DE LA ENTRADA (X) - LAS 3 VÍAS ---
-        # =========================================================================
-        lbl_x = Text("Gradiente de la Entrada (Dependencias Múltiples)", font_size=24, color=DARK_GRAY)
+        lbl_x = Text("2. Gradiente de la Entrada (Las 3 Vías)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
+        desc_x = Text("Si cambias un valor, la media y varianza cambian, afectando a los 768 valores.", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
         
-        # Fórmula con las 3 vías: Directa, Media y Varianza
-        # Usamos \hat{x} para x_norm y \nabla \hat{x} para grad_x_norm
-        formula_x = r"\frac{\partial L}{\partial x} = \frac{1}{\sigma} \Big( \nabla \hat{x} - \text{mean}(\nabla \hat{x}) - \hat{x} \cdot \text{mean}(\nabla \hat{x} \cdot \hat{x}) \Big)"
-        grad_x = MathTex(formula_x, font_size=36, color=BLUE)
+        grupo_titulos_x = VGroup(lbl_x, desc_x).arrange(DOWN, buff=0.2)
         
-        grupo_x = VGroup(lbl_x, grad_x).arrange(DOWN, buff=0.5).next_to(grupo_params, DOWN, buff=0.8)
-        
-        self.play(FadeIn(lbl_x, shift=UP))
-        self.play(Write(grad_x))
-        
-        # Etiquetas explicativas para los 3 términos de la ecuación
-        lbl_term1 = Text("1. Vía Directa", font_size=14, color=DARK_GRAY).next_to(grad_x, DOWN, buff=0.4).shift(LEFT * 2.8)
-        lbl_term2 = Text("2. Resta de la Media", font_size=14, color=DARK_GRAY).next_to(grad_x, DOWN, buff=0.4)
-        lbl_term3 = Text("3. Resta de la Varianza", font_size=14, color=DARK_GRAY).next_to(grad_x, DOWN, buff=0.4).shift(RIGHT * 3.2)
-        
-        grupo_labels = VGroup(lbl_term1, lbl_term2, lbl_term3)
-        self.play(FadeIn(grupo_labels, shift=UP))
+        eq_parte_izq = MathTex(r"\nabla x = \frac{1}{\sigma} \Big(", font_size=32, color=TINTA_NEGRA)
+        eq_via1 = MathTex(r"\nabla \hat{x}", font_size=32, color=MARRON_OSCURO)
+        eq_via2 = MathTex(r"- \text{mean}(\nabla \hat{x})", font_size=32, color=NARANJA_TERRACOTA)
+        eq_via3 = MathTex(r"- \hat{x} \cdot \text{mean}(\nabla \hat{x} \cdot \hat{x})", font_size=32, color=NARANJA_TERRACOTA)
+        eq_parte_der = MathTex(r"\Big)", font_size=32, color=TINTA_NEGRA)
 
-        # Recuadro elegante centrado para enmarcar la fórmula compleja
-        caja_x = SurroundingRectangle(VGroup(grupo_x, grupo_labels), color=DARK_GRAY, corner_radius=0.2, buff=0.3)
-        self.play(Create(caja_x))
+        grupo_eq_x = VGroup(eq_parte_izq, eq_via1, eq_via2, eq_via3, eq_parte_der).arrange(RIGHT, buff=0.1)
+        grupo_eq_x.next_to(grupo_titulos_x, DOWN, buff=0.5)
+        
+        txt_via1 = Text("Vía Directa", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(eq_via1, DOWN, buff=0.6)
+        txt_via3 = Text("Efecto de la Varianza", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA).next_to(eq_via3, DOWN, buff=0.6)
+        
+        txt_via2 = Text("Efecto de la Media", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA).next_to(eq_via2, DOWN, buff=1.2)
+
+        flecha1 = Arrow(txt_via1.get_top(), eq_via1.get_bottom(), buff=0.1, color=MARRON_OSCURO, stroke_width=3, max_tip_length_to_length_ratio=0.15)
+        flecha2 = Arrow(txt_via2.get_top(), eq_via2.get_bottom(), buff=0.1, color=NARANJA_TERRACOTA, stroke_width=3, max_tip_length_to_length_ratio=0.1)
+        flecha3 = Arrow(txt_via3.get_top(), eq_via3.get_bottom(), buff=0.1, color=NARANJA_TERRACOTA, stroke_width=3, max_tip_length_to_length_ratio=0.15)
+
+        elementos_bloque2 = VGroup(grupo_titulos_x, grupo_eq_x, txt_via1, txt_via2, txt_via3, flecha1, flecha2, flecha3)
+        caja_x = SurroundingRectangle(elementos_bloque2, color=NARANJA_TERRACOTA, corner_radius=0.2, buff=0.25, stroke_width=2)
+        bloque2_completo = VGroup(caja_x, elementos_bloque2)
+
+        bloque2_completo.next_to(bloque1_completo, DOWN, buff=0.4)
+
+        self.play(Create(caja_x), FadeIn(grupo_titulos_x, shift=UP))
+        self.play(Write(eq_parte_izq), Write(eq_parte_der))
+        self.next_slide()
+
+        self.play(FadeIn(eq_via1, shift=DOWN))
+        self.play(GrowArrow(flecha1), FadeIn(txt_via1))
+        self.next_slide()
+
+        self.play(FadeIn(eq_via2, shift=DOWN))
+        self.play(GrowArrow(flecha2), FadeIn(txt_via2))
+        self.next_slide()
+
+        self.play(FadeIn(eq_via3, shift=DOWN))
+        self.play(GrowArrow(flecha3), FadeIn(txt_via3))
         
         self.next_slide()
         self.limpiar_pantalla()
 
     def slide_attention_backward(self):
-        """
-        Escena que muestra el Backward Pass de Attention,
-        destacando el gradiente del Softmax y la suma de las proyecciones Q, K, V.
-        """
-        # =========================================================================
-        # --- TÍTULO ---
-        # =========================================================================
-        titulo = Text("Attention Backward Pass", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
-        
+        titulo, linea = self.crear_titulo("Attention Backward: Rutas y Cuellos de Botella", palabra_clave="Attention Backward:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- 1. EL CUELLO DE BOTELLA: GRADIENTE DEL SOFTMAX ---
-        # =========================================================================
-        lbl_softmax = Text("1. Gradiente del Softmax (Dependencia de Fila)", font_size=24, color=DARK_GRAY)
+        lbl_softmax = Text("1. El Enredo del Softmax (Dependencia de Fila)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
-        # A = Attention Weights, S = Scores (antes del softmax)
-        # La fórmula refleja el código: grad_score = attn[j] * (grad_attn[j] - dot_product)
-        formula_softmax = r"\frac{\partial L}{\partial S_{ij}} = A_{ij} \left( \nabla A_{ij} - \sum_{k} (A_{ik} \cdot \nabla A_{ik}) \right)"
-        grad_softmax = MathTex(formula_softmax, font_size=38, color=ALERT_COLOR)
+        eq_soft_izq = MathTex(r"\nabla S_{ij} = ", font_size=34, color=TINTA_NEGRA)
+        eq_soft_der1 = MathTex(r"A_{ij} \Big( \nabla A_{ij}", font_size=34, color=MARRON_OSCURO)
+        eq_soft_der2 = MathTex(r"- \sum_{k} (A_{ik} \cdot \nabla A_{ik}) \Big)", font_size=34, color=NARANJA_TERRACOTA)
         
-        grupo_softmax = VGroup(lbl_softmax, grad_softmax).arrange(DOWN, buff=0.4).move_to(UP * 1.2)
+        grupo_eq_soft = VGroup(eq_soft_izq, eq_soft_der1, eq_soft_der2).arrange(RIGHT, buff=0.1)
         
-        self.play(FadeIn(lbl_softmax, shift=DOWN))
-        self.play(Write(grad_softmax))
+        desc_soft1 = Text("Gradiente directo", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(eq_soft_der1, DOWN, buff=0.4)
+        desc_soft2 = Text("Restamos el impacto en todos los demás tokens de la fila", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA).next_to(eq_soft_der2, DOWN, buff=0.8)
         
-        # Pequeña nota explicativa
-        lbl_nota_soft = Text("Cada score depende de todos los gradientes de su fila", font_size=14, slant=ITALIC, color=DARK_GRAY).next_to(grad_softmax, DOWN, buff=0.3)
-        self.play(FadeIn(lbl_nota_soft))
+        flecha_s1 = Arrow(desc_soft1.get_top(), eq_soft_der1.get_bottom(), buff=0.1, color=MARRON_OSCURO, stroke_width=3, max_tip_length_to_length_ratio=0.15)
+        flecha_s2 = Arrow(desc_soft2.get_top(), eq_soft_der2.get_bottom(), buff=0.1, color=NARANJA_TERRACOTA, stroke_width=3, max_tip_length_to_length_ratio=0.1)
+
+        elementos_b1 = VGroup(lbl_softmax, grupo_eq_soft, desc_soft1, desc_soft2, flecha_s1, flecha_s2).arrange(DOWN, buff=0.3)
+        grupo_eq_soft.next_to(lbl_softmax, DOWN, buff=0.3)
+        desc_soft1.next_to(eq_soft_der1, DOWN, buff=0.7)
+        desc_soft2.next_to(eq_soft_der2, DOWN, buff=0.7)
+        flecha_s1.put_start_and_end_on(desc_soft1.get_top() + UP*0.1, eq_soft_der1.get_bottom() + DOWN*0.1)
+        flecha_s2.put_start_and_end_on(desc_soft2.get_top() + UP*0.1, eq_soft_der2.get_bottom() + DOWN*0.1)
         
+        grupo_elementos_soft = VGroup(lbl_softmax, grupo_eq_soft, desc_soft1, desc_soft2, flecha_s1, flecha_s2)
+        caja_softmax = SurroundingRectangle(grupo_elementos_soft, color=NARANJA_TERRACOTA, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.25)
+        
+        bloque1_completo = VGroup(caja_softmax, grupo_elementos_soft).next_to(linea, DOWN, buff=0.3)
+
+        self.play(FadeIn(caja_softmax, lbl_softmax, shift=DOWN))
+        self.play(Write(eq_soft_izq), Write(eq_soft_der1), Write(eq_soft_der2))
+        self.next_slide()
+        
+        self.play(FadeIn(desc_soft1), GrowArrow(flecha_s1))
+        self.play(FadeIn(desc_soft2), GrowArrow(flecha_s2))
         self.next_slide()
 
-        # =========================================================================
-        # --- 2. EL ENSAMBLAJE FINAL: GRADIENTE DE ENTRADA ---
-        # =========================================================================
-        lbl_input = Text("2. Gradiente de Entrada Final (Suma de Rutas)", font_size=24, color=DARK_GRAY)
+        lbl_input = Text("2. Ensamblaje de la Entrada (Sumando Rutas)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
-        # El gradiente de entrada es la suma de los gradientes que fluyen por Q, K y V
-        formula_input = r"\nabla x = \nabla x_Q + \nabla x_K + \nabla x_V"
-        grad_input = MathTex(formula_input, font_size=42, color=BLUE)
+        eq_input = MathTex(r"\nabla x = \nabla x_Q + \nabla x_K + \nabla x_V", font_size=36, color=MARRON_OSCURO)
         
-        grupo_input = VGroup(lbl_input, grad_input).arrange(DOWN, buff=0.4).next_to(grupo_softmax, DOWN, buff=1)
+        desc_input = Text("Como 'x' se dividió en Query, Key y Value, ahora recibe culpa por las tres vías.", font=FUENTE, font_size=14, color=TINTA_NEGRA)
+        desc_cache = Text("¡Requiere mantener las matrices gigantes de Q, K y V en caché!", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
         
-        self.play(FadeIn(lbl_input, shift=UP))
-        self.play(Write(grad_input))
+        grupo_textos_input = VGroup(desc_input, desc_cache).arrange(DOWN, buff=0.15)
         
-        # Pequeña nota explicativa sobre el caché
-        lbl_nota_input = Text("Requiere un caché masivo del Forward Pass", font_size=14, slant=ITALIC, color=BLUE).next_to(grad_input, DOWN, buff=0.3)
-        self.play(FadeIn(lbl_nota_input))
+        grupo_elementos_input = VGroup(lbl_input, eq_input, grupo_textos_input).arrange(DOWN, buff=0.25)
+        caja_input = SurroundingRectangle(grupo_elementos_input, color=PAPEL_TAN, fill_color=CAJA_INFERIOR, fill_opacity=0.3, corner_radius=0.2, buff=0.25)
+        
+        bloque2_completo = VGroup(caja_input, grupo_elementos_input).next_to(bloque1_completo, DOWN, buff=0.4)
 
-        # Recuadro elegante general
-        caja_total = SurroundingRectangle(VGroup(grupo_softmax, lbl_nota_soft, grupo_input, lbl_nota_input), color=DARK_GRAY, corner_radius=0.2, buff=0.4)
-        self.play(Create(caja_total))
+        self.play(FadeIn(caja_input, lbl_input, shift=UP))
+        self.play(Write(eq_input))
+        self.next_slide()
+        
+        self.play(FadeIn(desc_input))
+        self.play(FadeIn(desc_cache, shift=UP))
+        self.play(Indicate(desc_cache, color=NARANJA_TERRACOTA, scale_factor=1.05))
         
         self.next_slide()
         self.limpiar_pantalla()
     
     def slide_residual_connections(self):
-        """
-        Escena que explica el Backward Pass en las Conexiones Residuales,
-        destacando la acumulación de gradientes y la 'autopista' de información.
-        """
-        # =========================================================================
-        # --- TÍTULO ---
-        # =========================================================================
-        titulo = Text("Residual Connections", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
-        
+        titulo, linea = self.crear_titulo("Conexiones Residuales: La Autopista", palabra_clave="Conexiones Residuales:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- 1. FORWARD PASS (LA BIFURCACIÓN) - CENTRADO ---
-        # =========================================================================
-        lbl_forward = Text("Forward Pass (Bifurcación)", font_size=24, color=DARK_GRAY)
+        lbl_forward = Text("1. Forward Pass (Bifurcación)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
-        # y = x + Sublayer(x)
-        eq_forward = MathTex(r"y = x + \text{Sublayer}(x)", font_size=42)
-        eq_forward[0][0].set_color(HIGHLIGHT_COLOR)   # y
-        eq_forward[0][2].set_color(BLUE)              # x (skip)
+        eq_forward = MathTex(r"y = x + \text{Capa}(x)", font_size=36, color=MARRON_OSCURO)
+        desc_forward = Text("La entrada original 'x' se suma a la salida de la capa.", font=FUENTE, font_size=14, color=TINTA_NEGRA).set_opacity(0.8)
         
-        grupo_forward = VGroup(lbl_forward, eq_forward).arrange(DOWN, buff=0.3).move_to(UP * 1.5)
+        grupo_forward = VGroup(lbl_forward, eq_forward, desc_forward).arrange(DOWN, buff=0.25)
+        caja_forward = SurroundingRectangle(grupo_forward, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.25)
         
-        self.play(FadeIn(grupo_forward, shift=DOWN))
+        bloque1_completo = VGroup(caja_forward, grupo_forward).next_to(linea, DOWN, buff=0.3)
+
+        self.play(FadeIn(bloque1_completo, shift=DOWN))
         self.next_slide()
 
-        # =========================================================================
-        # --- 2. BACKWARD PASS (LA ACUMULACIÓN) - CENTRADO ---
-        # =========================================================================
-        lbl_backward = Text("Backward Pass (Acumulación)", font_size=24, color=DARK_GRAY)
+        lbl_backward = Text("2. Backward Pass (Acumulación)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
-        # grad_x = grad_y + grad_sublayer
-        # Usamos \nabla y para el gradiente que entra, y \nabla F(x) para el de la subcapa
-        formula_backward = r"\nabla x = \nabla y + \nabla x_{\text{sublayer}}"
-        eq_backward = MathTex(formula_backward, font_size=48)
+        eq_back_izq = MathTex(r"\nabla x =", font_size=36, color=TINTA_NEGRA)
+        eq_back_skip = MathTex(r"\nabla y", font_size=36, color=NARANJA_TERRACOTA)
+        eq_back_plus = MathTex(r"+", font_size=36, color=TINTA_NEGRA)
+        eq_back_capa = MathTex(r"\nabla x_{\text{capa}}", font_size=36, color=MARRON_OSCURO)
         
-        eq_backward[0][0:2].set_color(BLUE)            # \nabla x (salida final hacia atrás)
-        eq_backward[0][3:5].set_color(HIGHLIGHT_COLOR) # \nabla y (el que pasa directo)
-        eq_backward[0][6:].set_color(SOFT_GREEN)       # \nabla x_sublayer (el transformado)
+        grupo_eq_back = VGroup(eq_back_izq, eq_back_skip, eq_back_plus, eq_back_capa).arrange(RIGHT, buff=0.2)
         
-        grupo_backward = VGroup(lbl_backward, eq_backward).arrange(DOWN, buff=0.4).next_to(grupo_forward, DOWN, buff=1)
-        
-        self.play(FadeIn(lbl_backward, shift=UP))
-        self.play(Write(eq_backward))
-        
-        # =========================================================================
-        # --- 3. EL CONCEPTO CLAVE: LA AUTOPISTA ---
-        # =========================================================================
-        # Etiquetas explicativas debajo de la ecuación
-        lbl_skip = Text("Pasa directo (Autopista)", font_size=16, color=HIGHLIGHT_COLOR).next_to(eq_backward[0][3:5], DOWN, buff=0.4)
-        lbl_trans = Text("Pasa por la capa", font_size=16, color=SOFT_GREEN).next_to(eq_backward[0][6:], DOWN, buff=0.4)
-        
-        self.play(FadeIn(lbl_skip, shift=UP), FadeIn(lbl_trans, shift=UP))
+        txt_skip = Text("Pasa intacto (¡La Autopista!)", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD).next_to(eq_back_skip, DOWN, buff=0.6)
+        txt_capa = Text("Gradiente transformado", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(eq_back_capa, DOWN, buff=1.0) 
+        flecha_skip = Arrow(txt_skip.get_top(), eq_back_skip.get_bottom(), buff=0.1, color=NARANJA_TERRACOTA, stroke_width=3, max_tip_length_to_length_ratio=0.15)
+        flecha_capa = Arrow(txt_capa.get_top(), eq_back_capa.get_bottom(), buff=0.1, color=MARRON_OSCURO, stroke_width=3, max_tip_length_to_length_ratio=0.15)
 
-        # Mensaje final de impacto
-        lbl_impacto = Text("Evita el desvanecimiento de gradientes en redes profundas.", font_size=18, slant=ITALIC, color=DARK_GRAY)
-        lbl_impacto.next_to(grupo_backward, DOWN, buff=1.5)
+        grupo_textos_back = VGroup(lbl_backward, grupo_eq_back, txt_skip, txt_capa, flecha_skip, flecha_capa)
         
-        self.play(Write(lbl_impacto))
+        grupo_eq_back.next_to(lbl_backward, DOWN, buff=0.4)
+        txt_skip.next_to(eq_back_skip, DOWN, buff=0.7)
+        txt_capa.next_to(eq_back_capa, DOWN, buff=1.1)
+        flecha_skip.put_start_and_end_on(txt_skip.get_top() + UP*0.1, eq_back_skip.get_bottom() + DOWN*0.1)
+        flecha_capa.put_start_and_end_on(txt_capa.get_top() + UP*0.1, eq_back_capa.get_bottom() + DOWN*0.1)
 
-        # Recuadro elegante
-        caja_total = SurroundingRectangle(VGroup(grupo_backward, lbl_skip, lbl_trans), color=DARK_GRAY, corner_radius=0.2, buff=0.4)
-        self.play(Create(caja_total))
+        caja_backward = SurroundingRectangle(grupo_textos_back, color=PAPEL_TAN, fill_color=PAPEL_CREMA, fill_opacity=1, corner_radius=0.2, buff=0.25)
+        bloque2_completo = VGroup(caja_backward, grupo_textos_back).next_to(bloque1_completo, DOWN, buff=0.4)
+
+        self.play(Create(caja_backward), FadeIn(lbl_backward, shift=UP))
+        self.play(Write(eq_back_izq), Write(eq_back_plus))
+        self.next_slide()
+
+        self.play(FadeIn(eq_back_skip, shift=DOWN))
+        self.play(GrowArrow(flecha_skip), FadeIn(txt_skip))
+        self.next_slide()
+
+        self.play(FadeIn(eq_back_capa, shift=DOWN))
+        self.play(GrowArrow(flecha_capa), FadeIn(txt_capa))
+        self.next_slide()
+
+        lbl_impacto = Text("Sin esta suma directa, el gradiente desaparecería en redes profundas.", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
+        caja_impacto = SurroundingRectangle(lbl_impacto, color=NARANJA_TERRACOTA, fill_color=CAJA_INFERIOR, fill_opacity=0.5, corner_radius=0.1, buff=0.2)
+        bloque3_completo = VGroup(caja_impacto, lbl_impacto).next_to(bloque2_completo, DOWN, buff=0.5)
+
+        self.play(FadeIn(bloque3_completo, shift=UP))
+        self.play(Indicate(bloque3_completo, color=NARANJA_TERRACOTA))
         
         self.next_slide()
         self.limpiar_pantalla()
     
     def slide_training_techniques(self):
-        """
-        Escena secuencial que explica las 3 técnicas de estabilización y
-        optimización: Gradient Clipping, Dropout y AdamW.
-        """
-        # =========================================================================
-        # --- TÍTULO GLOBAL ---
-        # =========================================================================
-        titulo = Text("Training Stabilizers & Optimization", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
-        
+        titulo, linea = self.crear_titulo("Estabilizadores y Optimización", palabra_clave="Estabilizadores", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- ACTO 1: GRADIENT CLIPPING ---
-        # =========================================================================
-        lbl_clip = Text("1. Gradient Clipping (Evitar Explosiones)", font_size=28, color=DARK_GRAY).move_to(UP * 1.5)
+        lbl_clip = Text("1. Gradient Clipping (Evitar Explosiones)", font=FUENTE, font_size=22, color=TINTA_NEGRA, weight=BOLD)
         
-        # Fórmula matemática del clipping basado en norma L2
-        formula_clip = r"g \leftarrow g \cdot \min\left(1, \frac{\text{max\_norm}}{||g||_2}\right)"
-        eq_clip = MathTex(formula_clip, font_size=48, color=ALERT_COLOR).next_to(lbl_clip, DOWN, buff=0.8)
+        eq_clip_izq = MathTex(r"g \leftarrow g \cdot", font_size=42, color=TINTA_NEGRA)
+        eq_clip_der = MathTex(r"\min\left(1, \frac{\text{max\_norm}}{||g||_2}\right)", font_size=42, color=NARANJA_TERRACOTA)
+        grupo_eq_clip = VGroup(eq_clip_izq, eq_clip_der).arrange(RIGHT, buff=0.2)
         
-        nota_clip = Text("Escala el gradiente proporcionalmente si supera el umbral, manteniendo su dirección.", font_size=16, slant=ITALIC, color=DARK_GRAY).next_to(eq_clip, DOWN, buff=0.8)
+        nota_clip = Text("Si el gradiente es muy grande, reducimos su magnitud preservando su dirección.", font=FUENTE, font_size=14, color=MARRON_OSCURO)
+        
+        grupo_clip_total = VGroup(lbl_clip, grupo_eq_clip, nota_clip).arrange(DOWN, buff=0.6)
+        caja_clip = SurroundingRectangle(grupo_clip_total, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.4)
+        bloque_clip = VGroup(caja_clip, grupo_clip_total).next_to(linea, DOWN, buff=1)
 
-        grupo_clip = VGroup(lbl_clip, eq_clip, nota_clip)
-        
-        self.play(FadeIn(lbl_clip, shift=DOWN))
-        self.play(Write(eq_clip))
-        self.play(FadeIn(nota_clip))
+        self.play(FadeIn(caja_clip), FadeIn(lbl_clip, shift=DOWN))
+        self.play(Write(eq_clip_izq), Write(eq_clip_der))
+        self.play(FadeIn(nota_clip, shift=UP))
         self.next_slide()
         
-        self.play(FadeOut(grupo_clip, shift=UP))
+        self.play(FadeOut(bloque_clip, shift=UP))
 
-        # =========================================================================
-        # --- ACTO 2: DROPOUT REGULARIZATION ---
-        # =========================================================================
-        lbl_drop = Text("2. Dropout (Prevenir Memorización / Overfitting)", font_size=28, color=DARK_GRAY).move_to(UP * 1.5)
+        lbl_drop = Text("2. Dropout (Prevenir Memorización)", font=FUENTE, font_size=22, color=TINTA_NEGRA, weight=BOLD)
         
-        # Representación matemática de la máscara de Dropout
-        formula_drop = r"y = x \odot M, \quad M \sim \text{Bernoulli}(1 - p)"
-        eq_drop = MathTex(formula_drop, font_size=48, color=BLUE).next_to(lbl_drop, DOWN, buff=0.8)
+        eq_drop = MathTex(r"y = x \odot M", font_size=42, color=MARRON_OSCURO)
+        eq_bernoulli = MathTex(r"M \sim \text{Bernoulli}(1 - p)", font_size=32, color=NARANJA_TERRACOTA)
+        grupo_eq_drop = VGroup(eq_drop, eq_bernoulli).arrange(DOWN, buff=0.3)
         
-        nota_drop = Text("Apaga aleatoriamente el 10% de las neuronas (p=0.1) para forzar redundancia.", font_size=16, slant=ITALIC, color=DARK_GRAY).next_to(eq_drop, DOWN, buff=0.8)
+        nota_drop = Text("Apaga aleatoriamente el 10% de las neuronas (p=0.1) para forzar redundancia.", font=FUENTE, font_size=14, color=MARRON_OSCURO)
 
-        grupo_drop = VGroup(lbl_drop, eq_drop, nota_drop)
+        grupo_drop_total = VGroup(lbl_drop, grupo_eq_drop, nota_drop).arrange(DOWN, buff=0.6)
+        caja_drop = SurroundingRectangle(grupo_drop_total, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.4)
+        bloque_drop = VGroup(caja_drop, grupo_drop_total).next_to(linea, DOWN, buff=1)
 
-        self.play(FadeIn(lbl_drop, shift=DOWN))
+        self.play(FadeIn(caja_drop), FadeIn(lbl_drop, shift=DOWN))
         self.play(Write(eq_drop))
-        self.play(FadeIn(nota_drop))
+        self.play(FadeIn(eq_bernoulli, shift=UP))
+        self.play(FadeIn(nota_drop, shift=UP))
         self.next_slide()
         
-        self.play(FadeOut(grupo_drop, shift=UP))
+        self.play(FadeOut(bloque_drop, shift=UP))
 
-        # =========================================================================
-        # --- ACTO 3: ADAMW OPTIMIZER ---
-        # =========================================================================
-        lbl_adamw = Text("3. AdamW (Optimización con Decoupled Weight Decay)", font_size=28, color=DARK_GRAY).move_to(UP * 2)
+        lbl_adamw = Text("3. AdamW (Decoupled Weight Decay)", font=FUENTE, font_size=22, color=TINTA_NEGRA, weight=BOLD)
         
-        # Ecuaciones separadas para mostrar el paso a paso
-        # 1. Weight Decay
-        eq_wd = MathTex(r"\theta_{t} = \theta_{t-1}(1 - \eta \lambda)", font_size=36, color=SOFT_GREEN)
-        # 2. Momentum y Varianza
-        eq_mv = MathTex(r"m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t \quad | \quad v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2", font_size=36)
-        # 3. Actualización final
-        eq_update = MathTex(r"\theta_{t} \leftarrow \theta_{t} - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}", font_size=42, color=BLUE)
+        txt_wd = Text("Paso 1: Decaimiento de Pesos", font=FUENTE, font_size=12, color=NARANJA_TERRACOTA)
+        eq_wd = MathTex(r"\theta_{t} = \theta_{t-1}(1 - \eta \lambda)", font_size=34, color=NARANJA_TERRACOTA)
+        grupo_wd = VGroup(txt_wd, eq_wd).arrange(DOWN, buff=0.1)
 
-        # Agrupamos las ecuaciones de AdamW
-        grupo_eqs_adam = VGroup(eq_wd, eq_mv, eq_update).arrange(DOWN, buff=0.6).next_to(lbl_adamw, DOWN, buff=0.6)
+        txt_mv = Text("Paso 2: Promedios Móviles del Gradiente", font=FUENTE, font_size=12, color=MARRON_OSCURO)
+        eq_mv = MathTex(r"m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t \quad | \quad v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2", font_size=28, color=MARRON_OSCURO)
+        grupo_mv = VGroup(txt_mv, eq_mv).arrange(DOWN, buff=0.1)
+
+        txt_update = Text("Paso 3: Actualización Final", font=FUENTE, font_size=12, color=TINTA_NEGRA)
+        eq_update = MathTex(r"\theta_{t} \leftarrow \theta_{t} - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}", font_size=38, color=TINTA_NEGRA)
+        grupo_update = VGroup(txt_update, eq_update).arrange(DOWN, buff=0.1)
+
+        grupo_eqs_adam = VGroup(grupo_wd, grupo_mv, grupo_update).arrange(DOWN, buff=0.4)
         
-        nota_adamw = Text("Separa la regularización (Weight Decay) del historial de gradientes (Momentum/Varianza).", font_size=16, slant=ITALIC, color=DARK_GRAY).next_to(grupo_eqs_adam, DOWN, buff=0.8)
+        nota_adamw = Text("A diferencia de Adam normal, la regularización NO se mezcla con el momentum.", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
 
-        grupo_adamw = VGroup(lbl_adamw, grupo_eqs_adam, nota_adamw)
+        grupo_adamw_total = VGroup(lbl_adamw, grupo_eqs_adam, nota_adamw).arrange(DOWN, buff=0.5)
+        caja_adamw = SurroundingRectangle(grupo_adamw_total, color=MARRON_OSCURO, fill_color=PAPEL_CREMA, fill_opacity=1, corner_radius=0.2, buff=0.4)
+        bloque_adamw = VGroup(caja_adamw, grupo_adamw_total).next_to(linea, DOWN, buff=0.3)
 
-        self.play(FadeIn(lbl_adamw, shift=DOWN))
-        self.play(Write(eq_wd))      # Muestra el decaimiento de pesos primero
-        self.play(Write(eq_mv))      # Luego el momento y varianza
-        self.play(Write(eq_update))  # Finalmente la actualización
-        self.play(FadeIn(nota_adamw))
+        self.play(FadeIn(caja_adamw), FadeIn(lbl_adamw, shift=DOWN))
         
-        # Recuadro final para AdamW, ya que es la estrella
-        caja_adamw = SurroundingRectangle(grupo_eqs_adam, color=DARK_GRAY, corner_radius=0.2, buff=0.3)
-        self.play(Create(caja_adamw))
+        self.play(FadeIn(txt_wd), Write(eq_wd))
+        self.next_slide()
+        
+        self.play(FadeIn(txt_mv), Write(eq_mv))
+        self.next_slide()
+        
+        self.play(FadeIn(txt_update), Write(eq_update))
+        self.play(FadeIn(nota_adamw, shift=UP))
+        
+        self.play(Indicate(grupo_wd, color=NARANJA_TERRACOTA))
 
         self.next_slide()
         self.limpiar_pantalla()
 
     def slide_training_metrics(self):
-        """
-        Escena en 3 actos que muestra las métricas de entrenamiento,
-        el Learning Rate y la evolución espectacular del texto generado.
-        """
-        # =========================================================================
-        # --- TÍTULO GLOBAL ---
-        # =========================================================================
-        titulo = Text("Training Metrics & Evolution", font_size=42, weight=BOLD, color=HIGHLIGHT_COLOR).to_edge(UP, buff=1)
-        linea = Line(LEFT, RIGHT).set_width(8).next_to(titulo, DOWN, buff=0.2).set_color(DARK_GRAY)
+        MARRON_OSCURO = "#3D3834"
+        NARANJA_TERRACOTA = "#A36536"
+        PAPEL_CREMA = "#F2E6D8"
+        PAPEL_TAN = "#B78B68"
+        FONDO_CAJA = "#FCF3E4"
+        CAJA_INFERIOR = "#E0C2A8"
+        TINTA_NEGRA = "#1A1A1A"
         
+        titulo, linea = self.crear_titulo("Métricas y Evolución: El Despertar del Modelo", palabra_clave="Métricas", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
-        # =========================================================================
-        # --- ACTO 1: LOSS Y PERPLEXITY ---
-        # =========================================================================
-        lbl_metrics = Text("1. Loss & Perplexity", font_size=28, color=DARK_GRAY).move_to(UP * 1.5)
+        lbl_metrics = Text("1. Calidad de la Predicción", font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD)
+        eq_ppl = MathTex(r"\text{Perplexity} = e^{\text{Loss}}", font_size=42, color=MARRON_OSCURO)
         
-        # Fórmula de la perplejidad
-        eq_ppl = MathTex(r"\text{Perplexity} = e^{\text{Loss}}", font_size=48, color=BLUE)
+        desc_loss = Text("Loss: El error al predecir el siguiente token.", font=FUENTE, font_size=14, color=TINTA_NEGRA)
+        desc_ppl = Text("Perplexity: El grado de 'ceguera' o duda del modelo.", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
         
-        nota_loss = Text("Loss: Error de predicción (Cross-Entropy).", font_size=20, color=DARK_GRAY)
-        nota_ppl = Text("Perplexity: Nivel de incertidumbre (Ej: 50 = dudar entre 50 tokens).", font_size=20, color=DARK_GRAY)
-        
-        grupo_metrics = VGroup(lbl_metrics, eq_ppl, nota_loss, nota_ppl).arrange(DOWN, buff=0.6).move_to(UP * 0.5)
-        
-        self.play(FadeIn(lbl_metrics, shift=DOWN))
-        self.play(Write(eq_ppl))
-        self.play(FadeIn(nota_loss), FadeIn(nota_ppl))
-        
-        self.next_slide()
-        self.play(FadeOut(grupo_metrics, shift=UP))
+        grupo_metrics = VGroup(lbl_metrics, eq_ppl, desc_loss, desc_ppl).arrange(DOWN, buff=0.4)
+        caja_metrics = SurroundingRectangle(grupo_metrics, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.4)
+        bloque1 = VGroup(caja_metrics, grupo_metrics).next_to(linea, DOWN, buff=0.5)
 
-        # =========================================================================
-        # --- ACTO 2: LEARNING RATE SCHEDULE ---
-        # =========================================================================
-        lbl_lr = Text("2. Learning Rate Schedule", font_size=28, color=DARK_GRAY).move_to(UP * 1.5)
+        self.play(FadeIn(caja_metrics), Write(lbl_metrics))
+        self.play(Write(eq_ppl))
+        self.play(FadeIn(desc_loss), FadeIn(desc_ppl, shift=UP))
+        self.next_slide()
+        self.play(FadeOut(bloque1, shift=UP))
+
+        lbl_lr = Text("2. Ritmo de Aprendizaje (Warmup + Decay)", font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD)
+        ejes = Axes(x_range=[0, 10, 1], y_range=[0, 5, 1], x_length=7, y_length=3,
+                    axis_config={"color": MARRON_OSCURO, "include_ticks": False}, tips=False).next_to(lbl_lr, DOWN, buff=0.5)
         
-        # Representación visual simulada del Warmup + Decay
-        ejes = Axes(
-            x_range=[0, 10, 1], y_range=[0, 5, 1],
-            x_length=6, y_length=3,
-            axis_config={"color": DARK_GRAY, "include_ticks": False}
-        ).next_to(lbl_lr, DOWN, buff=0.5)
-        
-        # Curva: sube rápido (warmup), baja lento (decay)
-        curva_lr = ejes.plot(lambda x: 4 * (x/2) if x < 2 else 4 * (2/x)**0.5, color=SOFT_GREEN)
-        
-        # Usamos ejes.coords_to_point para anclar los textos correctamente
-        lbl_warmup = Text("Warmup", font_size=16, color=SOFT_GREEN).next_to(ejes.coords_to_point(1, 2), LEFT)
-        lbl_decay = Text("Decay", font_size=16, color=SOFT_GREEN).next_to(ejes.coords_to_point(6, 2), RIGHT)
-        
-        grupo_lr = VGroup(lbl_lr, ejes, curva_lr, lbl_warmup, lbl_decay)
-        
-        self.play(FadeIn(lbl_lr, shift=DOWN))
-        self.play(Create(ejes), Create(curva_lr))
-        self.play(FadeIn(lbl_warmup), FadeIn(lbl_decay))
-        
+        curva_lr = ejes.plot(lambda x: 4.5 * (x/2) if x < 2 else 4.5 * (np.cos((x-2)/(8)*np.pi/2)), color=NARANJA_TERRACOTA, stroke_width=4)
+        txt_warmup = Text("Warmup: Salida de la ceguera total", font=FUENTE, font_size=12, color=MARRON_OSCURO).next_to(ejes.coords_to_point(1, 1), UL, buff=0.2)
+        txt_decay = Text("Decay: Refinando la puntería", font=FUENTE, font_size=12, color=MARRON_OSCURO).next_to(ejes.coords_to_point(6, 2.5), UR, buff=0.2)
+
+        grupo_lr = VGroup(lbl_lr, ejes, curva_lr, txt_warmup, txt_decay).center().shift(DOWN*0.5)
+        self.play(Write(lbl_lr), Create(ejes), Create(curva_lr))
+        self.play(FadeIn(txt_warmup), FadeIn(txt_decay))
         self.next_slide()
         self.play(FadeOut(grupo_lr, shift=UP))
 
-        lbl_evo = Text("3. Generación de Texto: De Ruido a Shakespeare", font_size=28, color=DARK_GRAY).move_to(UP * 2.5)
-        self.play(FadeIn(lbl_evo, shift=DOWN))
-
-        def mostrar_paso(step, loss, ppl, texto_gen, color_texto):
-            stats = Text(f"Step {step} | Loss {loss} | Perplexity {ppl}", font_size=20, weight=BOLD, color=HIGHLIGHT_COLOR)
-            ejemplo = Text(texto_gen, font_size=22, slant=ITALIC, color=color_texto)
-            grupo = VGroup(stats, ejemplo).arrange(DOWN, buff=0.3).move_to(ORIGIN)
-            return grupo
-
-        # Paso 0: Ruido puro
-        paso_0 = mostrar_paso("0", "7.75", "2313", '"To be, or not to beI knowdodaydegentsidESAR."', DARK_GRAY)
-        self.play(FadeIn(paso_0, shift=UP))
-        self.next_slide()
-        self.play(FadeOut(paso_0, shift=UP))
-
-        # Paso 4000: Palabras reales
-        paso_4k = mostrar_paso("4000", "4.19", "66", '"To be, or not to be; and for the your sone,\nshall he spar,\nBut heaven"', BLUE)
-        self.play(FadeIn(paso_4k, shift=UP))
-        self.next_slide()
-        self.play(FadeOut(paso_4k, shift=UP))
-
-        paso_16k = mostrar_paso("16000", "3.02", "20", '"To be, or not to become you; if I must\nIf Caesar hath a wrong, thou k"', SOFT_GREEN)
-        self.play(FadeIn(paso_16k, shift=UP))
+        lbl_evo = Text("3. Evolución: Emergiendo de la Fortuna Ciega", font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD).to_edge(UP, buff=1.5)
         
-        nota_final = Text("El modelo ha aprendido métrica, vocabulario y estructura sin reglas gramaticales.", font_size=18, color=DARK_GRAY).next_to(paso_16k, DOWN, buff=1)
-        self.play(FadeIn(nota_final))
+        def crear_bloque_paso(step, loss, ppl, texto, color_box):
+            header = Text(f"PASO {step} | Loss: {loss} | PPL: {ppl}", font=FUENTE, font_size=14, weight=BOLD, color=TINTA_NEGRA)
+            cuerpo = Text(texto, font=FUENTE, font_size=16, color=MARRON_OSCURO, line_spacing=1.4)
+            grupo = VGroup(header, cuerpo).arrange(DOWN, buff=0.3, aligned_edge=LEFT)
+            caja = SurroundingRectangle(grupo, color=color_box, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.1, buff=0.4)
+            return VGroup(caja, grupo)
 
-        caja_final = SurroundingRectangle(VGroup(paso_16k, nota_final), color=DARK_GRAY, corner_radius=0.2, buff=0.4)
-        self.play(Create(caja_final))
+        paso_0 = crear_bloque_paso(
+            "0", "8.12", "3360", 
+            '"Esta q7e llama8 p0r a#í F0rtun4 es m7jer b0rrach... d3rriba."', 
+            MARRON_OSCURO
+        ).move_to(DOWN * 0.5)
+
+        paso_4k = crear_bloque_paso(
+            "4,000", "4.45", "85", 
+            '"Esta que llaman por ahí Fortuna es una mujer borracha,\nciega y no sabe a quien derriba."', 
+            PAPEL_TAN
+        ).move_to(DOWN * 0.5)
+
+        paso_16k = crear_bloque_paso(
+            "16,000", "2.85", "17", 
+            '"Esta que llaman por ahí Fortuna es una mujer borracha\ny antojadiza, y sobre todo, ciega, y así no ve lo que hace."', 
+            NARANJA_TERRACOTA
+        ).move_to(DOWN * 0.5)
+
+        self.play(Write(lbl_evo))
+        self.play(FadeIn(paso_0, shift=RIGHT))
+        self.next_slide()
+        
+        self.play(ReplacementTransform(paso_0, paso_4k))
+        self.next_slide()
+        
+        self.play(ReplacementTransform(paso_4k, paso_16k))
+        
+        conclu = Text("El modelo ha dejado de ser 'ciego': ahora entiende\nla métrica, el estilo y la coherencia de Cervantes.", 
+                      font=FUENTE, font_size=15, color=TINTA_NEGRA, weight=BOLD).next_to(paso_16k, DOWN, buff=0.6)
+        
+        self.play(FadeIn(conclu, shift=UP))
+        self.play(Indicate(paso_16k, color=NARANJA_TERRACOTA))
 
         self.next_slide()
         self.limpiar_pantalla()
 
+    def slide_model_in_action(self):
+        titulo, linea = self.crear_titulo("Molinete AI: Demostración en Vivo", palabra_clave="Vivo", color_clave=NARANJA_TERRACOTA)
+        self.play(Write(titulo), GrowFromCenter(linea))
+
+        browser_window = RoundedRectangle(corner_radius=0.2, width=10, height=5.5, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=0.4)
+        browser_header = Rectangle(width=10, height=0.5, color=MARRON_OSCURO, fill_color=MARRON_OSCURO, fill_opacity=1).align_to(browser_window, UP)
+        
+        dot_1 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).move_to(browser_header.get_left() + RIGHT*0.4)
+        dot_2 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).next_to(dot_1, RIGHT, buff=0.15)
+        dot_3 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).next_to(dot_2, RIGHT, buff=0.15)
+        
+
+        url_bar = RoundedRectangle(corner_radius=0.1, width=6, height=0.25, color=FONDO_CAJA, fill_color=WHITE, fill_opacity=1).move_to(browser_header)
+        url_text = Text("https://molinete-ai.com", font_size=12, color=TINTA_NEGRA).move_to(url_bar) 
+        
+        browser_ui = VGroup(browser_window, browser_header, dot_1, dot_2, dot_3, url_bar, url_text)
+        browser_ui.next_to(linea, DOWN, buff=0.4)
+
+        self.play(FadeIn(browser_ui, shift=UP))
+
+        logo_molinete = Text("Molinete AI", font_size=42, color=NARANJA_TERRACOTA, weight=BOLD).move_to(browser_window.get_center() + UP*1)
+        subtitulo_web = Text("Inferencia del Transformer en Tiempo Real", font_size=20, color=TINTA_NEGRA).next_to(logo_molinete, DOWN, buff=0.3)
+        
+        prompt_box = RoundedRectangle(corner_radius=0.1, width=7, height=0.8, color=MARRON_OSCURO, fill_color=WHITE, fill_opacity=1).next_to(subtitulo_web, DOWN, buff=0.6)
+        prompt_text = Text("Escribe tu texto para iniciar la predicción...", font_size=16, color=MARRON_OSCURO).move_to(prompt_box).align_to(prompt_box.get_left(), LEFT).shift(RIGHT*0.3)
+        
+        btn_generar = RoundedRectangle(corner_radius=0.1, width=2, height=0.5, color=NARANJA_TERRACOTA, fill_color=NARANJA_TERRACOTA, fill_opacity=1).next_to(prompt_box, DOWN, buff=0.4)
+        btn_text = Text("Generar", font_size=16, color=FONDO_CAJA, weight=BOLD).move_to(btn_generar)
+        grupo_btn = VGroup(btn_generar, btn_text)
+
+        web_content = VGroup(logo_molinete, subtitulo_web, prompt_box, prompt_text, grupo_btn)
+
+        self.play(LaggedStart(
+            FadeIn(logo_molinete, shift=DOWN),
+            FadeIn(subtitulo_web),
+            Create(prompt_box),
+            Write(prompt_text),
+            FadeIn(grupo_btn, shift=UP),
+            lag_ratio=0.15
+        ))
+        
+        self.next_slide()
+
+        transicion_lbl = Text("Cambiando al navegador...", font_size=24, color=NARANJA_TERRACOTA, weight=BOLD)
+        caja_transicion = SurroundingRectangle(transicion_lbl, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=1, buff=0.4)
+        grupo_transicion = VGroup(caja_transicion, transicion_lbl).move_to(browser_window.get_center())
+
+        self.play(web_content.animate.set_opacity(0.1), FadeIn(grupo_transicion, scale=0.8))
+        
+        self.next_slide()
+        self.limpiar_pantalla()
+
+    def slide_final(self):
+        gracias = Text("¡Muchas Gracias!", font_size=60, weight=BOLD, color=NARANJA_TERRACOTA).move_to(UP*2.5)
+        sub = Text("Por tu asistencia y atención", font_size=24, color=MARRON_OSCURO).next_to(gracias, DOWN)
+        
+        self.play(Write(gracias), FadeIn(sub, shift=UP))
+
+        base_molino = Polygon(
+            [-0.9, -1.5, 0], [0.9, -1.5, 0], [0.5, 1.0, 0], [-0.5, 1.0, 0], 
+            color=MARRON_OSCURO, fill_opacity=1
+        )
+        
+        puerta = RoundedRectangle(corner_radius=0.2, width=0.6, height=0.8, color=FONDO_CAJA, fill_opacity=1).move_to(base_molino.get_bottom() + UP*0.4)
+        ventana = Circle(radius=0.18, color=FONDO_CAJA, fill_opacity=1).move_to(base_molino.get_center() + UP*0.3)
+        techo = Polygon([-0.6, 1.0, 0], [0, 1.8, 0], [0.6, 1.0, 0], color=NARANJA_TERRACOTA, fill_opacity=1)
+        
+        cuerpo_molino = VGroup(base_molino, puerta, ventana, techo)
+
+        def crear_aspa():
+            palo = Line(ORIGIN, UP*2.5, color=MARRON_OSCURO, stroke_width=6)
+            vela = Polygon(
+                [0.1, 0.4, 0], [0.8, 0.4, 0], [0.8, 2.3, 0], [0.1, 2.3, 0], 
+                color=NARANJA_TERRACOTA, fill_opacity=0.9, stroke_width=2, stroke_color=MARRON_OSCURO
+            )
+            lineas = VGroup(*[Line([0.1, y, 0], [0.8, y, 0], color=FONDO_CAJA, stroke_width=2) for y in np.linspace(0.6, 2.1, 6)])
+            return VGroup(palo, vela, lineas)
+
+        aspas = VGroup(*[crear_aspa().rotate(i * 90 * DEGREES, about_point=ORIGIN) for i in range(4)])
+        
+        centro_aspas = techo.get_bottom() + UP*0.3
+        aspas.move_to(centro_aspas)
+        eje = Dot(centro_aspas, color=FONDO_CAJA, radius=0.15)
+        
+        molino_completo = VGroup(cuerpo_molino, aspas, eje).scale(0.8).to_edge(LEFT, buff=2).shift(DOWN*1.2)
+        
+        nuevo_centro_aspas = aspas.get_center()
+
+        ruta_imagen_qr = r"assets\qr_github_molineteai.png" 
+        anim_qr = []
+        
+        qr_real = ImageMobject(ruta_imagen_qr).scale(0.8)
+        ancho_marco = qr_real.width + 0.4
+        alto_marco = qr_real.height + 0.4
+        fondo_qr = RoundedRectangle(
+            corner_radius=0.2, width=ancho_marco, height=alto_marco, 
+            color=MARRON_OSCURO, stroke_width=4, fill_color=FONDO_CAJA, fill_opacity=1
+        )
+
+        grupo_qr = Group(fondo_qr, qr_real).to_edge(RIGHT, buff=2).shift(DOWN*1.2)
+        lbl_qr = Text("Escanea para el material", font_size=18, weight=BOLD, color=MARRON_OSCURO).next_to(grupo_qr, UP, buff=0.3)
+            
+        anim_qr = [DrawBorderThenFill(fondo_qr), FadeIn(qr_real), Write(lbl_qr)]
+            
+        self.play(
+            FadeIn(cuerpo_molino, shift=UP*0.5), 
+            GrowFromCenter(aspas),
+            FadeIn(eje),
+            *anim_qr,
+            run_time=2
+        )
+        
+        self.play(Rotate(aspas, angle=2*PI*4, about_point=nuevo_centro_aspas, run_time=10, rate_func=linear))
