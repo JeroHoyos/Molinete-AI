@@ -1,5 +1,19 @@
-<div align="center">
-<pre><code>
+use molineteai::gpt2_trainable::Checkpoint;
+use std::io::{self, Write};
+use std::process::Command;
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::thread;
+use std::time::Duration;
+
+/// Limpia la consola y muestra el banner ASCII línea por línea
+fn mostrar_arte() {
+    if cfg!(target_os = "windows") {
+        let _ = Command::new("cmd").args(["/c", "cls"]).status();
+    } else {
+        let _ = Command::new("clear").status();
+    }
+
+    let arte = r#"
 ______________________________________________________________________________________________________________________8______________________
 ______________________________________________________________________________________________________________________8666___________________
 ______________________________________________________________________________________________________________________8_868__________________
@@ -35,145 +49,110 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 `.\  ___   | |    |||  || ____________________________________________________________________________86___6668868888888688___886688_86______
 | \\  __   |-|    ||| / | ____________________________________________________________________________6888888668888888866888888_88688868_____
  \ )\    *_)/`-.__|| \\ | _________________________________________________________________________8888888888888_88888_8888888_888888886_____
---'--'"""""`------''--'`'"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888""""
-</code></pre>
-</div>
+--'--'"""""`------''--'`'"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"""""#;
 
-**Autor:** Jerónimo Hoyos Botero  
-**Repositorio Principal:** [JeroHoyos/Molinete-AI](https://github.com/JeroHoyos/Molinete-AI)  
-**Proyecto Original:** [tag1consulting/feste](https://github.com/tag1consulting/feste)  
-
----
-
-## ¿Qué es Molinete AI?
-
-Molinete AI es un fork de **Feste**, una implementación desde cero de un modelo Transformer tipo GPT-2 en Rust, desarrollada por Tag1 Consulting como acompañamiento a la serie *Building an LLM From Scratch in Rust*.
-
-Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **Molinete AI propone entrenarlo con la obra de Miguel de Cervantes**, estableciendo una interesante contraposición lingüística y cultural:
-
-* **Feste** → Shakespeare (inglés isabelino)
-* **Molinete AI** → Cervantes (español del Siglo de Oro)
-
-El objetivo no es solo replicar el experimento original, sino reinterpretarlo en español y convertirlo en una guía técnica rigurosa y accesible.
-
----
-
-## ¿Por qué “Molinete”?
-
-El nombre hace referencia directa al universo cervantino. Si Feste toma su identidad del bufón ingenioso en *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo confundió con fieros gigantes.
-
----
-
-## Qué es este proyecto
-
-Es un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** (como PyTorch o TensorFlow). 
-
-El propósito central es comprender cómo funcionan los modelos de lenguaje implementando cada componente explícitamente. Incluye:
-
-* Tokenización BPE (Byte-Pair Encoding).
-* Implementación manual de tensores.
-* Multi-Head Self-Attention y Máscara causal.
-* Feed Forward Networks.
-* Normalización y conexiones residuales.
-* Infraestructura de entrenamiento completa.
-* Generación autoregresiva de texto.
-
-### Arquitectura Molinete (~4M params)
-
-```rust
-Config {
-    vocab_size: 1536,
-    n_embd: 256,
-    n_layers: 4,
-    n_heads: 4,       // head_dim = 64
-    block_size: 256,
+    for linea in arte.lines() {
+        if !linea.is_empty() {
+            println!("{}", linea);
+            thread::sleep(Duration::from_millis(30)); 
+        }
+    }
+    println!();
 }
-```
 
-| Hiperparámetro | Valor por defecto |
-| :--- | :--- |
-| Pasos (Steps) | `8000` |
-| Tasa de aprendizaje (Learning rate) | `0.0003` |
-| Fracción de calentamiento (Warmup) | `0.1` |
-| Recorte de gradiente (Gradient clipping) | `1.0` |
-| Paciencia de Early stopping | `3000` |
-| Acumulación de gradientes | `8 mini-batches` |
-| Datos de entrenamiento | Primeros 2M de caracteres |
-| Tiempo esperado (local) | ~4-6 horas |
+/// Imprime el texto letra por letra. Reemplaza saltos de línea por un espacio.
+fn imprimir_lento(texto: &str, millis_por_letra: u64) {
+    let mut stdout = io::stdout();
+    for caracter in texto.chars() {
+        if caracter == '\n' {
+            print!(" ");
+            let _ = stdout.flush();
+        } else if caracter != '\r' {
+            print!("{}", caracter);
+            let _ = stdout.flush();
+            thread::sleep(Duration::from_millis(millis_por_letra));
+        }
+    }
+    println!(); 
+}
 
----
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    mostrar_arte();
 
-## Datos de Entrenamiento: Obras de Cervantes
+    // --- BARRA DE PROGRESO ANIMADA ---
+    // Usamos AtomicBool para que los dos hilos puedan comunicarse de forma segura
+    let carga_terminada = Arc::new(AtomicBool::new(false));
+    let clon_estado = Arc::clone(&carga_terminada);
 
-**Autor:** Miguel de Cervantes Saavedra | **Fuente:** Project Gutenberg  
-**Licencia:** Dominio Público | **Tamaño:** ~5–7 MB  
-**Contenido:** *Don Quijote*, *Novelas Ejemplares*, *La Galatea*, *Novelas y Teatro*, *Entremeses*.
+    // Arrancamos la barra de progreso en un hilo secundario
+    let hilo_barra = thread::spawn(move || {
+        let mut porcentaje: usize = 0;
+        let mut velocidad = 40; // milisegundos por avance
 
-### 1. Obtener los Datos
-Para facilitar la descarga, usa el script `download_data.py` incluido en el proyecto. Al ejecutarlo, descargará automáticamente las obras desde Project Gutenberg y las unirá en un único archivo de texto llamado `cervantes.txt`.
+        while !clon_estado.load(Ordering::Relaxed) {
+            let longitud = 40;
+            let llenos = (porcentaje * longitud) / 100;
+            let barra = "█".repeat(llenos) + &"░".repeat(longitud - llenos);
+            
+            print!("\rCargando el modelo: [{}] {}% ", barra, porcentaje);
+            let _ = io::stdout().flush();
 
-### 2. Preprocesamiento
-El procesamiento es mínimo y directo:
-1. El script agrupa los textos separándolos visualmente.
-2. (Opcional) Puedes borrar a mano los textos legales de Gutenberg al inicio y final.
-3. El tokenizador se entrena directamente sobre este archivo final.
+            // Lógica para simular avance
+            if porcentaje < 80 {
+                porcentaje += 2;
+                velocidad = 40; 
+            } else if porcentaje < 99 {
+                porcentaje += 1;
+                velocidad = 250; // Se vuelve más lento al final para dar efecto de "procesamiento pesado"
+            }
+            
+            thread::sleep(Duration::from_millis(velocidad));
+        }
+        
+        // Cuando recibe la señal de que terminó, pinta el 100% definitivo
+        let barra_llena = "█".repeat(40);
+        println!("\rCargando el modelo: [{}] 100% ", barra_llena);
+    });
 
-### 3. ¿Por qué Cervantes?
-* **Libre de derechos:** Al ser obras del Siglo de Oro, están 100% en dominio público.
-* **Tamaño ideal:** Perfecto para experimentar y entrenar modelos en computadoras personales.
-* **Riqueza léxica:** Combina narrativa, poesía y teatro, enseñando al modelo estructuras de lenguaje variadas y complejas.
-* **Estilo inconfundible:** Es muy fácil y divertido evaluar el modelo observando cómo empieza a imitar el castellano antiguo.
+    // Mientras tanto, el hilo principal Carga el modelo (esto bloquea el programa)
+    let checkpoint = Checkpoint::load("data/cervantes_medium_1774716353/checkpoint_best.bin")?;
+    let model = checkpoint.model;
+    let tokenizer = checkpoint.tokenizer.unwrap();
 
----
+    // Le decimos al hilo secundario que la carga terminó y esperamos a que se cierre
+    carga_terminada.store(true, Ordering::Relaxed);
+    let _ = hilo_barra.join();
+    // ---------------------------------
 
-## Diferencias frente al repositorio original
+    imprimir_lento("¡Modelo cargado! Ya puedes chatear. Escribe 'salir' o 'exit' para terminar.\n", 15);
 
-Este fork enriquece el proyecto base con los siguientes aportes:
+    // Bucle infinito para el chat
+    loop {
+        print!("Tú: ");
+        io::stdout().flush()?;
 
-1. **Scripts experimentales:** Permiten aislar y observar el comportamiento interno de cada componente del modelo (tokenización, atención, capas feed forward, normalización y generación).
-2. **Recursos visuales:** Incluye una presentación desarrollada en Manim que explica visualmente la arquitectura del Transformer y el flujo de información entre capas.
-3. **Documentación en español:** Explicaciones adicionales orientadas a comprender mejor el código y su estructura interna.
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let input = input.trim(); 
 
-El enfoque es 100% pedagógico y analítico, priorizando la comprensión detallada de los engranajes del modelo.
+        if input.eq_ignore_ascii_case("salir") || input.eq_ignore_ascii_case("exit") {
+            imprimir_lento("¡Nos vemos!", 30);
+            break;
+        }
 
----
+        if input.is_empty() {
+            continue;
+        }
 
-## Ejemplos de uso
+        let prompt_tokens = tokenizer.encode(input);
+        let generated = model.generate(&prompt_tokens, 100, 0.8);
+        let text = tokenizer.decode(&generated);
+        
+        print!("Molinete: ");
+        io::stdout().flush()?;
+        imprimir_lento(&text, 40); 
+        println!(); 
+    }
 
-El repositorio incluye una serie de scripts listos para ejecutar que te guiarán paso a paso por la construcción del modelo.
-
-**1. Entrenamiento de tokenizadores BPE con diferentes tamaños de vocabulario:**
-```bash
-cargo run --release --example 01_train_tokenizers
-```
-
-**2. Multiplicación de matrices y operaciones tensoriales:**
-```bash
-cargo run --release --example 02_tensor_operations
-```
-
-**3. Exploración visual de la arquitectura Transformer:**
-```bash
-cargo run --release --example 03_model_architecture
-```
-
-**4. Análisis de los componentes del bucle de entrenamiento:**
-```bash
-cargo run --release --example 04_training_infrastructure
-```
-
-**5. Entrenamiento completo del modelo de lenguaje utilizando la obra de Cervantes:**
-```bash
-cargo run --release --example 05_train_cervantes
-```
-
-**6. Inferencia, generación de texto y experimentación con prompts:**
-```bash
-cargo run --release --example 06_promting
-```
-
----
-
-## Licencia
-
-Este proyecto se distribuye bajo la licencia **Apache 2.0**.
+    Ok(())
+}
