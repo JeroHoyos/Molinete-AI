@@ -87,7 +87,7 @@
 //! ps aux | grep 08_train_shakespeare_gpt2
 //! ```
 
-use feste::{
+use molineteai::{
     gpt2_trainable::{train_gpt2, TrainableGPT2},
     BPETokenizer, Config,
 };
