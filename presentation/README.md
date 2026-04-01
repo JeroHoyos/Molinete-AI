@@ -46,7 +46,7 @@ Para generar el video de las diapositivas se usa `manim`.
 Estructura básica:
 
 ```bash
-manim_slides render main.py Presentacion
+py -m manim_slides render main.py Presentacion
 ```
 
 ---
