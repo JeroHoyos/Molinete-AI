@@ -58,6 +58,8 @@
 //! assert_eq!(logits.shape, vec![1, 4, 512]); // [batch, seq, vocab]
 //! ```
 
+#![feature(round_char_boundary)]
+
 pub mod gpt2_trainable;
 pub mod gradients;
 pub mod layers;
