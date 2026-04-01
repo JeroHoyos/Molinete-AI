@@ -87,7 +87,7 @@
 //! ps aux | grep 08_train_shakespeare_gpt2
 //! ```
 
-use molineteai::{
+use feste::{
     gpt2_trainable::{train_gpt2, TrainableGPT2},
     BPETokenizer, Config,
 };
@@ -118,9 +118,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "=".repeat(70));
     println!();
 
-    let text = fs::read_to_string("cervantes.txt).map_err(|_| {
-        "shakespeare.txt not found. Download with:\n  \
-         curl -o shakespeare.txt https://www.gutenberg.org/files/100/100-0.txt"
+    let text = fs::read_to_string("cervantes.txt").map_err(|_| {
+        "cervantes.txt not found. Download with:\n  \
+         curl -o cervantes.txt https://www.gutenberg.org/files/100/100-0.txt"
     })?;
 
     println!(
