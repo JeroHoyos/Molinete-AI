@@ -21,203 +21,346 @@ SOFT_BG = PAPEL_CREMA
 RUST_COLOR = NARANJA_TERRACOTA
 
 RUST_SNIPPETS = {
-    "BPETokenizer.rs": """pub struct BPETokenizer {
-    vocab: HashMap<String, usize>,
-    merges: Vec<(String, String)>,
-    unk_token: String,
+    "matmul_base.rs": """for i in 0..m {
+    for j in 0..n {
+        let mut sum = 0.0;
+        for l in 0..k {
+            // Dot product clásico: nested loops básicos iterando sobre rows de A y cols de B
+            sum += a[i * k + l] * b[l * n + j];
+        }
+        result[i * n + j] = sum;
+    }
+}""",
+
+    "cache_blocking.rs": """for i in block_start..block_end {
+    for k in k_block_start..k_block_end {
+        // Tiling/Cache blocking: optimizamos los memory access patterns 
+        // para maximizar los hits en la caché L1
+        let a_val = A[i, k];
+        for j in j_block_start..j_block_end {
+            C[i, j] += a_val * B[k, j];
+        }
+    }
+}""",
+
+    "parallel_rayon.rs": """// Spliteamos la matriz en chunks para procesar en paralelo
+result.par_chunks_mut(BLOCK_SIZE * n)
+    .enumerate()
+    .for_each(|(block_i, result_block)| {
+        // Multithreading con Rayon: cada thread agarra su bloque de filas 
+        // de forma independiente y sin locks
+    });""",
+
+    "batched_matmul.rs": """// Paralelizamos a nivel de batch y attention heads
+result.par_chunks_mut(seq1 * seq2)
+    .enumerate()
+    .for_each(|(bh_idx, chunk)| {
+        let b = bh_idx / n_heads;
+        let h = bh_idx % n_heads;
+        // Ejecución de la 2D matmul aislada para este head/batch específico
+    });""",
+
+    "simd_vectorization.rs": """let b_slice = &other.data[k_idx * n + j_start..k_idx * n + j_end];
+let result_slice = &mut result_block[row_offset + j_start..row_offset + j_end];
+
+// Usamos iteradores (zip + iter_mut) para evitar bounds checking en runtime.
+// Esto permite que el compilador inyecte instrucciones SIMD (AVX2/NEON) gratis.
+for (r, &b_val) in result_slice.iter_mut().zip(b_slice.iter()) {
+    *r += a_val * b_val;
+}""",
+
+    "BDPtokenizer.rs": """pub struct BPETokenizer {
+    vocab: HashMap<String, usize>,    // Maps token strings to IDs
+    merges: Vec<(String, String)>,    // Merge rules in order
+    unk_token: String,                // Unknown token (unused for now)
 }""",
 
     "pair_counts.rs": """let pair_counts: HashMap<(String, String), usize> = tokens
     .par_chunks(chunk_size)
     .enumerate()
-    .fold(HashMap::new, |mut local_counts, (_, chunk)| {
+    .fold(HashMap::new, |mut local_counts, (chunk_idx, chunk)| {
+        // Count pairs within this chunk
         for window in chunk.windows(2) {
             let pair = (window[0].clone(), window[1].clone());
             *local_counts.entry(pair).or_insert(0) += 1;
         }
+        // Handle chunk boundaries...
         local_counts
     })
     .reduce(HashMap::new, |mut a, b| {
-        for (k, v) in b { *a.entry(k).or_insert(0) += v; }
+        // Merge counts from all chunks
+        for (pair, count) in b {
+            *a.entry(pair).or_insert(0) += count;
+        }
         a
     });""",
 
+    "temperature.rs": """pub fn generate(&self, prompt: &[usize], max_tokens: usize, temperature: f32) -> Vec<usize> {
+    let mut tokens = prompt.to_vec();
+
+    // Loop autoregresivo: el modelo se alimenta de sus propias predicciones
+    for _ in 0..max_tokens {
+        let (logits, _) = self.forward(&tokens);
+
+        // 1. Agarramos solo los logits de la última posición (la palabra que queremos predecir)
+        let last_pos_start = (tokens.len() - 1) * self.config.vocab_size;
+        let last_logits = &logits.data[last_pos_start..last_pos_start + self.config.vocab_size];
+
+        // 2. ¡La magia de la Temperatura! Dividimos los logits crudos por T.
+        //    - T < 1.0: Picos más agudos (el modelo se pone conservador/robótico)
+        //    - T > 1.0: Distribución más plana (el modelo se pone creativo/impredecible)
+        let scaled_logits: Vec<f32> = last_logits.iter().map(|&x| x / temperature).collect();
+        
+        // 3. Aplicamos Softmax (con estabilidad numérica) para pasarlo a probabilidades
+        let max_logit = scaled_logits.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+        let exp_vals: Vec<f32> = scaled_logits.iter().map(|&x| (x - max_logit).exp()).collect();
+        let sum: f32 = exp_vals.iter().sum();
+        let probs: Vec<f32> = exp_vals.iter().map(|&x| x / sum).collect();
+
+        // 4. Tiramos los dados (sampling) basados en la distribución de probabilidad
+        let next_token = sample_from_probs(&probs);
+        tokens.push(next_token);
+
+        // Cortamos si nos salimos de la ventana de contexto (ej. 1024 tokens)
+        if tokens.len() >= self.config.block_size { break; }
+    }
+    tokens
+}""",
+
     "tensor.rs": """pub struct Tensor {
-    pub data: Vec<f32>,
-    pub shape: Vec<usize>,
-    pub strides: Vec<usize>,
+    pub data: Vec<f32>,      // Flat array de valores en memoria lineal
+    pub shape: Vec<usize>,   // Dimensiones del tensor (ej. [batch, seq, emb_dim])
+    pub strides: Vec<usize>, // Saltos (step sizes) para indexar la memoria 1D como N-D
 }""",
 
-    "matmul.rs": """for i in 0..m {
-    for j in 0..n {
-        let mut sum = 0.0;
-        for l in 0..k { sum += a[i * k + l] * b[l * n + j]; }
-        result[i * n + j] = sum;
-    }
-}""",
-
-    "block_matmul.rs": """for i in block_start..block_end {
-    for k in k_block_start..k_block_end {
-        let a_val = A[i, k];
-        for j in j_block_start..j_block_end { 
-            C[i, j] += a_val * B[k, j]; 
-        }
-    }
-}""",
-
-    "softmax.rs": """let max = row.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-let exp_vals: Vec<f32> = row.iter().map(|&x| (x - max).exp()).collect();
-let sum: f32 = exp_vals.iter().sum();
-let norm: Vec<f32> = exp_vals.iter().map(|&x| x / sum).collect();""",
-
-    "embedding.rs": """pub struct Embedding { pub weight: Tensor }
+    "embedding.rs": """pub struct Embedding {
+    pub weight: Tensor,
+}
 
 impl Embedding {
     pub fn forward(&self, token_ids: &[Vec<usize>]) -> Tensor {
-        let mut out = Vec::with_capacity(batch_size * seq_len * n_embd);
+        // Lookup table para convertir token IDs enteros a dense vectors (embeddings)
+        let mut output = Vec::with_capacity(batch_size * seq_len * n_embd);
         for batch in token_ids {
-            for &id in batch {
-                let start = id * n_embd;
-                out.extend_from_slice(&self.weight.data[start..start + n_embd]);
+            for &token_id in batch {
+                let start = token_id * n_embd;
+                let end = start + n_embd;
+                // Copiamos el slice de memoria directo a la salida, súper rápido
+                output.extend_from_slice(&self.weight.data[start..end]);
             }
         }
-        Tensor::new(out, vec![batch_size, seq_len, n_embd])
+        Tensor::new(output, vec![batch_size, seq_len, n_embd])
     }
 }""",
 
-    "layernorm.rs": """pub fn forward(&self, x: &Tensor) -> Tensor {
+    "normalization.rs": """pub fn forward(&self, x: &Tensor) -> Tensor {
+    // 1. Sacamos la media (mean) y la varianza a lo largo de la última dimensión
     let mean = x.mean(-1, true);
-    let var = x.var(-1, true);
-    let norm = x.sub(&mean).div(&var.add_scalar(self.eps).sqrt());
-    norm.mul(&self.gamma).add(&self.beta)
+    let variance = x.var(-1, true);
+    
+    // 2. Normalizamos: restamos la media y dividimos por la desviación estándar (+ epsilon)
+    let normalized = x.sub(&mean).div(&variance.add_scalar(self.eps).sqrt());
+    
+    // 3. Aplicamos los parámetros aprendibles (scale & shift)
+    normalized.mul(&self.gamma).add(&self.beta)
 }""",
 
     "attention.rs": """pub fn forward(&self, x: &Tensor) -> Tensor {
+    // 1. Proyectamos a Q, K, V (una sola matmul masiva y luego splitteamos)
     let qkv = self.c_attn.forward(x);
     let (q, k, v) = qkv.split_into_thirds();
-    
+
+    // 2. Dividimos los tensores en múltiples Attention Heads
     let q = self.split_heads(&q);
     let k = self.split_heads(&k);
     let v = self.split_heads(&v);
-    
-    let scale = 1.0 / (self.head_dim as f32).sqrt();
-    let scores = q.matmul(&k.transpose(2, 3)).mul_scalar(scale);
+
+    // 3. Calculamos attention scores: (Q * K^T) escalado
+    let scores = q.matmul(&k.transpose(2, 3));
+    let scores = scores.mul_scalar(1.0 / (self.head_dim as f32).sqrt());
+
+    // 4. Aplicamos causal mask (para que el modelo no haga "trampa" mirando al futuro)
     let mask = self.create_causal_mask(seq_len);
-    
-    let attn = scores.masked_fill(&mask, f32::NEG_INFINITY).softmax(-1);
-    let out = self.merge_heads(&attn.matmul(&v));
+    let scores = scores.masked_fill(&mask, f32::NEG_INFINITY);
+
+    // 5. Aplicamos Softmax para las probs y multiplicamos por Values
+    let attn = scores.softmax(-1);
+    let out = attn.matmul(&v);
+
+    // 6. Volvemos a mergear los heads y aplicamos la proyección final
+    let out = self.merge_heads(&out);
     self.c_proj.forward(&out)
 }""",
 
     "gelu.rs": """pub fn gelu(x: &Tensor) -> Tensor {
-    let sqrt_2_pi = (2.0_f32 / std::f32::consts::PI).sqrt();
-    let res: Vec<f32> = x.data.iter().map(|&val| {
-        let inner = sqrt_2_pi * (val + 0.044715_f32 * val.powi(3));
+    // Constantes mágicas para la aproximación matemática de GELU
+    let sqrt_2_over_pi = (2.0_f32 / std::f32::consts::PI).sqrt();
+    let coeff = 0.044715_f32;
+
+    let result: Vec<f32> = x.data.iter().map(|&val| {
+        let x_cubed = val * val * val;
+        // Calculamos el interior del tangente hiperbólico
+        let inner = sqrt_2_over_pi * (val + coeff * x_cubed);
+        // Función de activación suave que reemplaza al clásico ReLU
         0.5 * val * (1.0 + inner.tanh())
     }).collect();
-    Tensor::new(res, x.shape.clone())
+
+    Tensor::new(result, x.shape.clone())
 }""",
 
-    "transformer.rs": """pub fn forward(&self, token_ids: &[Vec<usize>]) -> Tensor {
-    let seq_len = token_ids[0].len();
-    let mut x = self.token_embedding.forward(token_ids);
-    x = x.add_broadcast(&self.position_embedding.forward_range(0, seq_len));
-    
-    for block in &self.blocks { x = block.forward(&x); }
-    
-    x = self.ln_f.forward(&x);
-    self.lm_head.forward(&x)
-}""",
+    "softmax.rs": """// 1. Buscamos el max value de la row por temas de estabilidad numérica (evitar NaN/overflow)
+let max = row.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
 
-    "linear_backward.rs": """pub fn backward(&self, grad_out: &Tensor, cache: &LinearCache) -> LinearGradients {
-    LinearGradients { 
-        weight: cache.x.transpose(-2, -1).matmul(grad_out), 
-        bias: sum_across_positions(grad_out), 
-        x: grad_out.matmul(&self.weight.transpose(-2, -1)) 
+// 2. Aplicamos exponente al shift (x - max)
+let exp_values: Vec<_> = row.iter().map(|&x| (x - max).exp()).collect();
+
+// 3. Sumamos todo para sacar el denominador
+let sum: f32 = exp_values.iter().sum();
+
+// 4. Normalizamos para que toda la distribución sume a 1.0
+let normalized: Vec<_> = exp_values.iter().map(|&x| x / sum).collect();""",
+
+    "mlp_forward.rs": """pub struct TrainableMLP {
+    pub fc1: TrainableLinear,
+    pub fc2: TrainableLinear,
+    pub resid_dropout: TrainableDropout,
+}
+
+impl TrainableMLP {
+    pub fn forward(&self, x: &Tensor) -> (Tensor, MLPCache) {
+        // 1. Expansión (4x): Proyectamos la entrada a una dimensión mucho mayor
+        // para darle al modelo "espacio" para pensar y extraer patrones complejos.
+        let (h, fc1_cache) = self.fc1.forward(x);
+        
+        // 2. Activación (GELU): Aplicamos la no-linealidad a la capa oculta.
+        let h_activated = gelu_forward(&h);
+        
+        // 3. Compresión: Volvemos a proyectar los datos al tamaño original (n_embd)
+        // para que coincida con la dimensionalidad del Transformer.
+        let (y_proj, fc2_cache) = self.fc2.forward(&h_activated);
+
+        // 4. Regularización: Aplicamos Dropout para evitar el sobreajuste (overfitting).
+        let (y, resid_dropout_cache) = self.resid_dropout.forward(&y_proj);
+
+        // Guardamos el estado intermedio (cache) porque lo necesitaremos en el Backprop
+        let cache = MLPCache {
+            fc1_cache, h, h_activated, fc2_cache, resid_dropout_cache,
+        };
+
+        (y, cache)
     }
 }""",
 
-    "loss.rs": """pub fn compute_loss(&self, logits: &Tensor, targets: &[usize]) -> f32 {
+    "compute_loss.rs": """pub fn compute_loss(&self, logits: &Tensor, targets: &[usize]) -> f32 {
+    let mut total_loss = 0.0;
     for (i, &target) in targets.iter().enumerate() {
-        let slice = &logits.data[logit_start..logit_start + vocab_size];
-        let max_l = slice.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-        let exp_sum: f32 = slice.iter().map(|&x| (x - max_l).exp()).sum();
-        total_loss -= (target_logit - max_l) - exp_sum.ln();
+        let logits_slice = &logits.data[logit_start..logit_start + vocab_size];
+        
+        // Estabilidad numérica: restamos el max logit
+        let max_logit = logits_slice.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+        
+        // Suma de las exponenciales (denominador de softmax)
+        let exp_sum: f32 = logits_slice.iter().map(|&x| (x - max_logit).exp()).sum();
+        
+        // Cross-Entropy Loss (Log Probabilidad negativa)
+        let log_prob = (target_logit - max_logit) - exp_sum.ln();
+        total_loss -= log_prob;
     }
+    // Promediamos la pérdida a lo largo de la secuencia
     total_loss / seq_len as f32
 }""",
 
-    "layernorm_backward.rs": """pub fn backward(&self, grad_out: &Tensor, cache: &LayerNormCache) -> LayerNormGradients {
-    let grad_x_norm = grad_out.mul(&self.gamma);
-    for i in 0..seq_len {
-        let mean_grad = grad_x_norm_row.iter().sum::<f32>() / n_embd as f32;
-        let mean_grad_x = grad_x_norm_row.iter().zip(x_norm_row.iter())
-            .map(|(g, x)| g * x).sum::<f32>() / n_embd as f32;
-            
-        for j in 0..n_embd {
-            let diff = grad_x_norm_row[j] - mean_grad;
-            grad_x_data[idx] = (diff - x_norm_row[j] * mean_grad_x) / std_val;
-        }
-    }
-    LayerNormGradients { gamma, beta, x: grad_x }
-}""",
-
-    "gelu_backward.rs": """pub fn gelu_backward(grad_out: &Tensor, x: &Tensor) -> Tensor {
-    let grad_data: Vec<f32> = x.data.par_iter().zip(&grad_out.data)
-        .map(|(&x_v, &g_v)| g_v * gelu_derivative(x_v))
-        .collect();
-    Tensor::new(grad_data, x.shape.clone())
-}""",
-
-    "gpt2_backward.rs": """pub fn backward(&self, logits: &Tensor, targs: &[usize], cache: &GPT2Cache) -> GPT2Gradients {
-    let grad_logits = compute_cross_entropy_gradient(logits, targs);
-    let proj = backprop_output_projection(&grad_logits, cache);
-    let mut grad_x = self.ln_final.backward(&proj, &cache.ln_final_cache).x;
+    "linear_backward.rs": """pub fn backward(&self, grad_out: &Tensor, cache: &LinearCache) -> LinearGradients {
+    // dW: Inputs transpuestos * gradiente que entra de la capa superior
+    let grad_weight = cache.x.transpose(-2, -1).matmul(grad_out);
     
-    let mut block_grads = Vec::new();
-    for (block, c) in self.blocks.iter().zip(&cache.block_caches).rev() {
-        let grads = block.backward(&grad_x, c);
-        grad_x = grads.x.clone();
-        block_grads.push(grads);
-    }
+    // db: Sumamos el gradiente a través de la dimensión del batch (simplified)
+    let grad_bias = sum_across_positions(grad_out); 
     
-    let (g_tok, g_pos) = backprop_to_embeddings(&grad_x, &cache.input_ids);
-    GPT2Gradients { ..Default::default() }
+    // dX: Gradiente que sigue bajando en el backprop (grad_out * weights^T)
+    let grad_x = grad_out.matmul(&self.weight.transpose(-2, -1));
+
+    LinearGradients { weight: grad_weight, bias: grad_bias, x: grad_x }
 }""",
 
-    "optimizer.rs": """pub fn adamw_update(
-    model: &mut TrainableGPT2, grads: &GPT2Gradients, 
-    opt: &mut AdamWOptimizer, lr: f32, wd: f32
+    "block_backward.rs": """pub fn backward(&self, grad_out: &Tensor, cache: &BlockCache) -> BlockGradients {
+    // Ambos paths reciben el gradiente que viene bajando (Chain Rule)
+    let mut grad_x = grad_out.clone();
+
+    // --- Path del MLP ---
+    let mlp_grads = self.mlp.backward(&grad_out, &cache.mlp_cache);
+    let ln2_grads = self.ln2.backward(&mlp_grads.x, &cache.ln2_cache);
+    // Residual Connection: Acumulamos gradientes sumando
+    grad_x = grad_x.add(&ln2_grads.x);  
+
+    // --- Path de Attention ---
+    let attn_grads = self.attn.backward(&grad_x, &cache.attn_cache);
+    let ln1_grads = self.ln1.backward(&attn_grads.x, &cache.ln1_cache);
+    // Residual Connection: Volvemos a acumular
+    grad_x = grad_x.add(&ln1_grads.x);  
+
+    BlockGradients { /* devolvemos las tuplas con los deltas de cada capa */ }
+}""",
+
+    "adamw_update.rs": """pub fn adamw_update(
+    model: &mut TrainableGPT2,
+    grads: &GPT2Gradients,
+    optimizer: &mut AdamWOptimizer,
+    lr: f32,
+    weight_decay: f32,
 ) {
-    opt.step += 1;
-    let (bc1, bc2) = (1.0 - beta1.powf(step), 1.0 - beta2.powf(step));
-    
+    optimizer.step += 1;
+    let bias_correction1 = 1.0 - beta1.powf(step);
+    let bias_correction2 = 1.0 - beta2.powf(step);
+
+    // Iteramos por todos los tensores entrenables (weights, biases, etc.)
     for i in 0..param.len() {
-        param[i] *= 1.0 - lr * wd;
+        // 1. Decoupled weight decay (evita penalizar bias o layer norm en un framework real)
+        param[i] *= 1.0 - lr * weight_decay;
+
+        // 2. Momentum estimation (Media móvil de los gradientes)
         m[i] = beta1 * m[i] + (1.0 - beta1) * grad[i];
+
+        // 3. Variance estimation (Media móvil de gradientes al cuadrado)
         v[i] = beta2 * v[i] + (1.0 - beta2) * grad[i] * grad[i];
-        
-        let (m_hat, v_hat) = (m[i] / bc1, v[i] / bc2);
+
+        // 4. Corrección de sesgo para que no exploten los primeros steps
+        let m_hat = m[i] / bias_correction1;
+        let v_hat = v[i] / bias_correction2;
+
+        // 5. Update step aplicando la regla mágica de Adam
         param[i] -= lr * m_hat / (v_hat.sqrt() + epsilon);
     }
 }""",
 
-    "train.rs": """let mut loader = TextDataLoader::new(&text, &tok, seq_len, batch_size);
-let mut opt = AdamWOptimizer::new(&model);
-let mut logger = TrainingLogger::new("log.csv")?;
+    "dropout.rs": """pub fn forward(&self, x: &Tensor) -> (Tensor, DropoutCache) {
+    // Si estamos en producción (inferencia) o rate=0, no tocamos nada
+    if !self.training || self.rate == 0.0 {
+        return (x.clone(), DropoutCache { mask: None, scale: 1.0 });
+    }
 
-for step in 0..num_steps {
-    let (inputs, targets) = loader.next_batch();
-    let (logits, cache) = model.forward(&inputs);
-    
-    let loss = model.compute_loss(&logits, &targets);
-    let mut grads = model.backward(&logits, &targets, &cache);
-    
-    clip_gradients(&mut grads, 1.0);
-    adamw_update(&mut model, &grads, &mut opt, lr, weight_decay);
-    
-    if step % 50 == 0 { logger.log(step, lr, loss, val_loss, None)?; }
-    if step % 500 == 0 { checkpoint.save(&format!("ckpt_{}.bin", step))?; }
+    // Calculamos el factor de escala: si apagamos el 50% de las neuronas, 
+    // las que sobreviven tienen que gritar el doble de fuerte (scale = 2.0)
+    // para mantener la esperanza matemática (expected value) de la red.
+    let scale = 1.0 / (1.0 - self.rate);
+    let mut mask = Vec::with_capacity(x.data.len());
+    let mut output = Tensor::zeros(x.shape.clone());
+
+    for i in 0..x.data.len() {
+        // RNG (Random Number Generator): ¿apagamos esta neurona o la dejamos vivir?
+        let keep = rand::random::<f32>() > self.rate;
+        mask.push(keep);
+        
+        if keep {
+            // Si la neurona sobrevive, le aplicamos su boost (scale)
+            output.data[i] = x.data[i] * scale;
+        }
+    }
+
+    // Guardamos la máscara en caché. En el backprop usaremos esta MISMA 
+    // máscara para asegurarnos de no pasar gradientes a las neuronas apagadas.
+    let cache = DropoutCache { mask: Some(mask), scale };
+    (output, cache)
 }"""
 }
 
@@ -237,8 +380,6 @@ C_AZUL_NOCHE = "#000080"
 C_VERDE_BOSQUE = "#228B22"
 
 def crear_llanuras_manchegas():
-    # Usamos colores de tu paleta con opacidades muy bajas para que sean "marca de agua"
-    # Ajusta los colores exactos si tienes constantes definidas en tu archivo
     colina_fondo = Ellipse(width=18, height=6, fill_color="#D4B872", fill_opacity=0.06, stroke_width=0)
     colina_fondo.move_to(DOWN * 3.5 + LEFT * 3)
     
@@ -248,7 +389,6 @@ def crear_llanuras_manchegas():
     colina_frente = Ellipse(width=20, height=3.5, fill_color="#8B5A2B", fill_opacity=0.05, stroke_width=0)
     colina_frente.move_to(DOWN * 4)
     
-    # Agrupamos y enviamos al fondo absoluto con z_index
     llanuras = VGroup(colina_fondo, colina_media, colina_frente).set_z_index(-10)
     return llanuras
 
@@ -468,10 +608,21 @@ def crear_yelmo_mambrino():
     
     return VGroup(cuenco, borde, brillo, muesca)
 
+def crear_rust_quijote():
+    logo = ImageMobject(r"assets\quijote_rust.png").scale(0.3)
+    
+    return logo.move_to(ORIGIN)
+
+def crear_rust_sancho():
+    imagen_sancho = ImageMobject(r"assets\sancho_rust.png").scale(0.3)
+    
+    return imagen_sancho.move_to(ORIGIN)
+
 class Presentacion(Slide):
     def construct(self):
         self.camera.background_color = WHITE
-
+        
+        self.slide_pronto_iniciamos()
         self.slide_introduction()
         self.slide_credits()
         self.slide_que_es_transformer()
@@ -479,40 +630,76 @@ class Presentacion(Slide):
         self.slide_por_que_rust()
 
         self.slide_que_es_un_tensor()
+        self.mostrar_snippet("tensor.rs")
+        
         self.slide_strides()
+        
         self.slide_matmul()
+        self.mostrar_snippet("matmul_base.rs")
+        self.mostrar_snippet("cache_blocking.rs")
+        self.mostrar_snippet("parallel_rayon.rs")
+        self.mostrar_snippet("batched_matmul.rs")
+        self.mostrar_snippet("simd_vectorization.rs")
+        
         self.slide_softmax()
+        self.mostrar_snippet("softmax.rs")
 
         self.slide_forward_pass()
         self.diapo_problema_strawberry()
+        
         self.diapo_tokenizacion()
+        self.mostrar_snippet("BDPtokenizer.rs")
+        
         self.diapo_byte_pair_encoding()
+        self.mostrar_snippet("pair_counts.rs")
+        
         self.diapo_tamano_vocabulario()
+        
         self.slide_embeddings()
+        self.mostrar_snippet("embedding.rs")
+        
         self.slide_position_embeddings()
+
         self.slide_layer_normalization()
+        self.mostrar_snippet("normalization.rs")
 
         self.slide_mha_acto1_intuicion()
         self.slide_mha_acto2_formula()
         self.slide_mha_acto3_calculo()
         self.slide_mha_acto4_multihead()
+        self.mostrar_snippet("attention.rs")
 
         self.mostrar_acto_arquitectura_neurona()
+        self.mostrar_snippet("mlp_forward.rs")
+        
         self.mostrar_acto_zoom_neurona()
-        self.slide_residual()
         self.mostrar_acto_activacion()
+        self.mostrar_snippet("gelu.rs")
+        
         self.slide_capa_transformer()
 
-
         self.slide_entrenamiento()
+        self.mostrar_snippet("compute_loss.rs")
+        
         self.slide_descenso_gradiente()
+        self.mostrar_snippet("linear_backward.rs")
+        
         self.slide_backpropagation()
+        
+        self.slide_residual()
+        self.mostrar_snippet("block_backward.rs")
+        
         self.slide_adam()
+        self.mostrar_snippet("adamw_update.rs")
+        
         self.slide_dropout()
+        self.mostrar_snippet("dropout.rs")
         
         self.slide_training_metrics()
+        
         self.slide_temperature()
-
+        self.mostrar_snippet("temperature.rs")
+        
         self.slide_model_in_action()
         self.slide_final()
                 
@@ -524,6 +711,7 @@ class Presentacion(Slide):
             titulo_archivo=titulo_archivo
         )
         self.limpiar_pantalla()
+        
 
     def crear_titulo(self, texto, palabra_clave=None, color_clave=NARANJA_TERRACOTA, font_size=35):
         t2c = {palabra_clave: color_clave} if palabra_clave else {}
@@ -575,11 +763,27 @@ class Presentacion(Slide):
 
     # --- DIAPOSITIVAS ---
 
-    def slide_introduction(self):
+    def slide_pronto_iniciamos(self):
 
+        gato_caballero = ImageMobject(r"assets\gato_armadura.png").scale(0.5)
+        texto_inicio = Text("Pronto iniciamos", font=FUENTE, font_size=50, weight=BOLD, color=MARRON_OSCURO)
+
+        cat_and_text = Group(gato_caballero, texto_inicio).arrange(DOWN, buff=0.8)
+        cat_and_text.move_to(ORIGIN)
+
+        pantalla_completa = Group(cat_and_text)
+
+        self.play(FadeIn(pantalla_completa, shift=UP))
+
+        self.next_slide()
+        self.limpiar_pantalla()
+
+    def slide_introduction(self):
         titulo, linea = self.crear_titulo("Construyendo un Transformer con Rust", palabra_clave="Rust")
         subtitulo = Text("Jerónimo Hoyos Botero", font=FUENTE, font_size=25, color=MARRON_OSCURO)
         VGroup(titulo, linea, subtitulo).arrange(DOWN, buff=0.2).to_edge(UP, buff=0.5)
+
+        llanuras_fondo = crear_llanuras_manchegas()
 
         escritorio_decor = crear_tintero_y_pluma().scale(0.8).next_to(titulo, RIGHT, buff=0.4).shift(DOWN*0.2)
         sol_decor = crear_sol_cervantino().scale(0.7).to_corner(UR, buff=0.5)
@@ -600,6 +804,9 @@ class Presentacion(Slide):
             crear_estrella().scale(0.8).move_to(armas_decor.get_top() + UP*0.2 + LEFT*0.2),
             crear_estrella().scale(0.5).move_to(molinos_paisaje.get_top() + UP*0.4 + LEFT*0.5)
         )
+
+        quijote = crear_rust_quijote().to_edge(DOWN, buff=0.2).shift(LEFT * 3)
+        sancho = crear_rust_sancho().next_to(quijote, RIGHT, buff=0.5).shift(UP*0.1)
 
         cajas = VGroup(*[
             RoundedRectangle(
@@ -633,13 +840,16 @@ class Presentacion(Slide):
             return VGroup(bg, col).move_to(flecha.get_right() + RIGHT * 0.4, aligned_edge=LEFT)
         
         self.play(
+            FadeIn(llanuras_fondo),
             Write(titulo), Create(linea), FadeIn(subtitulo, shift=DOWN),
             DrawBorderThenFill(escritorio_decor, run_time=1.5),
             SpinInFromNothing(sol_decor),
             GrowFromCenter(molinos_paisaje),
             FadeIn(libros_decor, shift=UP*0.5),
             DrawBorderThenFill(armas_decor, run_time=1.2),
-            Create(estrellas, lag_ratio=0.2)
+            Create(estrellas, lag_ratio=0.2),
+            FadeIn(quijote, shift=UP), 
+            FadeIn(sancho, shift=UP)
         )
         
         for estrella in estrellas:
@@ -4689,76 +4899,115 @@ class Presentacion(Slide):
         from pygments.style import Style
         from pygments.token import Keyword, Name, String, Number, Operator, Punctuation, Token, Comment
 
-        class MiEstiloIDE(Style):
-
+        class EstiloCervantino(Style):
+            background_color = FONDO_CAJA
             styles = {
-                Token: '#2B2B2B',             
-                Keyword: 'bold #8B4513',      
-                Keyword.Type: 'bold #5C4033', 
-                String: '#A0522D',   
-                Number: '#B8860B',             
-                Name.Function: '#D2691E',      
-                Operator: '#2B2B2B',         
-                Punctuation: '#2B2B2B',   
-                Comment: 'italic #8B8B83',    
+                Token: TINTA_NEGRA,             
+                Keyword: f'bold {NARANJA_TERRACOTA}',
+                Keyword.Type: f'bold {MARRON_OSCURO}', 
+                String: MARRON_OSCURO,            
+                Number: PAPEL_TAN,            
+                Name.Function: NARANJA_TERRACOTA,     
+                Operator: TINTA_NEGRA,          
+                Punctuation: TINTA_NEGRA,   
+                Comment: f'italic {CAJA_INFERIOR}',  
             }
 
         bloque_codigo = Code(
             code_string=codigo_fuente,
             language="rust",
-            formatter_style=MiEstiloIDE, 
+            formatter_style=EstiloCervantino, 
             background="rectangle"
-        ).scale(0.78)
+        ).scale(0.8)
+
+        MAX_ALTO = 6.0 
+        MAX_ANCHO = 12.0
         
+        if bloque_codigo.height > MAX_ALTO:
+            bloque_codigo.scale_to_fit_height(MAX_ALTO)
+        if bloque_codigo.width > MAX_ANCHO:
+            bloque_codigo.scale_to_fit_width(MAX_ANCHO)
+
         if len(bloque_codigo) > 0:
             bloque_codigo[0].set_opacity(0)
             
         if len(bloque_codigo) > 1:
-            bloque_codigo[1].set_color("#8B8B83")
+            bloque_codigo[1].set_color(PAPEL_TAN)
 
-        HEADER = 0.5
-        PADDING_X = 1.0
-        PADDING_Y = 0.8
+        HEADER = 0.6
+        PADDING_X = 1.2
+        PADDING_Y = 1.0
 
-        ANCHO = max(bloque_codigo.width + PADDING_X, 5.0)
+        ANCHO = max(bloque_codigo.width + PADDING_X, 6.0)
         ALTO = bloque_codigo.height + PADDING_Y + HEADER
 
+        sombra = RoundedRectangle(
+            corner_radius=0.1,
+            width=ANCHO, height=ALTO,
+            color=BLACK,
+            fill_color=BLACK,
+            fill_opacity=0.25,
+            stroke_width=0
+        ).shift(DOWN * 0.15 + RIGHT * 0.15)
+
         editor_bg = RoundedRectangle(
-            corner_radius=0.2,
+            corner_radius=0.1, 
             width=ANCHO, height=ALTO,
             color=MARRON_OSCURO,
+            stroke_width=3,
             fill_color=FONDO_CAJA,
-            fill_opacity=0.9,
+            fill_opacity=1,
         )
 
         editor_header = Rectangle(
             width=ANCHO, height=HEADER,
             color=MARRON_OSCURO,
+            stroke_width=3,
             fill_color=MARRON_OSCURO,
             fill_opacity=1,
         ).align_to(editor_bg, UP)
 
-        dot_1 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).move_to(
-            editor_header.get_left() + RIGHT * 0.4
-        )
-        dot_2 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).next_to(dot_1, RIGHT, buff=0.15)
-        dot_3 = Circle(radius=0.08, color=FONDO_CAJA, fill_opacity=1).next_to(dot_2, RIGHT, buff=0.15)
+        dot_1 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
+        dot_2 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
+        dot_3 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
+        
+        botones = VGroup(dot_1, dot_2, dot_3).arrange(RIGHT, buff=0.2)
+        botones.move_to(editor_header.get_left() + RIGHT * 0.5)
 
         file_title = Text(
-            titulo_archivo, font_size=18, color=FONDO_CAJA, weight=BOLD
+            titulo_archivo, font="Times New Roman", font_size=20, color=PAPEL_CREMA, weight=BOLD
         ).move_to(editor_header)
 
-        editor_ui = VGroup(editor_bg, editor_header, dot_1, dot_2, dot_3, file_title)
+        editor_ui = VGroup(sombra, editor_bg, editor_header, botones, file_title)
         editor_ui.move_to(ORIGIN)
         
         area_util = editor_bg.get_center() + DOWN * (HEADER / 2)
         bloque_codigo.move_to(area_util)
 
-        self.play(FadeIn(editor_ui, shift=UP))
+        self.play(
+            FadeIn(sombra, shift=UP * 0.1),
+            DrawBorderThenFill(editor_bg),
+            run_time=0.8
+        )
+
+        self.play(
+            FadeIn(editor_header, shift=DOWN * 0.2),
+            FadeIn(botones, shift=RIGHT * 0.1),
+            Write(file_title),
+            run_time=0.6
+        )
         self.next_slide()
 
-        self.play(FadeIn(bloque_codigo, shift=UP * 0.2), run_time=2.5)
+        animaciones_lineas = []
+        for numero, linea in zip(bloque_codigo[1], bloque_codigo[2]):
+            animaciones_lineas.append(FadeIn(VGroup(numero, linea), shift=UP * 0.15, scale=0.95))
+
+        tiempo_animacion_codigo = max(1.5, len(animaciones_lineas) * 0.08)
+        self.play(LaggedStart(*animaciones_lineas, lag_ratio=0.1), run_time=tiempo_animacion_codigo)
+        
         self.next_slide()
+
+        self.play(FadeOut(VGroup(editor_ui, bloque_codigo), shift=DOWN * 0.3), run_time=0.8)
     
     def slide_matmul(self):
         titulo, linea = self.crear_titulo(

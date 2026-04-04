@@ -56,7 +56,7 @@ py -m manim_slides render main.py Presentacion
 Una vez renderizadas, se puede iniciar la presentación:
 
 ```bash
-manim_slides present Presentacion
+py -m manim_slides present Presentacion
 ```
 
 ---
