@@ -1,257 +1,258 @@
-//! Mecanismo de Self-Attention
+//! Mecanismo de Autoatención (Self-Attention)
 //!
-//! La atención es la innovación central de los transformers. Permite que cada
-//! posición atienda a todas las posiciones anteriores, aprendiendo relaciones contextuales.
+//! La atención es la innovación central de los transformers. Permite que cada posición
+//! preste atención a todas las posiciones anteriores, aprendiendo relaciones contextuales.
 //!
-//! ## Atención Escalada por Producto Punto (Scaled Dot-Product Attention)
+//! ## Atención de Producto Punto Escalado (Scaled Dot-Product Attention)
 //!
 //! ```text
 //! Q, K, V = x @ W_q, x @ W_k, x @ W_v
-//! scores = (Q @ K^T) / √d_k
-//! attn_weights = softmax(masked_scores)
-//! output = attn_weights @ V
+//! puntuaciones = (Q @ K^T) / √d_k
+//! pesos_atencion = softmax(puntuaciones_enmascaradas)
+//! salida = pesos_atencion @ V
 //! ```
 //!
-//! ## ¿Por qué Escalar?
+//! ## ¿Por qué escalar?
 //!
 //! Dividimos por √d_k para evitar que los productos punto crezcan demasiado,
-//! lo que llevaría a que softmax opere en regiones con gradientes extremadamente pequeños.
+//! lo cual empujaría al softmax hacia regiones con gradientes insignificantemente pequeños (desvanecientes).
 //!
-//! ## Enmascaramiento Causal
+//! ## Enmascaramiento Causal (Causal Masking)
 //!
-//! Para modelado de lenguaje, enmascaramos posiciones futuras para que cada token
-//! solo pueda atenderse a sí mismo y a los tokens anteriores. Esto es crucial
-//! para la generación autorregresiva.
+//! Para el modelado de lenguaje, enmascaramos las posiciones futuras para que cada token solo
+//! pueda prestar atención a sí mismo y a los tokens anteriores. Esto es crucial para la generación autorregresiva.
 //!
-//! ## Backward Pass
+//! ## Paso Hacia Atrás (Backward Pass)
 //!
-//! El backward pass a través de la atención involucra:
-//! 1. Retropropagación por la proyección de salida
-//! 2. Retropropagación por la suma ponderada por atención (V)
-//! 3. Retropropagación por softmax (con gradientes por fila)
-//! 4. Retropropagación por el producto punto escalado
-//! 5. Retropropagación por las proyecciones Q, K, V
+//! El paso hacia atrás a través de la atención implica:
+//! 1. Retropropagación a través de la proyección de salida
+//! 2. Retropropagación a través de la suma ponderada por atención (V)
+//! 3. Retropropagación a través del softmax (con gradientes por fila)
+//! 4. Retropropagación a través del producto punto escalado
+//! 5. Retropropagación a través de las proyecciones Q, K, V
 //!
-//! El backward de softmax es particularmente interesante: debemos tener en cuenta
-//! que softmax acopla todos los elementos dentro de cada fila.
+//! El paso hacia atrás de softmax es particularmente interesante: necesitamos tener en cuenta
+//! el hecho de que softmax acopla todos los elementos en cada fila.
 
-use super::dropout::{DropoutCache, TrainableDropout};
-use super::linear::{LinearCache, TrainableLinear};
+use super::dropout::{CacheDropout, DropoutEntrenable};
+use super::linear::{CacheLineal, LinealEntrenable};
 use crate::tensor::Tensor;
 
-/// Self-attention de una sola cabeza
+/// Autoatención de una sola cabeza
 ///
-/// Esto implementa una cabeza de atención. La atención multi-cabeza ejecutaría
-/// múltiples copias de esto en paralelo.
-pub struct TrainableSingleHeadAttention {
-    pub q_proj: TrainableLinear,
-    pub k_proj: TrainableLinear,
-    pub v_proj: TrainableLinear,
-    pub out_proj: TrainableLinear,
-    pub attn_dropout: TrainableDropout,
-    pub resid_dropout: TrainableDropout,
+/// Esto implementa una cabeza de atención. La atención multicabeza (multi-head) ejecutaría múltiples
+/// copias de esto en paralelo.
+pub struct AtencionUnaCabezaEntrenable {
+    pub proy_q: LinealEntrenable,
+    pub proy_k: LinealEntrenable,
+    pub proy_v: LinealEntrenable,
+    pub proy_salida: LinealEntrenable,
+    pub dropout_atencion: DropoutEntrenable,
+    pub dropout_resid: DropoutEntrenable,
     pub n_embd: usize,
 }
 
-impl TrainableSingleHeadAttention {
+impl AtencionUnaCabezaEntrenable {
     /// Crea una nueva capa de atención
     ///
     /// # Argumentos
     ///
-    /// * `n_embd` - Dimensión del embedding
-    /// * `dropout_rate` - Probabilidad de dropout
-    /// * `seed` - Semilla aleatoria para inicialización
-    pub fn new(n_embd: usize, dropout_rate: f32, seed: u64) -> Self {
+    /// * `n_embd` - Dimensión de los embeddings (incrustaciones)
+    /// * `tasa_dropout` - Probabilidad de dropout
+    /// * `semilla` - Semilla aleatoria para la inicialización
+    pub fn new(n_embd: usize, tasa_dropout: f32, semilla: u64) -> Self {
         Self {
-            q_proj: TrainableLinear::new(n_embd, n_embd, seed),
-            k_proj: TrainableLinear::new(n_embd, n_embd, seed + 1),
-            v_proj: TrainableLinear::new(n_embd, n_embd, seed + 2),
-            out_proj: TrainableLinear::new(n_embd, n_embd, seed + 3),
-            attn_dropout: TrainableDropout::new(dropout_rate),
-            resid_dropout: TrainableDropout::new(dropout_rate),
+            proy_q: LinealEntrenable::new(n_embd, n_embd, semilla),
+            proy_k: LinealEntrenable::new(n_embd, n_embd, semilla + 1),
+            proy_v: LinealEntrenable::new(n_embd, n_embd, semilla + 2),
+            proy_salida: LinealEntrenable::new(n_embd, n_embd, semilla + 3),
+            dropout_atencion: DropoutEntrenable::new(tasa_dropout),
+            dropout_resid: DropoutEntrenable::new(tasa_dropout),
             n_embd,
         }
     }
 
-    /// Forward pass: atención por producto punto escalado con enmascaramiento causal
+    /// Paso hacia adelante: atención de producto punto escalado con enmascaramiento causal
     ///
     /// # Argumentos
     ///
-    /// * `x` - Tensor de entrada [seq_len, n_embd]
+    /// * `x` - Tensor de entrada [long_sec, n_embd]
     ///
     /// # Retorna
     ///
-    /// Tupla de (output, cache)
-    pub fn forward(&self, x: &Tensor) -> (Tensor, AttentionCache) {
-        let seq_len = x.shape[0];
+    /// Tupla de (salida, cache)
+    pub fn forward(&self, x: &Tensor) -> (Tensor, CacheAtencion) {
+        let long_sec = x.forma[0];
 
-        // Proyección a Q, K, V
-        let (q, q_cache) = self.q_proj.forward(x);
-        let (k, k_cache) = self.k_proj.forward(x);
-        let (v, v_cache) = self.v_proj.forward(x);
+        // Proyectar a Q, K, V
+        let (q, cache_q) = self.proy_q.forward(x);
+        let (k, cache_k) = self.proy_k.forward(x);
+        let (v, cache_v) = self.proy_v.forward(x);
 
-        // Atención por producto punto escalado
-        let scale = (self.n_embd as f32).sqrt();
-        let scores = q.matmul(&k.transpose(-2, -1)).mul_scalar(1.0 / scale);
+        // Atención de producto punto escalado
+        let escala = (self.n_embd as f32).sqrt();
+        let puntuaciones = q.matmul(&k.transpose(-2, -1)).mul_scalar(1.0 / escala);
 
-        // Máscara causal: evitar atender a posiciones futuras
-        let mut mask = vec![0.0; seq_len * seq_len];
-        for i in 0..seq_len {
-            for j in i + 1..seq_len {
-                mask[i * seq_len + j] = 1.0;
+        // Máscara causal: previene prestar atención a posiciones futuras
+        let mut mascara = vec![0.0; long_sec * long_sec];
+        for i in 0..long_sec {
+            for j in i + 1..long_sec {
+                mascara[i * long_sec + j] = 1.0;
             }
         }
-        let mask_tensor = Tensor::new(mask, vec![seq_len, seq_len]);
-        let masked_scores = scores.masked_fill(&mask_tensor, -1e9);
+        let tensor_mascara = Tensor::new(mascara, vec![long_sec, long_sec]);
+        let puntuaciones_enmascaradas = puntuaciones.masked_fill(&tensor_mascara, -1e9);
 
         // Softmax -> pesos de atención
-        let attn_weights = masked_scores.softmax(-1);
+        let pesos_atencion = puntuaciones_enmascaradas.softmax(-1);
 
         // Aplicar dropout a los pesos de atención
-        let (attn_weights_dropped, attn_dropout_cache) = self.attn_dropout.forward(&attn_weights);
+        let (pesos_atencion_descartados, cache_dropout_atencion) = self.dropout_atencion.forward(&pesos_atencion);
 
-        // Aplicar atención a los valores
-        let attn_out = attn_weights_dropped.matmul(&v);
+        // Aplicar atención a los valores (V)
+        let salida_atencion = pesos_atencion_descartados.matmul(&v);
 
         // Proyección de salida
-        let (y_proj, out_cache) = self.out_proj.forward(&attn_out);
+        let (y_proy, cache_salida) = self.proy_salida.forward(&salida_atencion);
 
         // Aplicar dropout residual
-        let (y, resid_dropout_cache) = self.resid_dropout.forward(&y_proj);
+        let (y, cache_dropout_resid) = self.dropout_resid.forward(&y_proy);
 
-        let cache = AttentionCache {
+        let cache = CacheAtencion {
             x: x.clone(),
             q,
             k,
             v,
-            attn_weights,
+            pesos_atencion,
             #[allow(dead_code)]
-            attn_out,
-            q_cache,
-            k_cache,
-            v_cache,
-            out_cache,
-            attn_dropout_cache,
-            resid_dropout_cache,
+            salida_atencion,
+            cache_q,
+            cache_k,
+            cache_v,
+            cache_salida,
+            cache_dropout_atencion,
+            cache_dropout_resid,
         };
 
         (y, cache)
     }
 
-    /// Backward pass a través de la atención
+    /// Paso hacia atrás a través de la atención
     ///
     /// # Argumentos
     ///
-    /// * `grad_out` - Gradiente de la siguiente capa
-    /// * `cache` - Valores almacenados del forward pass
+    /// * `grad_salida` - Gradiente de la siguiente capa
+    /// * `cache` - Valores almacenados en caché del paso hacia adelante
     ///
     /// # Retorna
     ///
     /// Gradientes para todos los parámetros y la entrada
-    pub fn backward(&self, grad_out: &Tensor, cache: &AttentionCache) -> AttentionGradients {
-        let seq_len = cache.x.shape[0];
-        let scale = (self.n_embd as f32).sqrt();
+    pub fn backward(&self, grad_salida: &Tensor, cache: &CacheAtencion) -> GradientesAtencion {
+        let long_sec = cache.x.forma[0];
+        let escala = (self.n_embd as f32).sqrt();
 
-        // Retropropagación por dropout residual
-        let grad_y_proj = self
-            .resid_dropout
-            .backward(grad_out, &cache.resid_dropout_cache);
+        // Retropropagar a través del dropout residual
+        let grad_y_proy = self
+            .dropout_resid
+            .backward(grad_salida, &cache.cache_dropout_resid);
 
-        // Retropropagación por proyección de salida
-        let out_grads = self.out_proj.backward(&grad_y_proj, &cache.out_cache);
+        // Retropropagar a través de la proyección de salida
+        let grads_salida = self.proy_salida.backward(&grad_y_proy, &cache.cache_salida);
 
-        // Retropropagación por atención: grad_v = attn_weights^T @ grad_attn_out
-        let grad_v = cache.attn_weights.transpose(-2, -1).matmul(&out_grads.x);
+        // Retropropagar a través de la atención: grad_v = pesos_atencion^T @ grad_salida_atencion
+        let grad_v = cache.pesos_atencion.transpose(-2, -1).matmul(&grads_salida.x);
 
-        // grad_attn_weights = grad_attn_out @ v^T
-        let grad_attn_weights_dropped = out_grads.x.matmul(&cache.v.transpose(-2, -1));
+        // grad_pesos_atencion = grad_salida_atencion @ v^T
+        let grad_pesos_atencion_descartados = grads_salida.x.matmul(&cache.v.transpose(-2, -1));
 
-        // Retropropagación por dropout de atención
-        let grad_attn_weights = self
-            .attn_dropout
-            .backward(&grad_attn_weights_dropped, &cache.attn_dropout_cache);
+        // Retropropagar a través del dropout de atención
+        let grad_pesos_atencion = self
+            .dropout_atencion
+            .backward(&grad_pesos_atencion_descartados, &cache.cache_dropout_atencion);
 
-        // Retropropagación por softmax (por fila)
-        // gradiente softmax: grad_scores = attn * (grad_attn - sum(grad_attn * attn))
-        let mut grad_scores_data = Vec::new();
-        for i in 0..seq_len {
-            let start = i * seq_len;
-            let end = start + seq_len;
-            let attn_row = &cache.attn_weights.data[start..end];
-            let grad_attn_row = &grad_attn_weights.data[start..end];
+        // Retropropagar a través de softmax (por fila)
+        // gradiente de softmax: grad_puntuaciones = aten * (grad_aten - sum(grad_aten * aten))
+        let mut datos_grad_puntuaciones = Vec::new();
+        for i in 0..long_sec {
+            let inicio = i * long_sec;
+            let fin = inicio + long_sec;
+            let fila_atencion = &cache.pesos_atencion.datos[inicio..fin];
+            let fila_grad_atencion = &grad_pesos_atencion.datos[inicio..fin];
 
-            let dot_product: f32 = attn_row
+            // Calcular producto punto para esta fila
+            let producto_punto: f32 = fila_atencion
                 .iter()
-                .zip(grad_attn_row.iter())
+                .zip(fila_grad_atencion.iter())
                 .map(|(a, g)| a * g)
                 .sum();
 
-            for j in 0..seq_len {
-                let grad_score = attn_row[j] * (grad_attn_row[j] - dot_product);
-                grad_scores_data.push(grad_score);
+            // Aplicar fórmula del gradiente de softmax
+            for j in 0..long_sec {
+                let grad_puntuacion = fila_atencion[j] * (fila_grad_atencion[j] - producto_punto);
+                datos_grad_puntuaciones.push(grad_puntuacion);
             }
         }
-        let grad_scores = Tensor::new(grad_scores_data, vec![seq_len, seq_len]);
+        let grad_puntuaciones = Tensor::new(datos_grad_puntuaciones, vec![long_sec, long_sec]);
 
-        // Retropropagación por Q @ K^T escalado
-        let grad_q = grad_scores.matmul(&cache.k).mul_scalar(1.0 / scale);
-        let grad_k = grad_scores
+        // Retropropagar a través del escalado Q @ K^T
+        let grad_q = grad_puntuaciones.matmul(&cache.k).mul_scalar(1.0 / escala);
+        let grad_k = grad_puntuaciones
             .transpose(-2, -1)
             .matmul(&cache.q)
-            .mul_scalar(1.0 / scale);
+            .mul_scalar(1.0 / escala);
 
-        // Retropropagación por proyecciones Q, K, V
-        let q_grads = self.q_proj.backward(&grad_q, &cache.q_cache);
-        let k_grads = self.k_proj.backward(&grad_k, &cache.k_cache);
-        let v_grads = self.v_proj.backward(&grad_v, &cache.v_cache);
+        // Retropropagar a través de proyecciones Q, K, V
+        let grads_q = self.proy_q.backward(&grad_q, &cache.cache_q);
+        let grads_k = self.proy_k.backward(&grad_k, &cache.cache_k);
+        let grads_v = self.proy_v.backward(&grad_v, &cache.cache_v);
 
-        // Acumular gradientes hacia la entrada (Q, K, V conectan a la misma entrada)
-        let mut grad_x_data = vec![0.0; cache.x.data.len()];
-        for (i, grad_x_val) in grad_x_data.iter_mut().enumerate() {
-            *grad_x_val = q_grads.x.data[i] + k_grads.x.data[i] + v_grads.x.data[i];
+        // Acumular gradientes para la entrada (Q, K, V se conectan a la misma entrada)
+        let mut datos_grad_x = vec![0.0; cache.x.datos.len()];
+        for (i, valor_grad_x) in datos_grad_x.iter_mut().enumerate() {
+            *valor_grad_x = grads_q.x.datos[i] + grads_k.x.datos[i] + grads_v.x.datos[i];
         }
-        let grad_x = Tensor::new(grad_x_data, cache.x.shape.clone());
+        let grad_x = Tensor::new(datos_grad_x, cache.x.forma.clone());
 
-        AttentionGradients {
-            q_weight: q_grads.weight,
-            q_bias: q_grads.bias,
-            k_weight: k_grads.weight,
-            k_bias: k_grads.bias,
-            v_weight: v_grads.weight,
-            v_bias: v_grads.bias,
-            out_weight: out_grads.weight,
-            out_bias: out_grads.bias,
+        GradientesAtencion {
+            peso_q: grads_q.peso,
+            sesgo_q: grads_q.sesgo,
+            peso_k: grads_k.peso,
+            sesgo_k: grads_k.sesgo,
+            peso_v: grads_v.peso,
+            sesgo_v: grads_v.sesgo,
+            peso_salida: grads_salida.peso,
+            sesgo_salida: grads_salida.sesgo,
             x: grad_x,
         }
     }
 }
 
-/// Cache para el backward pass de atención
-pub struct AttentionCache {
+/// Caché para el paso hacia atrás de atención
+pub struct CacheAtencion {
     pub x: Tensor,
     pub q: Tensor,
     pub k: Tensor,
     pub v: Tensor,
-    pub attn_weights: Tensor,
+    pub pesos_atencion: Tensor,
     #[allow(dead_code)]
-    pub attn_out: Tensor,
-    pub q_cache: LinearCache,
-    pub k_cache: LinearCache,
-    pub v_cache: LinearCache,
-    pub out_cache: LinearCache,
-    pub attn_dropout_cache: DropoutCache,
-    pub resid_dropout_cache: DropoutCache,
+    pub salida_atencion: Tensor,
+    pub cache_q: CacheLineal,
+    pub cache_k: CacheLineal,
+    pub cache_v: CacheLineal,
+    pub cache_salida: CacheLineal,
+    pub cache_dropout_atencion: CacheDropout,
+    pub cache_dropout_resid: CacheDropout,
 }
 
-/// Gradientes de la atención
-pub struct AttentionGradients {
-    pub q_weight: Tensor,
-    pub q_bias: Tensor,
-    pub k_weight: Tensor,
-    pub k_bias: Tensor,
-    pub v_weight: Tensor,
-    pub v_bias: Tensor,
-    pub out_weight: Tensor,
-    pub out_bias: Tensor,
+/// Gradientes para atención
+pub struct GradientesAtencion {
+    pub peso_q: Tensor,
+    pub sesgo_q: Tensor,
+    pub peso_k: Tensor,
+    pub sesgo_k: Tensor,
+    pub peso_v: Tensor,
+    pub sesgo_v: Tensor,
+    pub peso_salida: Tensor,
+    pub sesgo_salida: Tensor,
     pub x: Tensor,
 }

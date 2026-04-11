@@ -1,0 +1,21 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "molineteai"
+version = "0.1.0"
+description = "Implementación educativa de GPT-2 en Rust con bindings para Python"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["llm", "gpt2", "transformer", "nlp", "machine-learning", "educativo"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[tool.maturin]
+module-name = "molineteai"
+features = ["python"]

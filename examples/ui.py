@@ -1,19 +1,28 @@
-use molineteai::gpt2_trainable::Checkpoint;
-use std::io::{self, Write};
-use std::process::Command;
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
-use std::thread;
-use std::time::Duration;
+"""
+modulos/ui.py
+━━━━━━━━━━━━━
+Arte ASCII, animaciones y helpers de consola para Molinete AI.
 
-/// Limpia la consola y muestra el banner ASCII línea por línea
-fn mostrar_arte() {
-    if cfg!(target_os = "windows") {
-        let _ = Command::new("cmd").args(["/c", "cls"]).status();
-    } else {
-        let _ = Command::new("clear").status();
-    }
+Exporta:
+    ARTE            — Cadena de texto con el arte ASCII del proyecto
+    SEPARADOR       — Separador de línea reutilizable
+    limpiar_pantalla()
+    mostrar_arte()
+    imprimir_lento(texto, ms_por_letra)
+    barra_progreso(mensaje, segundos)
+    pedir_input(prompt, default)
+    titulo(texto)
+"""
 
-    let arte = r#"
+import os
+import sys
+import time
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Arte ASCII
+# ─────────────────────────────────────────────────────────────────────────────
+
+ARTE = r"""
 ______________________________________________________________________________________________________________________8______________________
 ______________________________________________________________________________________________________________________8666___________________
 ______________________________________________________________________________________________________________________8_868__________________
@@ -49,110 +58,70 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 `.\  ___   | |    |||  || ____________________________________________________________________________86___6668868888888688___886688_86______
 | \\  __   |-|    ||| / | ____________________________________________________________________________6888888668888888866888888_88688868_____
  \ )\    *_)/`-.__|| \\ | _________________________________________________________________________8888888888888_88888_8888888_888888886_____
---'--'"""""`------''--'`'"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"""""#;
+--'--'"""""`------''--'`'""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"
+"""
 
-    for linea in arte.lines() {
-        if !linea.is_empty() {
-            println!("{}", linea);
-            thread::sleep(Duration::from_millis(30)); 
-        }
-    }
-    println!();
-}
+SEPARADOR = "─" * 70
 
-/// Imprime el texto letra por letra. Reemplaza saltos de línea por un espacio.
-fn imprimir_lento(texto: &str, millis_por_letra: u64) {
-    let mut stdout = io::stdout();
-    for caracter in texto.chars() {
-        if caracter == '\n' {
-            print!(" ");
-            let _ = stdout.flush();
-        } else if caracter != '\r' {
-            print!("{}", caracter);
-            let _ = stdout.flush();
-            thread::sleep(Duration::from_millis(millis_por_letra));
-        }
-    }
-    println!(); 
-}
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    mostrar_arte();
+# ─────────────────────────────────────────────────────────────────────────────
+# Funciones de UI
+# ─────────────────────────────────────────────────────────────────────────────
 
-    // --- BARRA DE PROGRESO ANIMADA ---
-    // Usamos AtomicBool para que los dos hilos puedan comunicarse de forma segura
-    let carga_terminada = Arc::new(AtomicBool::new(false));
-    let clon_estado = Arc::clone(&carga_terminada);
+def limpiar_pantalla():
+    """Limpia la pantalla en Windows y Unix."""
+    os.system("cls" if sys.platform == "win32" else "clear")
 
-    // Arrancamos la barra de progreso en un hilo secundario
-    let hilo_barra = thread::spawn(move || {
-        let mut porcentaje: usize = 0;
-        let mut velocidad = 40; // milisegundos por avance
 
-        while !clon_estado.load(Ordering::Relaxed) {
-            let longitud = 40;
-            let llenos = (porcentaje * longitud) / 100;
-            let barra = "█".repeat(llenos) + &"░".repeat(longitud - llenos);
-            
-            print!("\rCargando el modelo: [{}] {}% ", barra, porcentaje);
-            let _ = io::stdout().flush();
+def mostrar_arte():
+    """Muestra el arte ASCII línea por línea con animación."""
+    limpiar_pantalla()
+    for linea in ARTE.splitlines():
+        if linea.strip():
+            print(linea)
+            time.sleep(0.03)
+    print()
 
-            // Lógica para simular avance
-            if porcentaje < 80 {
-                porcentaje += 2;
-                velocidad = 40; 
-            } else if porcentaje < 99 {
-                porcentaje += 1;
-                velocidad = 250; // Se vuelve más lento al final para dar efecto de "procesamiento pesado"
-            }
-            
-            thread::sleep(Duration::from_millis(velocidad));
-        }
-        
-        // Cuando recibe la señal de que terminó, pinta el 100% definitivo
-        let barra_llena = "█".repeat(40);
-        println!("\rCargando el modelo: [{}] 100% ", barra_llena);
-    });
 
-    // Mientras tanto, el hilo principal Carga el modelo (esto bloquea el programa)
-    let checkpoint = Checkpoint::load("data/cervantes_medium_1774716353/checkpoint_best.bin")?;
-    let model = checkpoint.model;
-    let tokenizer = checkpoint.tokenizer.unwrap();
+def imprimir_lento(texto: str, ms_por_letra: float = 15):
+    """Imprime texto carácter por carácter simulando una máquina de escribir."""
+    for c in texto:
+        if c == "\n":
+            print(" ", end="", flush=True)
+        else:
+            print(c, end="", flush=True)
+            time.sleep(ms_por_letra / 1000)
+    print()
 
-    // Le decimos al hilo secundario que la carga terminó y esperamos a que se cierre
-    carga_terminada.store(true, Ordering::Relaxed);
-    let _ = hilo_barra.join();
-    // ---------------------------------
 
-    imprimir_lento("¡Modelo cargado! Ya puedes chatear. Escribe 'salir' o 'exit' para terminar.\n", 15);
+def barra_progreso(mensaje: str, segundos: float = 1.5):
+    """
+    Muestra una barra de progreso animada durante `segundos`.
+    Útil para dar sensación de carga antes de mostrar el menú.
+    """
+    longitud = 40
+    pasos = 60
+    for i in range(pasos + 1):
+        porcentaje = int(i * 100 / pasos)
+        llenos = int(i * longitud / pasos)
+        barra = "█" * llenos + "░" * (longitud - llenos)
+        print(f"\r{mensaje}: [{barra}] {porcentaje}% ", end="", flush=True)
+        time.sleep(segundos / pasos)
+    print()  # nueva línea al terminar
 
-    // Bucle infinito para el chat
-    loop {
-        print!("Tú: ");
-        io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim(); 
+def pedir_input(prompt: str, default: str = "") -> str:
+    """Lee una entrada del usuario con soporte para valor por defecto."""
+    try:
+        valor = input(prompt).strip()
+        return valor if valor else default
+    except (KeyboardInterrupt, EOFError):
+        print()
+        return default
 
-        if input.eq_ignore_ascii_case("salir") || input.eq_ignore_ascii_case("exit") {
-            imprimir_lento("¡Nos vemos!", 30);
-            break;
-        }
 
-        if input.is_empty() {
-            continue;
-        }
-
-        let prompt_tokens = tokenizer.encode(input);
-        let generated = model.generate(&prompt_tokens, 100, 0.8);
-        let text = tokenizer.decode(&generated);
-        
-        print!("Molinete: ");
-        io::stdout().flush()?;
-        imprimir_lento(&text, 40); 
-        println!(); 
-    }
-
-    Ok(())
-}
+def titulo(texto: str):
+    """Imprime un título con separadores decorativos."""
+    print(f"\n{'═' * 70}")
+    print(f"  {texto}")
+    print(f"{'═' * 70}\n")

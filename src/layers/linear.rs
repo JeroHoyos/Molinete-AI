@@ -1,18 +1,18 @@
 //! Capa Lineal (Totalmente Conectada)
 //!
-//! La capa lineal es el bloque fundamental de las redes neuronales.
+//! La capa lineal es el bloque de construcción fundamental de las redes neuronales.
 //! Realiza una transformación afín: y = x @ W + b
 //!
-//! ## Paso Forward
+//! ## Paso Hacia Adelante (Forward Pass)
 //!
 //! ```text
-//! Entrada: x [seq_len, in_features]
-//! Peso:    W [in_features, out_features]
-//! Bias:    b [out_features]
-//! Salida:  y = x @ W + b [seq_len, out_features]
+//! Entrada:  x [long_sec, caract_entrada]
+//! Peso:     W [caract_entrada, caract_salida]
+//! Sesgo:    b [caract_salida]
+//! Salida:   y = x @ W + b [long_sec, caract_salida]
 //! ```
 //!
-//! ## Paso Backward
+//! ## Paso Hacia Atrás (Backward Pass)
 //!
 //! Usando la regla de la cadena:
 //! ```text
@@ -21,31 +21,31 @@
 //! grad_x = grad_y @ W^T
 //! ```
 //!
-//! ## ¿Por qué estos gradientes?
+//! ## ¿Por Qué Estos Gradientes?
 //!
 //! - **grad_W**: Cada peso W[i,j] afecta la salida y[*,j] a través de la entrada x[*,i]
-//! - **grad_b**: Cada bias b[j] afecta todas las salidas y[*,j] por igual
+//! - **grad_b**: Cada sesgo b[j] afecta todas las salidas y[*,j] por igual
 //! - **grad_x**: Necesario para retropropagar a la capa anterior
 //!
 //! ## Notas de Implementación
 //!
-//! - Usa inicialización He: scale = √(2/in_features)
-//! - Bias inicializado en cero (práctica común)
-//! - Guarda en caché la entrada x para el paso backward
+//! - Usa inicialización de He: escala = √(2/caract_entrada)
+//! - El sesgo se inicializa a cero (práctica común)
+//! - Almacena en caché la entrada x para el paso hacia atrás
 
 use crate::tensor::Tensor;
 
 /// Función auxiliar para inicialización aleatoria
 ///
-/// Usa un LCG (Generador Congruencial Lineal) simple para inicialización reproducible.
-/// El parámetro scale controla la magnitud de los pesos iniciales.
-pub fn random_init(size: usize, seed: u64, scale: f32) -> Vec<f32> {
-    let mut rng = seed;
-    (0..size)
+/// Usa un LCG (Generador Congruencial Lineal) simple para una inicialización reproducible.
+/// El parámetro de escala controla la magnitud de los pesos iniciales.
+pub fn inicializacion_aleatoria(tamano: usize, semilla: u64, escala: f32) -> Vec<f32> {
+    let mut rng = semilla;
+    (0..tamano)
         .map(|_| {
             rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
-            let val = ((rng / 65536) % 32768) as f32 / 32768.0;
-            (val - 0.5) * 2.0 * scale
+            let valor = ((rng / 65536) % 32768) as f32 / 32768.0;
+            (valor - 0.5) * 2.0 * escala
         })
         .collect()
 }
@@ -53,103 +53,103 @@ pub fn random_init(size: usize, seed: u64, scale: f32) -> Vec<f32> {
 /// Capa lineal (totalmente conectada)
 ///
 /// Realiza y = x @ W + b donde:
-/// - W: matriz de pesos [in_features, out_features]
-/// - b: vector bias [out_features]
-pub struct TrainableLinear {
-    pub weight: Tensor,
-    pub bias: Tensor,
+/// - W: matriz de pesos [caract_entrada, caract_salida]
+/// - b: vector de sesgo [caract_salida]
+pub struct LinealEntrenable {
+    pub peso: Tensor,
+    pub sesgo: Tensor,
 }
 
-impl TrainableLinear {
-    /// Crea una nueva capa lineal con inicialización He
+impl LinealEntrenable {
+    /// Crea una nueva capa lineal con inicialización de He
     ///
     /// # Argumentos
     ///
-    /// * `in_features` - Dimensión de entrada
-    /// * `out_features` - Dimensión de salida
-    /// * `seed` - Semilla aleatoria para reproducibilidad
+    /// * `caract_entrada` - Dimensión de entrada
+    /// * `caract_salida` - Dimensión de salida
+    /// * `semilla` - Semilla aleatoria para reproducibilidad
     ///
     /// # Inicialización
     ///
-    /// Usa inicialización He: scale = √(2/in_features)
-    /// Esto ayuda a prevenir gradientes que desaparecen o explotan en redes profundas.
-    pub fn new(in_features: usize, out_features: usize, seed: u64) -> Self {
-        let scale = (2.0 / in_features as f32).sqrt();
+    /// Usa inicialización de He: escala = √(2/caract_entrada)
+    /// Esto ayuda a prevenir gradientes desvanecientes/explosivos en redes profundas.
+    pub fn new(caract_entrada: usize, caract_salida: usize, semilla: u64) -> Self {
+        let escala = (2.0 / caract_entrada as f32).sqrt();
         Self {
-            weight: Tensor::new(
-                random_init(in_features * out_features, seed, scale),
-                vec![in_features, out_features],
+            peso: Tensor::new(
+                inicializacion_aleatoria(caract_entrada * caract_salida, semilla, escala),
+                vec![caract_entrada, caract_salida],
             ),
-            bias: Tensor::new(vec![0.0; out_features], vec![out_features]),
+            sesgo: Tensor::new(vec![0.0; caract_salida], vec![caract_salida]),
         }
     }
 
-    /// Paso forward
+    /// Paso hacia adelante (Forward pass)
     ///
-    /// Calcula y = x @ W + b y guarda x para el paso backward
+    /// Calcula y = x @ W + b y almacena x en caché para el paso hacia atrás
     ///
     /// # Argumentos
     ///
-    /// * `x` - Tensor de entrada [seq_len, in_features]
+    /// * `x` - Tensor de entrada [long_sec, caract_entrada]
     ///
     /// # Retorna
     ///
-    /// Tupla de (output, cache) donde:
-    /// - output: [seq_len, out_features]
-    /// - cache: almacena x para el paso backward
-    pub fn forward(&self, x: &Tensor) -> (Tensor, LinearCache) {
-        let y = x.matmul(&self.weight).add(&self.bias);
-        let cache = LinearCache { x: x.clone() };
+    /// Tupla de (salida, cache) donde:
+    /// - salida: [long_sec, caract_salida]
+    /// - cache: almacena x para el paso hacia atrás
+    pub fn forward(&self, x: &Tensor) -> (Tensor, CacheLineal) {
+        let y = x.matmul(&self.peso).add(&self.sesgo);
+        let cache = CacheLineal { x: x.clone() };
         (y, cache)
     }
 
-    /// Paso backward
+    /// Paso hacia atrás (Backward pass)
     ///
-    /// Calcula los gradientes para pesos, bias y entrada
+    /// Calcula los gradientes para los pesos, el sesgo y la entrada
     ///
     /// # Argumentos
     ///
-    /// * `grad_out` - Gradiente desde la siguiente capa [seq_len, out_features]
-    /// * `cache` - Valores almacenados del paso forward
+    /// * `grad_salida` - Gradiente de la siguiente capa [long_sec, caract_salida]
+    /// * `cache` - Valores almacenados en caché del paso hacia adelante
     ///
     /// # Retorna
     ///
-    /// Gradientes para weight, bias y x
-    pub fn backward(&self, grad_out: &Tensor, cache: &LinearCache) -> LinearGradients {
-        // grad_W = x^T @ grad_out
-        let grad_weight = cache.x.transpose(-2, -1).matmul(grad_out);
+    /// Gradientes para el peso, el sesgo y la entrada
+    pub fn backward(&self, grad_salida: &Tensor, cache: &CacheLineal) -> GradientesLineales {
+        // grad_W = x^T @ grad_salida
+        let grad_peso = cache.x.transpose(-2, -1).matmul(grad_salida);
 
-        // grad_b = suma de grad_out a lo largo de todas las dimensiones excepto la última
-        let grad_bias_data: Vec<f32> = (0..self.bias.data.len())
+        // grad_b = sum(grad_salida) a lo largo de todas las dims excepto la última
+        let datos_grad_sesgo: Vec<f32> = (0..self.sesgo.datos.len())
             .map(|i| {
-                let mut sum = 0.0;
-                for row in 0..grad_out.shape[0] {
-                    sum += grad_out.data[row * grad_out.shape[1] + i];
+                let mut suma = 0.0;
+                for fila in 0..grad_salida.forma[0] {
+                    suma += grad_salida.datos[fila * grad_salida.forma[1] + i];
                 }
-                sum
+                suma
             })
             .collect();
-        let grad_bias = Tensor::new(grad_bias_data, self.bias.shape.clone());
+        let grad_sesgo = Tensor::new(datos_grad_sesgo, self.sesgo.forma.clone());
 
-        // grad_x = grad_out @ W^T
-        let grad_x = grad_out.matmul(&self.weight.transpose(-2, -1));
+        // grad_x = grad_salida @ W^T
+        let grad_x = grad_salida.matmul(&self.peso.transpose(-2, -1));
 
-        LinearGradients {
-            weight: grad_weight,
-            bias: grad_bias,
+        GradientesLineales {
+            peso: grad_peso,
+            sesgo: grad_sesgo,
             x: grad_x,
         }
     }
 }
 
-/// Caché para el paso backward de la capa lineal
-pub struct LinearCache {
+/// Caché para el paso hacia atrás de la capa lineal
+pub struct CacheLineal {
     pub x: Tensor,
 }
 
 /// Gradientes para la capa lineal
-pub struct LinearGradients {
-    pub weight: Tensor,
-    pub bias: Tensor,
-    pub x: Tensor, // Gradiente a pasar a la capa anterior
+pub struct GradientesLineales {
+    pub peso: Tensor,
+    pub sesgo: Tensor,
+    pub x: Tensor, // Gradiente para pasar a la capa anterior
 }

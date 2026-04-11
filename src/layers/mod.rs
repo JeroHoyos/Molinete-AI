@@ -1,16 +1,16 @@
-//! Capas de la Red Neuronal
+//! Capas de Redes Neuronales
 //!
 //! Este módulo contiene todas las implementaciones de capas para el modelo GPT-2 entrenable.
-//! Cada capa proporciona tanto el paso forward como el backward para entrenamiento.
+//! Cada capa proporciona tanto el paso hacia adelante (forward) como hacia atrás (backward) para el entrenamiento.
 //!
 //! ## Capas
 //!
-//! - **activation**: Función de activación GELU (forward y backward)
-//! - **linear**: Capa totalmente conectada
-//! - **layer_norm**: Normalización por capa
-//! - **dropout**: Regularización con dropout
-//! - **mlp**: Perceptrón multicapa (red feedforward)
-//! - **attention**: Mecanismo de auto-atención
+//! - **activation**: Función de activación GELU (paso hacia adelante y hacia atrás)
+//! - **linear**: Capa totalmente conectada (fully connected)
+//! - **layer_norm**: Normalización de capa
+//! - **dropout**: Regularización por dropout
+//! - **mlp**: Perceptrón multicapa (red prealimentada / feedforward)
+//! - **attention**: Mecanismo de autoatención
 //! - **block**: Bloque transformer completo
 //!
 //! ## Patrón de Diseño
@@ -18,22 +18,22 @@
 //! Cada capa entrenable sigue un patrón consistente:
 //!
 //! ```rust,ignore
-//! pub struct TrainableLayer {
-//!     // Parámetros (pesos, biases, etc.)
+//! pub struct CapaEntrenable {
+//!     // Parámetros (pesos, sesgos, etc.)
 //! }
 //!
-//! impl TrainableLayer {
+//! impl CapaEntrenable {
 //!     pub fn new(...) -> Self { }
 //!     pub fn forward(&self, x: &Tensor) -> (Tensor, Cache) { }
-//!     pub fn backward(&self, grad: &Tensor, cache: &Cache) -> Gradients { }
+//!     pub fn backward(&self, grad: &Tensor, cache: &Cache) -> Gradientes { }
 //! }
 //!
 //! pub struct Cache {
-//!     // Valores necesarios para el paso backward
+//!     // Valores necesarios para el paso hacia atrás
 //! }
 //!
-//! pub struct Gradients {
-//!     // Gradientes para parámetros y entrada
+//! pub struct Gradientes {
+//!     // Gradientes para los parámetros y la entrada
 //! }
 //! ```
 //!
@@ -47,11 +47,11 @@ pub mod layer_norm;
 pub mod linear;
 pub mod mlp;
 
-// Re-exportar tipos principales para mayor comodidad
+// Reexportar los tipos principales por conveniencia
 pub use activation::{gelu_backward, gelu_forward};
-pub use attention::{AttentionCache, AttentionGradients, TrainableSingleHeadAttention};
-pub use block::{BlockCache, BlockGradients, TrainableTransformerBlock};
-pub use dropout::{DropoutCache, TrainableDropout};
-pub use layer_norm::{LayerNormCache, LayerNormGradients, TrainableLayerNorm};
-pub use linear::{random_init, LinearCache, LinearGradients, TrainableLinear};
-pub use mlp::{MLPCache, MLPGradients, TrainableMLP};
+pub use attention::{CacheAtencion, GradientesAtencion, AtencionUnaCabezaEntrenable};
+pub use block::{CacheBloque, GradientesBloque, BloqueTransformerEntrenable};
+pub use dropout::{CacheDropout, DropoutEntrenable};
+pub use layer_norm::{CacheNormCapa, GradientesNormCapa, NormCapaEntrenable};
+pub use linear::{CacheLineal, GradientesLineales, LinealEntrenable, inicializacion_aleatoria as random_init};
+pub use mlp::{CacheMLP, GradientesMLP, MLPEntrenable};

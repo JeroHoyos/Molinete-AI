@@ -1,5 +1,5 @@
 <div align="center">
-<pre><code>
+<pre>
 ______________________________________________________________________________________________________________________8______________________
 ______________________________________________________________________________________________________________________8666___________________
 ______________________________________________________________________________________________________________________8_868__________________
@@ -35,13 +35,22 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 `.\  ___   | |    |||  || ____________________________________________________________________________86___6668868888888688___886688_86______
 | \\  __   |-|    ||| / | ____________________________________________________________________________6888888668888888866888888_88688868_____
  \ )\    *_)/`-.__|| \\ | _________________________________________________________________________8888888888888_88888_8888888_888888886_____
---'--'"""""`------''--'`'"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888""""
-</code></pre>
-</div>
+--'--'"""""`------''--'`'""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"
+</pre>
 
-**Autor:** Jerónimo Hoyos Botero  
-**Repositorio Principal:** [JeroHoyos/Molinete-AI](https://github.com/JeroHoyos/Molinete-AI)  
-**Proyecto Original:** [tag1consulting/feste](https://github.com/tag1consulting/feste)  
+# Molinete AI
+
+**Un Transformer GPT-2 implementado desde cero en Rust, entrenado con las obras de Miguel de Cervantes.**
+
+[![Licencia](https://img.shields.io/badge/licencia-Apache_2.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+
+**Autor:** Jerónimo Hoyos Botero
+**Repositorio:** [JeroHoyos/Molinete-AI](https://github.com/JeroHoyos/Molinete-AI)
+**Basado en:** [tag1consulting/feste](https://github.com/tag1consulting/feste)
+
+</div>
 
 ---
 
@@ -51,32 +60,34 @@ Molinete AI es un fork de **Feste**, una implementación desde cero de un modelo
 
 Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **Molinete AI propone entrenarlo con la obra de Miguel de Cervantes**, estableciendo una interesante contraposición lingüística y cultural:
 
-* **Feste** → Shakespeare (inglés isabelino)
-* **Molinete AI** → Cervantes (español del Siglo de Oro)
+| Proyecto | Corpus | Idioma |
+|:---|:---|:---|
+| **Feste** | Shakespeare | Inglés isabelino |
+| **Molinete AI** | Cervantes | Español del Siglo de Oro |
 
 El objetivo no es solo replicar el experimento original, sino reinterpretarlo en español y convertirlo en una guía técnica rigurosa y accesible.
 
 ---
 
-## ¿Por qué “Molinete”?
+## ¿Por qué "Molinete"?
 
-El nombre hace referencia directa al universo cervantino. Si Feste toma su identidad del bufón ingenioso en *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo confundió con fieros gigantes.
+El nombre rinde homenaje al universo cervantino. Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** hace referencia a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes — una metáfora perfecta para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
 
 ---
 
-## Qué es este proyecto
+## Sobre el proyecto
 
-Es un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** (como PyTorch o TensorFlow). 
+Es un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** como PyTorch o TensorFlow.
 
-El propósito central es comprender cómo funcionan los modelos de lenguaje implementando cada componente explícitamente. Incluye:
+El propósito central es comprender cómo funcionan los modelos de lenguaje implementando cada componente explícitamente:
 
-* Tokenización BPE (Byte-Pair Encoding).
-* Implementación manual de tensores.
-* Multi-Head Self-Attention y Máscara causal.
-* Feed Forward Networks.
-* Normalización y conexiones residuales.
-* Infraestructura de entrenamiento completa.
-* Generación autoregresiva de texto.
+- **Tokenización BPE** (Byte-Pair Encoding)
+- **Implementación manual de tensores**
+- **Multi-Head Self-Attention y máscara causal**
+- **Feed Forward Networks**
+- **Normalización y conexiones residuales**
+- **Infraestructura de entrenamiento completa** (warmup, gradient clipping, early stopping)
+- **Generación autoregresiva de texto**
 
 ### Arquitectura Molinete (~4M params)
 
@@ -91,38 +102,180 @@ Config {
 ```
 
 | Hiperparámetro | Valor por defecto |
-| :--- | :--- |
-| Pasos (Steps) | `8000` |
-| Tasa de aprendizaje (Learning rate) | `0.0003` |
-| Fracción de calentamiento (Warmup) | `0.1` |
-| Recorte de gradiente (Gradient clipping) | `1.0` |
-| Paciencia de Early stopping | `3000` |
+|:---|:---|
+| Pasos | `8000` |
+| Tasa de aprendizaje | `0.0003` |
+| Fracción de calentamiento (warmup) | `0.1` |
+| Recorte de gradiente (gradient clipping) | `1.0` |
+| Paciencia de early stopping | `3000` |
 | Acumulación de gradientes | `8 mini-batches` |
 | Datos de entrenamiento | Primeros 2M de caracteres |
-| Tiempo esperado (local) | ~4-6 horas |
+| Tiempo estimado (local) | ~4–6 horas |
 
 ---
 
-## Datos de Entrenamiento: Obras de Cervantes
+## Estructura del repositorio
 
-**Autor:** Miguel de Cervantes Saavedra | **Fuente:** Project Gutenberg  
-**Licencia:** Dominio Público | **Tamaño:** ~5–7 MB  
-**Contenido:** *Don Quijote*, *Novelas Ejemplares*, *La Galatea*, *Novelas y Teatro*, *Entremeses*.
+```
+molinete-ai/
+├── src/
+│   ├── layers/
+│   │   ├── activation.rs
+│   │   ├── attention.rs
+│   │   ├── block.rs
+│   │   ├── dropout.rs
+│   │   ├── layer_norm.rs
+│   │   ├── linear.rs
+│   │   ├── mlp.rs
+│   │   └── mod.rs
+│   ├── entrenamiento.rs
+│   ├── gpt2_entrenable.rs
+│   ├── gradientes.rs
+│   ├── lib.rs
+│   ├── modelo.rs
+│   ├── optimizador.rs
+│   ├── python_bindings.rs
+│   ├── registrador_entrenamiento.rs
+│   ├── tensor.rs
+│   └── tokenizador.rs
+├── examples/
+│   ├── presentation/          ← Animaciones Manim
+│   └── *.py                   ← Scripts de ejemplo Python
+├── cervantes.txt              ← Corpus de entrenamiento (ver DATA.md)
+├── Cargo.toml
+├── pyproject.toml
+├── DATA.md                    ← Guía del corpus de datos
+└── README.md
+```
 
-### 1. Obtener los Datos
-Para facilitar la descarga, usa el script `download_data.py` incluido en el proyecto. Al ejecutarlo, descargará automáticamente las obras desde Project Gutenberg y las unirá en un único archivo de texto llamado `cervantes.txt`.
+---
 
-### 2. Preprocesamiento
-El procesamiento es mínimo y directo:
-1. El script agrupa los textos separándolos visualmente.
-2. (Opcional) Puedes borrar a mano los textos legales de Gutenberg al inicio y final.
-3. El tokenizador se entrena directamente sobre este archivo final.
+## Inicio rápido
 
-### 3. ¿Por qué Cervantes?
-* **Libre de derechos:** Al ser obras del Siglo de Oro, están 100% en dominio público.
-* **Tamaño ideal:** Perfecto para experimentar y entrenar modelos en computadoras personales.
-* **Riqueza léxica:** Combina narrativa, poesía y teatro, enseñando al modelo estructuras de lenguaje variadas y complejas.
-* **Estilo inconfundible:** Es muy fácil y divertido evaluar el modelo observando cómo empieza a imitar el castellano antiguo.
+### Requisitos
+
+- [Rust](https://rustup.rs/) 1.75+
+- Python 3.9+ (para los ejemplos Python y los bindings)
+- `maturin` para compilar los bindings PyO3
+
+```bash
+pip install maturin
+```
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/JeroHoyos/Molinete-AI.git
+cd Molinete-AI
+```
+
+### 2. Descargar el corpus
+
+```bash
+python download_data.py
+# Genera: cervantes.txt (~5–7 MB)
+```
+
+O manualmente desde Project Gutenberg (ver [DATA.md](DATA.md) para más detalles).
+
+### 3. Compilar los bindings Python
+
+```bash
+maturin develop --release
+```
+
+### 4. Ejecutar el lanzador interactivo
+
+```bash
+python molineteai.py
+```
+
+Esto abre el menú principal con todas las opciones disponibles, incluyendo los ejemplos de aprendizaje, los distintos tamaños de modelo y el chat con modelos entrenados.
+
+---
+
+## Ejemplos en Rust
+
+También puedes ejecutar los ejemplos directamente con Cargo:
+
+```bash
+# 1. Tokenización BPE con diferentes tamaños de vocabulario
+cargo run --release --example 01_train_tokenizers
+
+# 2. Multiplicación de matrices y operaciones tensoriales
+cargo run --release --example 02_tensor_operations
+
+# 3. Exploración visual de la arquitectura Transformer
+cargo run --release --example 03_model_architecture
+
+# 4. Análisis de los componentes del bucle de entrenamiento
+cargo run --release --example 04_training_infrastructure
+
+# 5. Entrenamiento completo con la obra de Cervantes
+cargo run --release --example 05_train_cervantes
+
+# 6. Inferencia, generación de texto y prompts
+cargo run --release --example 06_promting
+```
+
+---
+
+## Bindings Python
+
+El proyecto incluye bindings completos vía PyO3/maturin. Una vez compilado con `maturin develop --release`:
+
+```python
+import molineteai
+
+# Tokenizador
+tok = molineteai.TokenizadorBPE(1536)
+tok.entrenar(texto, 1536)
+ids = tok.codificar("En un lugar de la Mancha")
+print(tok.decodificar(ids))
+
+# Configuración y modelo
+config = molineteai.Config.mediana(tok.tam_vocabulario())
+modelo = molineteai.GPT2Entrenable(config)
+print(f"Parámetros: {modelo.num_parametros():,}")
+
+# Entrenamiento
+modelo.entrenar(tok, texto, pasos=8000, tasa_aprendizaje=3e-4,
+                dir_salida="data/run/", paciencia=3000)
+
+# Generación
+ids_out = modelo.generar(tok.codificar("En un lugar"), max_tokens=100, temperatura=0.8)
+print(tok.decodificar(ids_out))
+```
+
+Ver [la guía de integración de bindings](docs/bindings.md) para instrucciones detalladas de instalación y la API completa.
+
+---
+
+## Menú interactivo (`molineteai.py`)
+
+El lanzador principal ofrece un menú con todas las funcionalidades:
+
+| Opción | Descripción |
+|:---:|:---|
+| `1` | Tokenizadores BPE — varios tamaños de vocabulario |
+| `2` | Operaciones tensoriales — matmul, softmax, máscaras causales |
+| `3` | Arquitectura GPT-2 — conteo de parámetros y benchmarks |
+| `4` | Infraestructura de entrenamiento — data loaders y logging |
+| `5` | Entrenar GPT-2 Diminuto (~170K params, ~5 min) |
+| `6` | Entrenar GPT-2 Pequeño (~200K params, ~15 min) |
+| `7` | Entrenar GPT-2 Mediano (~4M params, ~2 h) |
+| `8` | Entrenar GPT-2 Small completo (~163M params) |
+| `9` | Entrenador con presets (pocket-bard, spider, cyclops...) |
+| `10` | Chat con modelo entrenado |
+| `11` | Descargar corpus (Cervantes / Shakespeare) |
+
+---
+
+## Presentación
+
+Este proyecto incluye una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero. La presentación recorre paso a paso la tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva — desmontando la "magia" detrás de los grandes modelos de lenguaje.
+
+Los archivos de la presentación están en `examples/presentation/`.
 
 ---
 
@@ -130,50 +283,23 @@ El procesamiento es mínimo y directo:
 
 Este fork enriquece el proyecto base con los siguientes aportes:
 
-1. **Scripts experimentales:** Permiten aislar y observar el comportamiento interno de cada componente del modelo (tokenización, atención, capas feed forward, normalización y generación).
-2. **Recursos visuales:** Incluye una presentación desarrollada en Manim que explica visualmente la arquitectura del Transformer y el flujo de información entre capas.
-3. **Documentación en español:** Explicaciones adicionales orientadas a comprender mejor el código y su estructura interna.
-
-El enfoque es 100% pedagógico y analítico, priorizando la comprensión detallada de los engranajes del modelo.
-
----
-
-## Ejemplos de uso
-
-El repositorio incluye una serie de scripts listos para ejecutar que te guiarán paso a paso por la construcción del modelo.
-
-**1. Entrenamiento de tokenizadores BPE con diferentes tamaños de vocabulario:**
-```bash
-cargo run --release --example 01_train_tokenizers
-```
-
-**2. Multiplicación de matrices y operaciones tensoriales:**
-```bash
-cargo run --release --example 02_tensor_operations
-```
-
-**3. Exploración visual de la arquitectura Transformer:**
-```bash
-cargo run --release --example 03_model_architecture
-```
-
-**4. Análisis de los componentes del bucle de entrenamiento:**
-```bash
-cargo run --release --example 04_training_infrastructure
-```
-
-**5. Entrenamiento completo del modelo de lenguaje utilizando la obra de Cervantes:**
-```bash
-cargo run --release --example 05_train_cervantes
-```
-
-**6. Inferencia, generación de texto y experimentación con prompts:**
-```bash
-cargo run --release --example 06_promting
-```
+1. **Corpus en español:** Sustitución de Shakespeare por Cervantes como datos de entrenamiento, con un script de descarga automatizado.
+2. **Scripts experimentales:** Permiten aislar y observar el comportamiento interno de cada componente del modelo.
+3. **Bindings Python completos:** API Python con PyO3/maturin para interactuar con el modelo desde Python.
+4. **Lanzador interactivo:** Menú en consola (`molineteai.py`) con animaciones y todas las opciones del proyecto.
+5. **Recursos visuales:** Presentación en Manim con animaciones de la arquitectura Transformer.
+6. **Documentación en español:** Explicaciones adicionales orientadas a la comprensión del código.
 
 ---
 
 ## Licencia
 
-Este proyecto se distribuye bajo la licencia **Apache 2.0**.
+Distribuido bajo la licencia **Apache 2.0**. Ver [LICENSE](LICENSE) para más detalles.
+
+---
+
+<div align="center">
+
+*"No con quien naces, sino con quien paces."* — Miguel de Cervantes
+
+</div>

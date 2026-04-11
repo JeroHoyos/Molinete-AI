@@ -1,38 +1,37 @@
-//! Capa de Dropout
+//! Capa de Dropout 
 //!
-//! Dropout es una técnica de regularización que anula aleatoriamente activaciones
-//! durante el entrenamiento para prevenir el sobreajuste (overfitting).
-//! Durante la inferencia, los valores se pasan sin modificación.
+//! Dropout es una técnica de regularización que pone a cero de forma aleatoria las activaciones
+//! durante el entrenamiento para prevenir el sobreajuste (overfitting). Durante la inferencia,
+//! pasa los valores sin cambios.
 
 use crate::tensor::Tensor;
 
 /// Capa de dropout entrenable
 ///
-/// Esta capa descarta aleatoriamente activaciones durante el entrenamiento
-/// para regularización.
-pub struct TrainableDropout {
-    pub rate: f32,
-    pub training: bool,
+/// Esta capa descarta activaciones aleatoriamente durante el entrenamiento como regularización.
+pub struct DropoutEntrenable {
+    pub tasa: f32,
+    pub entrenando: bool,
 }
 
-impl TrainableDropout {
+impl DropoutEntrenable {
     /// Crea una nueva capa de dropout
     ///
     /// # Argumentos
     ///
-    /// * `rate` - Probabilidad de dropout (0.0 = sin dropout, 1.0 = descartar todo)
-    pub fn new(rate: f32) -> Self {
+    /// * `tasa` - Probabilidad de dropout (0.0 = sin dropout, 1.0 = descartar todo)
+    pub fn new(tasa: f32) -> Self {
         assert!(
-            (0.0..=1.0).contains(&rate),
+            (0.0..=1.0).contains(&tasa),
             "La tasa de dropout debe estar entre 0.0 y 1.0"
         );
         Self {
-            rate,
-            training: true,
+            tasa,
+            entrenando: true,
         }
     }
 
-    /// Forward pass con almacenamiento en caché para backward
+    /// Paso hacia adelante (forward) con almacenamiento en caché para el paso hacia atrás
     ///
     /// # Argumentos
     ///
@@ -40,80 +39,80 @@ impl TrainableDropout {
     ///
     /// # Retorna
     ///
-    /// Tupla de (output, cache) donde cache almacena la máscara de dropout
-    pub fn forward(&self, x: &Tensor) -> (Tensor, DropoutCache) {
-        if !self.training || self.rate == 0.0 {
-            // Sin dropout - simplemente pasar los valores
-            let cache = DropoutCache {
-                mask: None,
-                scale: 1.0,
+    /// Tupla de (salida, cache) donde cache almacena la máscara de dropout
+    pub fn forward(&self, x: &Tensor) -> (Tensor, CacheDropout) {
+        if !self.entrenando || self.tasa == 0.0 {
+            // Sin dropout - simplemente dejar pasar
+            let cache = CacheDropout {
+                mascara: None,
+                escala: 1.0,
             };
             return (x.clone(), cache);
         }
 
-        if self.rate >= 1.0 {
+        if self.tasa >= 1.0 {
             // Descartar todo
-            let cache = DropoutCache {
-                mask: Some(vec![false; x.data.len()]),
-                scale: 1.0,
+            let cache = CacheDropout {
+                mascara: Some(vec![false; x.datos.len()]),
+                escala: 1.0,
             };
-            return (Tensor::zeros(x.shape.clone()), cache);
+            return (Tensor::ceros(x.forma.clone()), cache);
         }
 
         // Aplicar dropout con escalado
-        let scale = 1.0 / (1.0 - self.rate);
-        let mut mask = Vec::with_capacity(x.data.len());
-        let mut output = Tensor::zeros(x.shape.clone());
+        let escala = 1.0 / (1.0 - self.tasa);
+        let mut mascara = Vec::with_capacity(x.datos.len());
+        let mut salida = Tensor::ceros(x.forma.clone());
 
-        for i in 0..x.data.len() {
-            let keep = rand::random::<f32>() > self.rate;
-            mask.push(keep);
-            if keep {
-                output.data[i] = x.data[i] * scale;
+        for i in 0..x.datos.len() {
+            let mantener = rand::random::<f32>() > self.tasa;
+            mascara.push(mantener);
+            if mantener {
+                salida.datos[i] = x.datos[i] * escala;
             }
         }
 
-        let cache = DropoutCache {
-            mask: Some(mask),
-            scale,
+        let cache = CacheDropout {
+            mascara: Some(mascara),
+            escala,
         };
 
-        (output, cache)
+        (salida, cache)
     }
 
-    /// Backward pass a través de dropout
+    /// Paso hacia atrás (backward) a través de dropout
     ///
     /// # Argumentos
     ///
-    /// * `grad_output` - Gradiente que fluye desde la siguiente capa
-    /// * `cache` - Máscara de dropout almacenada del forward pass
+    /// * `grad_salida` - Gradiente que fluye hacia atrás desde la siguiente capa
+    /// * `cache` - Máscara de dropout almacenada en caché desde el paso hacia adelante
     ///
     /// # Retorna
     ///
     /// Gradiente con respecto a la entrada
-    pub fn backward(&self, grad_output: &Tensor, cache: &DropoutCache) -> Tensor {
-        if let Some(mask) = &cache.mask {
+    pub fn backward(&self, grad_salida: &Tensor, cache: &CacheDropout) -> Tensor {
+        if let Some(mascara) = &cache.mascara {
             // Aplicar la misma máscara a los gradientes
-            let mut grad_input = Tensor::zeros(grad_output.shape.clone());
-            for (i, &keep) in mask.iter().enumerate() {
-                if keep {
-                    grad_input.data[i] = grad_output.data[i] * cache.scale;
+            let mut grad_entrada = Tensor::ceros(grad_salida.forma.clone());
+            for (i, &mantener) in mascara.iter().enumerate() {
+                if mantener {
+                    grad_entrada.datos[i] = grad_salida.datos[i] * cache.escala;
                 }
                 // else: el gradiente es cero (el valor fue descartado)
             }
-            grad_input
+            grad_entrada
         } else {
             // No se aplicó dropout, simplemente pasar el gradiente
-            grad_output.clone()
+            grad_salida.clone()
         }
     }
 }
 
-/// Cache para el backward pass de dropout
-pub struct DropoutCache {
-    /// Máscara de dropout (true = conservado, false = descartado)
-    /// None si el dropout estaba deshabilitado
-    pub mask: Option<Vec<bool>>,
-    /// Factor de escalado aplicado a los valores conservados
-    pub scale: f32,
+/// Caché para el paso hacia atrás del dropout
+pub struct CacheDropout {
+    /// Máscara de dropout (true = mantenido, false = descartado)
+    /// None si el dropout estaba desactivado
+    pub mascara: Option<Vec<bool>>,
+    /// Factor de escalado aplicado a los valores mantenidos
+    pub escala: f32,
 }

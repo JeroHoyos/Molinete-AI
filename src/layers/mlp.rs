@@ -1,12 +1,12 @@
 //! Perceptrón Multicapa (MLP)
 //!
-//! El MLP es una red feedforward de dos capas usada en cada bloque transformer.
+//! El MLP es una red prealimentada (feedforward) de dos capas que se usa en cada bloque transformer.
 //! Proporciona la capacidad del modelo para aprender transformaciones complejas.
 //!
 //! ## Arquitectura
 //!
 //! ```text
-//! x → Linear1 → GELU → Linear2 → y
+//! x → Lineal1 → GELU → Lineal2 → y
 //! ```
 //!
 //! ## Factor de Expansión
@@ -16,125 +16,125 @@
 //! - Oculta: n_embd × 4
 //! - Salida: n_embd
 //!
-//! Este patrón de expansión y luego compresión es crucial para la capacidad del modelo.
+//! Este patrón de expansión y posterior compresión es crucial para la capacidad del modelo.
 //!
 //! ## ¿Por qué 4x?
 //!
-//! La expansión 4× está determinada empíricamente:
+//! La expansión de 4× se determina empíricamente:
 //! - Proporciona suficiente capacidad para transformaciones complejas
-//! - No es tan grande como para dominar el número de parámetros
-//! - Es estándar en muchas arquitecturas transformer
+//! - No es tan grande como para dominar el recuento de parámetros
+//! - Es un estándar en muchas arquitecturas transformer
 
 use super::activation::{gelu_backward, gelu_forward};
-use super::dropout::{DropoutCache, TrainableDropout};
-use super::linear::{LinearCache, TrainableLinear};
+use super::dropout::{CacheDropout, DropoutEntrenable};
+use super::linear::{CacheLineal, LinealEntrenable};
 use crate::tensor::Tensor;
 
-/// MLP (red feedforward) con activación GELU
-pub struct TrainableMLP {
-    pub fc1: TrainableLinear,
-    pub fc2: TrainableLinear,
-    pub resid_dropout: TrainableDropout,
+/// MLP (red prealimentada) con activación GELU
+pub struct MLPEntrenable {
+    pub fc1: LinealEntrenable,
+    pub fc2: LinealEntrenable,
+    pub dropout_resid: DropoutEntrenable,
 }
 
-impl TrainableMLP {
-    /// Crea un nuevo MLP con expansión 4x
+impl MLPEntrenable {
+    /// Crea un nuevo MLP con expansión de 4x
     ///
     /// # Argumentos
     ///
-    /// * `n_embd` - Dimensión del embedding
-    /// * `dropout_rate` - Probabilidad de dropout
-    /// * `seed` - Semilla aleatoria para inicialización
-    pub fn new(n_embd: usize, dropout_rate: f32, seed: u64) -> Self {
-        let hidden = n_embd * 4; // GPT-2 usa expansión 4x
+    /// * `n_embd` - Dimensión de los embeddings (incrustaciones)
+    /// * `tasa_dropout` - Probabilidad de dropout
+    /// * `semilla` - Semilla aleatoria para la inicialización
+    pub fn new(n_embd: usize, tasa_dropout: f32, semilla: u64) -> Self {
+        let oculta = n_embd * 4; // GPT-2 usa una expansión de 4x
         Self {
-            fc1: TrainableLinear::new(n_embd, hidden, seed),
-            fc2: TrainableLinear::new(hidden, n_embd, seed + 1000),
-            resid_dropout: TrainableDropout::new(dropout_rate),
+            fc1: LinealEntrenable::new(n_embd, oculta, semilla),
+            fc2: LinealEntrenable::new(oculta, n_embd, semilla + 1000),
+            dropout_resid: DropoutEntrenable::new(tasa_dropout),
         }
     }
 
-    /// Paso forward: x → fc1 → GELU → fc2
+    /// Paso hacia adelante: x → fc1 → GELU → fc2
     ///
     /// # Argumentos
     ///
-    /// * `x` - Tensor de entrada [seq_len, n_embd]
+    /// * `x` - Tensor de entrada [long_sec, n_embd]
     ///
     /// # Retorna
     ///
-    /// Tupla de (output, cache)
-    pub fn forward(&self, x: &Tensor) -> (Tensor, MLPCache) {
-        let (h, fc1_cache) = self.fc1.forward(x);
-        let h_activated = gelu_forward(&h);
-        let (y_proj, fc2_cache) = self.fc2.forward(&h_activated);
+    /// Tupla de (salida, cache)
+    pub fn forward(&self, x: &Tensor) -> (Tensor, CacheMLP) {
+        let (h, cache_fc1) = self.fc1.forward(x);
+        let h_activada = gelu_forward(&h);
+        let (y_proy, cache_fc2) = self.fc2.forward(&h_activada);
 
         // Aplicar dropout residual
-        let (y, resid_dropout_cache) = self.resid_dropout.forward(&y_proj);
+        let (y, cache_dropout_resid) = self.dropout_resid.forward(&y_proy);
 
-        let cache = MLPCache {
-            fc1_cache,
-            h, // Guardar pre-activación para GELU backward
+        let cache = CacheMLP {
+            cache_fc1,
+            h, // Guardar pre-activación para el paso hacia atrás de GELU
             #[allow(dead_code)]
-            h_activated,
-            fc2_cache,
-            resid_dropout_cache,
+            h_activada,
+            cache_fc2,
+            cache_dropout_resid,
         };
 
         (y, cache)
     }
 
-    /// Paso backward a través del MLP
+    /// Paso hacia atrás a través del MLP
     ///
     /// Usa la regla de la cadena a través de fc2, GELU y fc1
     ///
     /// # Argumentos
     ///
-    /// * `grad_out` - Gradiente desde la siguiente capa
-    /// * `cache` - Valores almacenados del paso forward
+    /// * `grad_salida` - Gradiente de la siguiente capa
+    /// * `cache` - Valores almacenados en caché del paso hacia adelante
     ///
     /// # Retorna
     ///
     /// Gradientes para todos los parámetros y la entrada
-    pub fn backward(&self, grad_out: &Tensor, cache: &MLPCache) -> MLPGradients {
+    pub fn backward(&self, grad_salida: &Tensor, cache: &CacheMLP) -> GradientesMLP {
         // Retropropagar a través del dropout residual
-        let grad_y_proj = self
-            .resid_dropout
-            .backward(grad_out, &cache.resid_dropout_cache);
+        let grad_y_proy = self
+            .dropout_resid
+            .backward(grad_salida, &cache.cache_dropout_resid);
 
         // Retropropagar a través de fc2
-        let fc2_grads = self.fc2.backward(&grad_y_proj, &cache.fc2_cache);
+        let grads_fc2 = self.fc2.backward(&grad_y_proy, &cache.cache_fc2);
 
         // Retropropagar a través de GELU
-        let grad_h = gelu_backward(&fc2_grads.x, &cache.h);
+        let grad_h = gelu_backward(&grads_fc2.x, &cache.h);
 
         // Retropropagar a través de fc1
-        let fc1_grads = self.fc1.backward(&grad_h, &cache.fc1_cache);
+        let grads_fc1 = self.fc1.backward(&grad_h, &cache.cache_fc1);
 
-        MLPGradients {
-            fc1_weight: fc1_grads.weight,
-            fc1_bias: fc1_grads.bias,
-            fc2_weight: fc2_grads.weight,
-            fc2_bias: fc2_grads.bias,
-            x: fc1_grads.x,
+        GradientesMLP {
+            peso_fc1: grads_fc1.peso,
+            sesgo_fc1: grads_fc1.sesgo,
+            peso_fc2: grads_fc2.peso,
+            sesgo_fc2: grads_fc2.sesgo,
+            x: grads_fc1.x,
         }
     }
 }
 
-/// Caché para el paso backward del MLP
-pub struct MLPCache {
-    pub fc1_cache: LinearCache,
-    pub h: Tensor, // Pre-activación (necesaria para GELU backward)
+/// Caché para el paso hacia atrás del MLP
+pub struct CacheMLP {
+    pub cache_fc1: CacheLineal,
+    pub h: Tensor, // Pre-activación (necesaria para el paso hacia atrás de GELU)
     #[allow(dead_code)]
-    pub h_activated: Tensor,
-    pub fc2_cache: LinearCache,
-    pub resid_dropout_cache: DropoutCache,
+    pub h_activada: Tensor,
+    pub cache_fc2: CacheLineal,
+    pub cache_dropout_resid: CacheDropout,
 }
 
 /// Gradientes para el MLP
-pub struct MLPGradients {
-    pub fc1_weight: Tensor,
-    pub fc1_bias: Tensor,
-    pub fc2_weight: Tensor,
-    pub fc2_bias: Tensor,
+pub struct GradientesMLP {
+    pub peso_fc1: Tensor,
+    pub sesgo_fc1: Tensor,
+    pub peso_fc2: Tensor,
+    pub sesgo_fc2: Tensor,
     pub x: Tensor,
 }
