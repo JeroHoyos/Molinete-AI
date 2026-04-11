@@ -1,41 +1,41 @@
 <div align="center">
 <pre>
-______________________________________________________________________________________________________________________8______________________
-______________________________________________________________________________________________________________________8666___________________
-______________________________________________________________________________________________________________________8_868__________________
-______________________________________________________________________________________________________________________8_688_8________________
-███╗░░░███╗░█████╗░██╗░░░░░██╗███╗░░██╗███████╗████████╗███████╗__░█████╗░██╗____________________88888________________8668888________________
-████╗░████║██╔══██╗██║░░░░░██║████╗░██║██╔════╝╚══██╔══╝██╔════╝__██╔══██╗██║__________________888888888______________8___888_________88_8___
-██╔████╔██║██║░░██║██║░░░░░██║██╔██╗██║█████╗░░░░░██║░░░█████╗░░__███████║██║__________________888_8888888____________8_____________8668888__
-██║╚██╔╝██║██║░░██║██║░░░░░██║██║╚████║██╔══╝░░░░░██║░░░██╔══╝░░__██╔══██║██║___________________668888888888_________86___________8688__8888_
-██║░╚═╝░██║╚█████╔╝███████╗██║██║░╚███║███████╗░░░██║░░░███████╗__██║░░██║██║_____________________8668__888888________8_________868888888888_
-╚═╝░░░░░╚═╝░╚════╝░╚══════╝╚═╝╚═╝░░╚══╝╚══════╝░░░╚═╝░░░╚══════╝__╚═╝░░╚═╝╚═╝_______________________86688__88888_____86_______868888888888___
-______________________________________________________________________________________________________866888888888__88868___8688_8888888_____
-________________________________________________________________________________________________________866888888_86888888888_88888888_______
-__________________________________________________________________________________________________________866888_88888886888__88888__________
-_________________ /\ ____ ,, _______________________________________________________________________________86688688888888668__88____________
-________  .---. __|| ____ /|| ________________________________________________________________________________86688888886888888______________
-______ --'-----`--||    .'  \ ________________________________________________________________________________88666688666888888______________
-________ {{{N `(  ||  .'    @  _____________________________________________________________________________8868868888688888888______________
-________ {{{` _/  ||.'    |  \  __________________________________________________________________________88888888866888688_8_88_____________
-________ {{{.-.   ||  /  /\   \  ________________________________________________________________________888868_868_888_86668886_____________
-________  {( )| .'||    /  `.  \  ______________________________________________________________________888_68866__888888_866__8_____________
-__        {|\ \'  / )  / __  \\O| ____________________________________________________________________8888__8868____888888__86888____________
-  `-.____.-| \ \ /\/  / ____ `'   __________________________________________________________________88888__8668_______888888__866____________
- -    ////|  \ Y /|  | ____________________________________________________________________________88888__666888_______8888888__868__________
-   |   |||||`-|\^/|| |   ________________________________________________________________________888888_86668_88__________888888__66_________
-       |||||`-| " [] / _________________________________________________________________________88888__66_68888_____________888888__68_______
-      _ \\\\/`-|   []|\  _____________________________________________________________________88888__866__6_888__88888_______888886__668_____
- ) |`---``| _ |__([]| \   ___________________________________________________________________88888__86___688888__888_8________888886__8668___
-  / ____  |/ `|  FJ|\ \   ___________________________________________________________________8888_866____686886_86688888__666__888868___868__
- / _____  `|  |  FJ) \ \    ___________________________________________________________________8_868____6886_88_68888886__868__8__866_88_____
-/ ______   |  |  FJ|  \ )  _____________________________________________________________________86______6_68_88_6_8888_8__868___8__868_______
-| ______   |  F  J  L  || _____________________________________________________________________________88866_88_8_6688_8__888___8___86_______
-`.  ____   )-(> '----` || _____________________________________________________________________________6_888888_8_8688_8________8____68______
-`.\  ___   | |    |||  || ____________________________________________________________________________86___6668868888888688___886688_86______
-| \\  __   |-|    ||| / | ____________________________________________________________________________6888888668888888866888888_88688868_____
- \ )\    *_)/`-.__|| \\ | _________________________________________________________________________8888888888888_88888_8888888_888888886_____
---'--'"""""`------''--'`'""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"
+________________________________________________________________________________________________________8______________________
+________________________________________________________________________________________________________8666___________________
+________________________________________________________________________________________________________8_868__________________
+________________________________________________________________________________________________________8_688_8________________
+███╗░░░███╗░█████╗░██╗░░░░░██╗███╗░░██╗███████╗████████╗███████╗__░█████╗░██╗______88888________________8668888________________
+████╗░████║██╔══██╗██║░░░░░██║████╗░██║██╔════╝╚══██╔══╝██╔════╝__██╔══██╗██║____888888888______________8___888_________88_8___
+██╔████╔██║██║░░██║██║░░░░░██║██╔██╗██║█████╗░░░░░██║░░░█████╗░░__███████║██║____888_8888888____________8_____________8668888__
+██║╚██╔╝██║██║░░██║██║░░░░░██║██║╚████║██╔══╝░░░░░██║░░░██╔══╝░░__██╔══██║██║_____668888888888_________86___________8688__8888_
+██║░╚═╝░██║╚█████╔╝███████╗██║██║░╚███║███████╗░░░██║░░░███████╗__██║░░██║██║_______8668__888888________8_________868888888888_
+╚═╝░░░░░╚═╝░╚════╝░╚══════╝╚═╝╚═╝░░╚══╝╚══════╝░░░╚═╝░░░╚══════╝__╚═╝░░╚═╝╚═╝_________86688__88888_____86_______868888888888___
+________________________________________________________________________________________866888888888__88868___8688_8888888_____
+__________________________________________________________________________________________866888888_86888888888_88888888_______
+____________________________________________________________________________________________866888_88888886888__88888__________
+_________________ /\ ____ ,, _________________________________________________________________86688688888888668__88____________
+________  .---. __|| ____ /|| __________________________________________________________________86688888886888888______________
+______ --'-----`--||    .'  \ __________________________________________________________________88666688666888888______________
+________ {{{N `(  ||  .'    @  _______________________________________________________________8868868888688888888______________
+________ {{{` _/  ||.'    |  \  ____________________________________________________________88888888866888688_8_88_____________
+________ {{{.-.   ||  /  /\   \  __________________________________________________________888868_868_888_86668886_____________
+________  {( )| .'||    /  `.  \  ________________________________________________________888_68866__888888_866__8_____________
+__        {|\ \'  / )  / __  \\O| ______________________________________________________8888__8868____888888__86888____________
+  `-.____.-| \ \ /\/  / ____ `'   ____________________________________________________88888__8668_______888888__866____________
+ -    ////|  \ Y /|  | ______________________________________________________________88888__666888_______8888888__868__________
+   |   |||||`-|\^/|| |   __________________________________________________________888888_86668_88__________888888__66_________
+       |||||`-| " [] / ___________________________________________________________88888__66_68888_____________888888__68_______
+      _ \\\\/`-|   []|\  ________________________________________________________88888__866__6_888__88888_______888886__668_____
+ ) |`---``| _ |__([]| \   ______________________________________________________88888__86___688888__888_8________888886__8668___
+  / ____  |/ `|  FJ|\ \   ______________________________________________________8888_866____686886_86688888__666__888868___868__
+ / _____  `|  |  FJ) \ \    ______________________________________________________8_868____6886_88_68888886__868__8__866_88_____
+/ ______   |  |  FJ|  \ )  ________________________________________________________86______6_68_88_6_8888_8__868___8__868_______
+| ______   |  F  J  L  || ________________________________________________________________88866_88_8_6688_8__888___8___86_______
+`.  ____   )-(> '----` || ________________________________________________________________6_888888_8_8688_8________8____68______
+`.\  ___   | |    |||  || _______________________________________________________________86___6668868888888688___886688_86______
+| \\  __   |-|    ||| / | _______________________________________________________________6888888668888888866888888_88688868_____
+ \ )\    *_)/`-.__|| \\ | ____________________________________________________________8888888888888_88888_8888888_888888886_____
+--'--'"""""`------''--'`'"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""888888888888888888888888888888888888888"""
 </pre>
 
 # Molinete AI
@@ -46,8 +46,7 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 
-**Autor:** Jerónimo Hoyos Botero
-**Repositorio:** [JeroHoyos/Molinete-AI](https://github.com/JeroHoyos/Molinete-AI)
+**Autor:** Jerónimo Hoyos Botero  
 **Basado en:** [tag1consulting/feste](https://github.com/tag1consulting/feste)
 
 </div>
@@ -58,7 +57,7 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 
 Molinete AI es un fork de **Feste**, una implementación desde cero de un modelo Transformer tipo GPT-2 en Rust, desarrollada por Tag1 Consulting como acompañamiento a la serie *Building an LLM From Scratch in Rust*.
 
-Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **Molinete AI propone entrenarlo con la obra de Miguel de Cervantes**, estableciendo una interesante contraposición lingüística y cultural:
+Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **Molinete AI propone entrenarlo con la obra de Miguel de Cervantes**, estableciendo una contraposición lingüística y cultural:
 
 | Proyecto | Corpus | Idioma |
 |:---|:---|:---|
@@ -71,13 +70,13 @@ El objetivo no es solo replicar el experimento original, sino reinterpretarlo en
 
 ## ¿Por qué "Molinete"?
 
-El nombre rinde homenaje al universo cervantino. Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** hace referencia a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes — una metáfora perfecta para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
+Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes — una metáfora perfecta para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
 
 ---
 
 ## Sobre el proyecto
 
-Es un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** como PyTorch o TensorFlow.
+Un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** como PyTorch o TensorFlow.
 
 El propósito central es comprender cómo funcionan los modelos de lenguaje implementando cada componente explícitamente:
 
@@ -117,7 +116,7 @@ Config {
 ## Estructura del repositorio
 
 ```
-molinete-ai/
+Molinete-AI/
 ├── src/
 │   ├── layers/
 │   │   ├── activation.rs
@@ -138,13 +137,12 @@ molinete-ai/
 │   ├── registrador_entrenamiento.rs
 │   ├── tensor.rs
 │   └── tokenizador.rs
-├── examples/
-│   ├── presentation/          ← Animaciones Manim
-│   └── *.py                   ← Scripts de ejemplo Python
-├── cervantes.txt              ← Corpus de entrenamiento (ver DATA.md)
+├── examples/              ← Scripts de ejemplo en Rust
+├── presentation/          ← Animaciones Manim
 ├── Cargo.toml
 ├── pyproject.toml
-├── DATA.md                    ← Guía del corpus de datos
+├── download_data.py       ← Script de descarga del corpus
+├── DATA.md                ← Guía del corpus de datos
 └── README.md
 ```
 
@@ -155,8 +153,8 @@ molinete-ai/
 ### Requisitos
 
 - [Rust](https://rustup.rs/) 1.75+
-- Python 3.9+ (para los ejemplos Python y los bindings)
-- `maturin` para compilar los bindings PyO3
+- Python 3.9+
+- `maturin` para compilar los bindings PyO3:
 
 ```bash
 pip install maturin
@@ -176,7 +174,7 @@ python download_data.py
 # Genera: cervantes.txt (~5–7 MB)
 ```
 
-O manualmente desde Project Gutenberg (ver [DATA.md](DATA.md) para más detalles).
+Ver [DATA.md](DATA.md) para más detalles y opciones alternativas de descarga.
 
 ### 3. Compilar los bindings Python
 
@@ -184,19 +182,19 @@ O manualmente desde Project Gutenberg (ver [DATA.md](DATA.md) para más detalles
 maturin develop --release
 ```
 
-### 4. Ejecutar el lanzador interactivo
+### 4. Ejecutar los ejemplos
 
 ```bash
-python molineteai.py
-```
+# Con Rust (ver sección de ejemplos más abajo)
+cargo run --release --example 05_train_cervantes
 
-Esto abre el menú principal con todas las opciones disponibles, incluyendo los ejemplos de aprendizaje, los distintos tamaños de modelo y el chat con modelos entrenados.
+# Con Python (una vez compilados los bindings)
+python examples/05_entrenar_shakespeare_diminuto.py
+```
 
 ---
 
 ## Ejemplos en Rust
-
-También puedes ejecutar los ejemplos directamente con Cargo:
 
 ```bash
 # 1. Tokenización BPE con diferentes tamaños de vocabulario
@@ -214,7 +212,7 @@ cargo run --release --example 04_training_infrastructure
 # 5. Entrenamiento completo con la obra de Cervantes
 cargo run --release --example 05_train_cervantes
 
-# 6. Inferencia, generación de texto y prompts
+# 6. Inferencia, generación de texto y experimentación con prompts
 cargo run --release --example 06_promting
 ```
 
@@ -247,48 +245,31 @@ ids_out = modelo.generar(tok.codificar("En un lugar"), max_tokens=100, temperatu
 print(tok.decodificar(ids_out))
 ```
 
-Ver [la guía de integración de bindings](docs/bindings.md) para instrucciones detalladas de instalación y la API completa.
-
----
-
-## Menú interactivo (`molineteai.py`)
-
-El lanzador principal ofrece un menú con todas las funcionalidades:
-
-| Opción | Descripción |
-|:---:|:---|
-| `1` | Tokenizadores BPE — varios tamaños de vocabulario |
-| `2` | Operaciones tensoriales — matmul, softmax, máscaras causales |
-| `3` | Arquitectura GPT-2 — conteo de parámetros y benchmarks |
-| `4` | Infraestructura de entrenamiento — data loaders y logging |
-| `5` | Entrenar GPT-2 Diminuto (~170K params, ~5 min) |
-| `6` | Entrenar GPT-2 Pequeño (~200K params, ~15 min) |
-| `7` | Entrenar GPT-2 Mediano (~4M params, ~2 h) |
-| `8` | Entrenar GPT-2 Small completo (~163M params) |
-| `9` | Entrenador con presets (pocket-bard, spider, cyclops...) |
-| `10` | Chat con modelo entrenado |
-| `11` | Descargar corpus (Cervantes / Shakespeare) |
+Para la API completa e instrucciones de integración con tu propio proyecto Rust, consulta la guía de bindings en [`pyproject.toml`](pyproject.toml).
 
 ---
 
 ## Presentación
 
-Este proyecto incluye una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero. La presentación recorre paso a paso la tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva — desmontando la "magia" detrás de los grandes modelos de lenguaje.
+La carpeta `presentation/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
 
-Los archivos de la presentación están en `examples/presentation/`.
+```bash
+cd presentation
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 
 ## Diferencias frente al repositorio original
 
-Este fork enriquece el proyecto base con los siguientes aportes:
-
-1. **Corpus en español:** Sustitución de Shakespeare por Cervantes como datos de entrenamiento, con un script de descarga automatizado.
-2. **Scripts experimentales:** Permiten aislar y observar el comportamiento interno de cada componente del modelo.
-3. **Bindings Python completos:** API Python con PyO3/maturin para interactuar con el modelo desde Python.
-4. **Lanzador interactivo:** Menú en consola (`molineteai.py`) con animaciones y todas las opciones del proyecto.
-5. **Recursos visuales:** Presentación en Manim con animaciones de la arquitectura Transformer.
-6. **Documentación en español:** Explicaciones adicionales orientadas a la comprensión del código.
+| Aporte | Descripción |
+|:---|:---|
+| **Corpus en español** | Cervantes en lugar de Shakespeare, con script de descarga automatizado |
+| **Scripts experimentales** | Aíslan y muestran el comportamiento interno de cada componente |
+| **Bindings Python** | API completa con PyO3/maturin para usar el modelo desde Python |
+| **Presentación Manim** | Animaciones de la arquitectura Transformer para uso pedagógico |
+| **Documentación en español** | Explicaciones adicionales orientadas a la comprensión del código |
 
 ---
 
@@ -300,6 +281,6 @@ Distribuido bajo la licencia **Apache 2.0**. Ver [LICENSE](LICENSE) para más de
 
 <div align="center">
 
-*"No con quien naces, sino con quien paces."* — Miguel de Cervantes
+*"En un lugar de la Mancha, de cuyo nombre no quiero acordarme..."*
 
 </div>
