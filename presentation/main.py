@@ -1,4 +1,28 @@
-from re import S
+"""
+main.py — Presentación Manim: "Construyendo un Transformer con Rust"
+======================================================================
+Presentación interactiva (manim-slides) que explica, desde cero y con
+estética cervantina, cómo funciona un Transformer GPT-2 implementado
+en Rust (proyecto Molinete AI).
+
+Uso:
+    manim -pql main.py Presentacion      # renderiza en baja calidad
+    manim-slides Presentacion            # abre el presentador interactivo
+
+Estructura del archivo:
+    1. Imports
+    2. Configuración global  (fuente, paleta de colores)
+    3. Fragmentos de código Rust  (RUST_SNIPPETS)
+    4. Elementos decorativos cervantinos  (funciones crear_*)
+    5. Clase Presentacion
+       5a. construct()  — orden de las diapositivas
+       5b. Helpers de la clase  (crear_titulo, limpiar_pantalla…)
+       5c. Diapositivas  (slide_*)
+"""
+
+# =============================================================================
+# 1. IMPORTS
+# =============================================================================
 from manim import *
 from manim_slides import Slide
 from manim_code_blocks import *
@@ -6,19 +30,68 @@ import numpy as np
 import random
 import math
 
-# CONFIGURACIÓN GLOBAL
+
+# =============================================================================
+# 2. CONFIGURACIÓN GLOBAL
+# =============================================================================
+
+# --- Tipografía ---
 FUENTE = "Goudy Old Style"
 
+# =============================================================================
 # PALETA DE COLORES
-MARRON_OSCURO = "#3D3834"
-NARANJA_TERRACOTA = "#A36536"
-PAPEL_CREMA = "#F2E6D8"
-PAPEL_TAN = "#B78B68"
-FONDO_CAJA = "#FCF3E4"
-CAJA_INFERIOR = "#E0C2A8"
-TINTA_NEGRA = "#1A1A1A"
-SOFT_BG = PAPEL_CREMA
-RUST_COLOR = NARANJA_TERRACOTA
+# =============================================================================
+MARRON_OSCURO      = "#3D3834"  # Tinta oscura, bordes, texto secundario
+NARANJA_TERRACOTA  = "#A36536"  # Acento principal, resaltados, énfasis
+PAPEL_CREMA        = "#F2E6D8"  # Fondo de cajas y nodos
+PAPEL_TAN          = "#B78B68"  # Fondo alternativo (slide capa transformer)
+FONDO_CAJA         = "#FCF3E4"  # Fondo panel lateral
+CAJA_INFERIOR      = "#E0C2A8"  # Barra de probabilidad inferior
+TINTA_NEGRA        = "#1A1A1A"  # Texto principal
+NEGRO_SUAVE        = "#1E1E1E"  # Fondo de terminal oscuro
+BLANCO             = "#FFFFFF"  # Blanco puro
+MADERA_OSCURA      = "#3E2723"  # Decorativo: madera oscura (molino, lanza)
+MADERA_CLARA       = "#5D4037"  # Decorativo: madera clara (aspas, libros)
+LADRILLO           = "#8D6E63"  # Decorativo: ladrillo molino
+TERRACOTA          = "#BF360C"  # Decorativo: sol, cruz escudo
+TEJA               = "#D84315"  # Decorativo: techo molino
+HIERRO             = "#424242"  # Decorativo: metal oscuro (herradura, escudo)
+ACERO              = "#78909C"  # Decorativo: metal claro (punta lanza, umbo)
+PERGAMINO          = "#F4E4BC"  # Decorativo: pergamino / aspas
+ORO_VIEJO          = "#D4AF37"  # Decorativo: oro (sol, estrella, lomo libro)
+LATON              = "#B5A642"  # Decorativo: latón (tintero, estrella)
+ROJO_SANGRE        = "#8B0000"  # Decorativo: cubierta libro rojo
+AZUL_NOCHE         = "#000080"  # Decorativo: cubierta libro azul
+VERDE_BOSQUE       = "#228B22"  # Decorativo: cubierta libro verde
+TIERRA_MANCHEGA    = "#D4B872"  # Colina lejana (llanuras)
+ARENA_MANCHEGA     = "#E6D3A8"  # Colina media (llanuras)
+BARRO_MANCHEGO     = "#8B5A2B"  # Colina frontal (llanuras)
+ROJO_TOMATE        = "#E24A4A"  # Token resaltado (rojo)
+VERDE_OLIVA        = "#6B8E23"  # Token resaltado (verde)
+LAVANDA            = "#C4C4FF"  # Peso de atención w
+SALMON_CLARO       = "#F2D5CE"  # Fondo vector inestable
+CREMA_CALIDA       = "#E8DCC4"  # Fondo cajita / vector estable
+BEIGE_MEDIO        = "#D9C8AA"  # Fondo LayerNorm cajita
+LADRILLO_VIVO      = "#C0573E"  # Borde/resalte atención
+SALMON_ATENCION    = "#E6A87C"  # Fondo cajita Attention
+ARENA_DORADA       = "#C2B280"  # Fondo cajita MLP
+NARANJA_CLARO      = "#FFCC99"  # Caja matmul diagrama
+AMARILLO_PALIDO    = "#FFFFCC"  # Caja scale diagrama
+MENTA_PALIDA       = "#CCFFCC"  # Caja softmax diagrama
+PERGAMINO_CLARO    = "#F4EBD0"  # Fondo atención backdrop
+ROJO_MAC           = "#FF5F56"  # Botón rojo macOS
+AMARILLO_MAC       = "#FFBD2E"  # Botón amarillo macOS
+VERDE_MAC          = "#27C93F"  # Botón verde macOS
+OCRE_CERVANTINO    = "#C9A84C"  # Color cuarta imagen pixelada
+MARRON_QUIJOTE     = "#8B2500"  # Color secundario slides entrenamiento
+ROJO_CONTRA        = "#B33A3A"  # Color contraste backprop
+
+# =============================================================================
+# 3. FRAGMENTOS DE CÓDIGO RUST  (RUST_SNIPPETS)
+# =============================================================================
+# Diccionario que mapea nombre_de_archivo → código fuente Rust.
+# Cada entrada se muestra en pantalla con `self.mostrar_snippet(clave)`.
+# Los comentarios dentro del código son parte de la presentación educativa.
 
 RUST_SNIPPETS = {
     "matmul_base.rs": """for i in 0..m {
@@ -364,79 +437,113 @@ impl TrainableMLP {
 }"""
 }
 
-C_MADERA_OSCURA = "#3E2723"
-C_MADERA_CLARA = "#5D4037"
-C_LADRILLO = "#8D6E63"
-C_TERRACOTA = "#BF360C"
-C_TEJA = "#D84315"
-C_HIERRO = "#424242"
-C_ACERO = "#78909C"
-C_PERGAMINO = "#F4E4BC"
-C_TINTA = "#1A1A1A"
-C_ORO_VIEJO = "#D4AF37"
-C_LATON = "#B5A642"
-C_ROJO_SANGRE = "#8B0000"
-C_AZUL_NOCHE = "#000080"
-C_VERDE_BOSQUE = "#228B22"
+# =============================================================================
+# 4. ELEMENTOS DECORATIVOS CERVANTINOS
+# =============================================================================
+# Funciones de fábrica que devuelven VGroup / ImageMobject de Manim.
+# Todas son puras (no tienen side-effects) y se pueden usar en cualquier slide.
+#
+# Índice rápido:
+#   crear_llanuras_manchegas()  — fondo de colinas
+#   crear_molino()              — molino de viento animable
+#   crear_sol_cervantino()      — sol con cara y rayos
+#   crear_estrella()            — estrella dorada de 4 puntas
+#   crear_tintero_y_pluma()     — tintero con pluma de ave
+#   crear_pila_libros()         — 3 libros apilados
+#   crear_escudo_y_lanza()      — escudo redondo con lanza
+#   crear_herradura()           — herradura metálica
+#   crear_rueda_carreta()       — rueda de carreta con radios
+#   crear_pergamino()           — pergamino enrollado con sello
+#   crear_yelmo_mambrino()      — yelmo de latón (la bacía)
+#   crear_rust_quijote()        — imagen assets/quijote_rust.png
+#   crear_rust_sancho()         — imagen assets/sancho_rust.png
 
 def crear_llanuras_manchegas():
-    colina_fondo = Ellipse(width=18, height=6, fill_color="#D4B872", fill_opacity=0.06, stroke_width=0)
+    """Fondo de colinas manchegas (tres elipses semitransparentes).
+
+    Se coloca en z_index=-10 para que quede siempre detrás de todo.
+
+    Returns:
+        VGroup con las tres colinas.
+    """
+    # Se mantienen simples para no recargar el fondo, pero ajustamos un poco las proporciones
+    colina_fondo = Ellipse(width=18, height=6, fill_color=TIERRA_MANCHEGA, fill_opacity=0.06, stroke_width=0)
     colina_fondo.move_to(DOWN * 3.5 + LEFT * 3)
     
-    colina_media = Ellipse(width=16, height=4, fill_color="#E6D3A8", fill_opacity=0.08, stroke_width=0)
+    colina_media = Ellipse(width=16, height=4, fill_color=ARENA_MANCHEGA, fill_opacity=0.08, stroke_width=0)
     colina_media.move_to(DOWN * 3.8 + RIGHT * 3)
     
-    colina_frente = Ellipse(width=20, height=3.5, fill_color="#8B5A2B", fill_opacity=0.05, stroke_width=0)
+    colina_frente = Ellipse(width=20, height=3.5, fill_color=BARRO_MANCHEGO, fill_opacity=0.05, stroke_width=0)
     colina_frente.move_to(DOWN * 4)
     
     llanuras = VGroup(colina_fondo, colina_media, colina_frente).set_z_index(-10)
     return llanuras
 
 def crear_molino():
+    """Molino de viento cervantino con aspas animables.
+
+    Las aspas se exponen como último elemento del VGroup,
+    por lo que puedes animarlas con::
+
+        molino[-1].add_updater(lambda m, dt: m.rotate(-dt * 0.8))
+
+    Returns:
+        VGroup(base, ladrillo, techo, puerta, ventana, aspas).
+    """
     base_molino = Polygon(
         [-0.45, -0.6, 0], [0.45, -0.6, 0], [0.3, 0.4, 0], [-0.3, 0.4, 0], 
-        fill_color=C_LADRILLO, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=3
+        fill_color=LADRILLO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=3
     )
     
     lineas_ladrillo = VGroup(*[
-        Line([LEFT_X, -0.4 + i*0.2, 0], [RIGHT_X, -0.4 + i*0.2, 0], color=C_MADERA_OSCURA, stroke_width=1, stroke_opacity=0.5)
+        Line([LEFT_X, -0.4 + i*0.2, 0], [RIGHT_X, -0.4 + i*0.2, 0], color=MADERA_OSCURA, stroke_width=1, stroke_opacity=0.5)
         for i, (LEFT_X, RIGHT_X) in enumerate([(-0.4, 0.4), (-0.35, 0.35), (-0.32, 0.32)])
     ])
     
     techo = Polygon(
         [-0.35, 0.4, 0], [0.35, 0.4, 0], [0, 0.9, 0],
-        fill_color=C_TEJA, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=3
+        fill_color=TEJA, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=3
     )
-    
-    puerta = RoundedRectangle(
-        corner_radius=0.1, width=0.3, height=0.4, fill_color=C_MADERA_OSCURA, fill_opacity=1
-    ).move_to(base_molino.get_bottom() + UP*0.2)
-    
-    ventana = Circle(radius=0.08, fill_color=C_TINTA, stroke_color=C_MADERA_OSCURA, stroke_width=2).move_to(base_molino.get_center() + UP*0.1)
+    marco_puerta = RoundedRectangle(corner_radius=0.1, width=0.35, height=0.45, fill_color=MADERA_OSCURA, stroke_width=0).move_to(base_molino.get_bottom() + UP*0.2)
+    puerta = RoundedRectangle(corner_radius=0.1, width=0.25, height=0.35, fill_color=MADERA_CLARA, stroke_color=MADERA_OSCURA, stroke_width=1).move_to(marco_puerta.get_bottom() + UP*0.17)
+    ventana_marco = Circle(radius=0.1, fill_color=MADERA_OSCURA, stroke_width=0).move_to(base_molino.get_center() + UP*0.1)
+    ventana = Circle(radius=0.07, fill_color=TINTA_NEGRA, stroke_width=0).move_to(ventana_marco)
+    reja_v = Line(ventana.get_top(), ventana.get_bottom(), color=MADERA_OSCURA, stroke_width=1.5)
+    reja_h = Line(ventana.get_left(), ventana.get_right(), color=MADERA_OSCURA, stroke_width=1.5)
     
     def crear_aspa():
-        eje = Line(ORIGIN, RIGHT*0.8, stroke_color=C_MADERA_OSCURA, stroke_width=3)
-        marco = Rectangle(width=0.6, height=0.25, fill_color=C_PERGAMINO, fill_opacity=0.9, stroke_color=C_MADERA_OSCURA, stroke_width=2)
+        eje = Line(ORIGIN, RIGHT*0.8, stroke_color=MADERA_OSCURA, stroke_width=3)
+        marco = Rectangle(width=0.6, height=0.25, fill_color=PERGAMINO, fill_opacity=0.9, stroke_color=MADERA_OSCURA, stroke_width=2)
         marco.next_to(eje.get_start(), RIGHT, buff=0.15)
         entramado = VGroup(
-            Line(marco.get_top(), marco.get_bottom(), color=C_MADERA_OSCURA, stroke_width=1),
-            Line(marco.get_left(), marco.get_right(), color=C_MADERA_OSCURA, stroke_width=1)
+            Line(marco.get_top(), marco.get_bottom(), color=MADERA_OSCURA, stroke_width=1),
+            Line(marco.get_left(), marco.get_right(), color=MADERA_OSCURA, stroke_width=1),
+            Line(marco.get_left() + RIGHT*0.15, marco.get_right() + LEFT*0.45, color=MADERA_OSCURA, stroke_width=1),
+            Line(marco.get_right() + LEFT*0.15, marco.get_left() + RIGHT*0.45, color=MADERA_OSCURA, stroke_width=1)
         )
         return VGroup(eje, marco, entramado)
 
     aspas = VGroup(*[crear_aspa().rotate(i * PI/2, about_point=ORIGIN) for i in range(4)])
-    centro = Dot(ORIGIN, color=C_HIERRO, radius=0.08)
-    sistema_aspas = VGroup(aspas, centro).move_to(techo.get_bottom() + UP*0.15)
+    centro = Dot(ORIGIN, color=HIERRO, radius=0.08)
+    centro_detalle = Dot(ORIGIN, color=ACERO, radius=0.03)
+    sistema_aspas = VGroup(aspas, centro, centro_detalle).move_to(techo.get_bottom() + UP*0.15)
     
-    return VGroup(base_molino, lineas_ladrillo, techo, puerta, ventana, sistema_aspas)
+    return VGroup(base_molino, lineas_ladrillo, techo, marco_puerta, puerta, ventana_marco, ventana, reja_v, reja_h, sistema_aspas)
 
 def crear_sol_cervantino():
-    centro_borde = Circle(radius=0.28, fill_color=C_TERRACOTA, stroke_width=0)
-    centro = Circle(radius=0.25, fill_color=C_ORO_VIEJO, stroke_color=C_TERRACOTA, stroke_width=3)
+    """Sol decorativo con cara y 16 rayos alternos.
+
+    Returns:
+        VGroup(rayos, cuerpo, cara).
+    """
+    centro_borde = Circle(radius=0.28, fill_color=TERRACOTA, stroke_width=0)
+    centro = Circle(radius=0.25, fill_color=ORO_VIEJO, stroke_color=TERRACOTA, stroke_width=3)
+    anillo_interior = Circle(radius=0.20, stroke_color=TERRACOTA, stroke_width=1, stroke_opacity=0.5)
+    
     cara = VGroup(
-        Arc(radius=0.1, start_angle=PI, angle=PI, color=C_TERRACOTA, stroke_width=2).shift(DOWN*0.05),
-        Dot(radius=0.02, color=C_TERRACOTA).shift(LEFT*0.08 + UP*0.05),
-        Dot(radius=0.02, color=C_TERRACOTA).shift(RIGHT*0.08 + UP*0.05)
+        Arc(radius=0.1, start_angle=PI, angle=PI, color=TERRACOTA, stroke_width=2).shift(DOWN*0.05),
+        Dot(radius=0.02, color=TERRACOTA).shift(LEFT*0.08 + UP*0.05),
+        Dot(radius=0.02, color=TERRACOTA).shift(RIGHT*0.08 + UP*0.05)
     )
     
     rayos = VGroup()
@@ -445,281 +552,460 @@ def crear_sol_cervantino():
         length = 0.5 if i % 2 == 0 else 0.35
         rayo = Polygon(
             [0.28, -0.05, 0], [0.28, 0.05, 0], [length, 0, 0],
-            fill_color=C_ORO_VIEJO if i % 2 == 0 else C_TERRACOTA, fill_opacity=1, stroke_width=0
+            fill_color=ORO_VIEJO if i % 2 == 0 else TERRACOTA, fill_opacity=1, stroke_width=0
         ).rotate(angle, about_point=ORIGIN)
         rayos.add(rayo)
         
-    return VGroup(rayos, centro_borde, centro, cara)
+    return VGroup(rayos, centro_borde, centro, anillo_interior, cara)
 
 def crear_estrella():
+    """Estrella dorada de 4 puntas con brillo central.
+
+    Pensada para girar con un updater::
+
+        estrella.add_updater(lambda m, dt: m.rotate(dt * 0.5))
+
+    Returns:
+        VGroup(puntas, brillo).
+    """
     puntas = VGroup()
     for i in range(4):
         angle = i * (PI / 2)
-        mitad_clara = Polygon([0,0,0], [0.05,0.05,0], [0,0.25,0], fill_color=C_ORO_VIEJO, fill_opacity=1, stroke_width=0)
-        mitad_oscura = Polygon([0,0,0], [-0.05,0.05,0], [0,0.25,0], fill_color=C_LATON, fill_opacity=1, stroke_width=0)
+        mitad_clara = Polygon([0,0,0], [0.05,0.05,0], [0,0.25,0], fill_color=ORO_VIEJO, fill_opacity=1, stroke_width=0)
+        mitad_oscura = Polygon([0,0,0], [-0.05,0.05,0], [0,0.25,0], fill_color=LATON, fill_opacity=1, stroke_width=0)
         punta = VGroup(mitad_clara, mitad_oscura).rotate(angle, about_point=ORIGIN)
         puntas.add(punta)
-    return puntas
+    centro_brillo = Dot(ORIGIN, radius=0.03, color=BLANCO)
+    return VGroup(puntas, centro_brillo)
 
 def crear_tintero_y_pluma():
+    """Tintero negro con pluma de ave y gotas de tinta.
+
+    Returns:
+        VGroup(tintero, pluma, cortes, tallo, punta, gotas).
+    """
     cuerpo = Polygon(
         [-0.25, -0.2, 0], [0.25, -0.2, 0], [0.2, 0.15, 0], [-0.2, 0.15, 0],
-        fill_color=C_TINTA, fill_opacity=1, stroke_color=C_LATON, stroke_width=2
+        fill_color=TINTA_NEGRA, fill_opacity=1, stroke_color=LATON, stroke_width=2
     )
     brillo = Polygon(
         [-0.15, -0.15, 0], [-0.05, -0.15, 0], [-0.05, 0.1, 0], [-0.1, 0.1, 0],
-        fill_color=C_ACERO, fill_opacity=0.3, stroke_width=0
+        fill_color=ACERO, fill_opacity=0.4, stroke_width=0
     )
-    tapa = Rectangle(width=0.3, height=0.08, fill_color=C_LATON, stroke_width=0).next_to(cuerpo, UP, buff=0)
-    cuello = Rectangle(width=0.2, height=0.06, fill_color=C_TINTA, stroke_width=0).next_to(tapa, UP, buff=0)
+    tapa = Rectangle(width=0.3, height=0.08, fill_color=LATON, stroke_width=0).next_to(cuerpo, UP, buff=0)
+    cuello = Rectangle(width=0.2, height=0.06, fill_color=TINTA_NEGRA, stroke_width=0).next_to(tapa, UP, buff=0)
     tintero = VGroup(cuerpo, brillo, tapa, cuello)
 
-    tallo = Line(cuello.get_top(), cuello.get_top() + UP*1.4 + RIGHT*0.8, color=C_PERGAMINO, stroke_width=3)
-    punta_pluma = Triangle(fill_color=C_TINTA, stroke_width=0).scale(0.08).move_to(tallo.get_start()).rotate(PI)
+    tallo = Line(cuello.get_top(), cuello.get_top() + UP*1.4 + RIGHT*0.8, color=PERGAMINO, stroke_width=3)
+    punta_pluma = Triangle(fill_color=TINTA_NEGRA, stroke_width=0).scale(0.08).move_to(tallo.get_start()).rotate(PI)
     
     pluma_forma = Polygon(
         tallo.get_start() + UP*0.1, tallo.get_start() + UP*0.6 + LEFT*0.3, tallo.get_end() + LEFT*0.1,
         tallo.get_end(), tallo.get_end() + DOWN*0.3 + RIGHT*0.2, tallo.get_start() + RIGHT*0.1 + UP*0.1,
-        fill_color=C_PERGAMINO, fill_opacity=1, stroke_color=C_MADERA_CLARA, stroke_width=1
+        fill_color=PERGAMINO, fill_opacity=1, stroke_color=MADERA_CLARA, stroke_width=1
     )
     cortes = VGroup(
-        Line(tallo.get_start() + UP*0.4 + LEFT*0.15, tallo.get_start() + UP*0.35, color=C_MADERA_CLARA, stroke_width=2),
-        Line(tallo.get_end() + DOWN*0.4, tallo.get_end() + DOWN*0.3 + RIGHT*0.1, color=C_MADERA_CLARA, stroke_width=2)
+        Line(tallo.get_start() + UP*0.4 + LEFT*0.15, tallo.get_start() + UP*0.35, color=MADERA_CLARA, stroke_width=2),
+        Line(tallo.get_start() + UP*0.6 + LEFT*0.2, tallo.get_start() + UP*0.5, color=MADERA_CLARA, stroke_width=2),
+        Line(tallo.get_end() + DOWN*0.4, tallo.get_end() + DOWN*0.3 + RIGHT*0.1, color=MADERA_CLARA, stroke_width=2),
+        Line(tallo.get_end() + DOWN*0.6 + LEFT*0.1, tallo.get_end() + DOWN*0.45 + RIGHT*0.05, color=MADERA_CLARA, stroke_width=2)
     )
     
     gotas = VGroup(
-        Dot(radius=0.04, color=C_TINTA).move_to(cuello.get_right() + RIGHT*0.2 + UP*0.2),
-        Dot(radius=0.02, color=C_TINTA).move_to(cuello.get_right() + RIGHT*0.35 + UP*0.05),
-        Dot(radius=0.03, color=C_TINTA).move_to(cuello.get_left() + LEFT*0.1 + UP*0.1)
+        Dot(radius=0.04, color=TINTA_NEGRA).move_to(cuello.get_right() + RIGHT*0.2 + UP*0.2),
+        Dot(radius=0.02, color=TINTA_NEGRA).move_to(cuello.get_right() + RIGHT*0.35 + UP*0.05),
+        Dot(radius=0.03, color=TINTA_NEGRA).move_to(cuello.get_left() + LEFT*0.1 + UP*0.1)
     )
     
     return VGroup(tintero, pluma_forma, cortes, tallo, punta_pluma, gotas)
 
 def crear_pila_libros():
+    """Pila de tres libros con marcapáginas dorado.
+
+    Returns:
+        VGroup(libro1, marcapaginas, libro2, libro3).
+    """
     def crear_libro(ancho, alto, color_cubierta, color_paginas, rotacion, desplazamiento):
-        cubierta = RoundedRectangle(corner_radius=0.05, width=ancho, height=alto, fill_color=color_cubierta, fill_opacity=1, stroke_color=C_TINTA, stroke_width=2)
+        cubierta = RoundedRectangle(corner_radius=0.05, width=ancho, height=alto, fill_color=color_cubierta, fill_opacity=1, stroke_color=TINTA_NEGRA, stroke_width=2)
+        brillo_cubierta = Line(cubierta.get_corner(UL) + RIGHT*0.05, cubierta.get_corner(UR) + LEFT*0.05, color=BLANCO, stroke_width=2, stroke_opacity=0.3)
+        
         paginas = Rectangle(width=ancho-0.1, height=alto-0.08, fill_color=color_paginas, stroke_width=0).move_to(cubierta).align_to(cubierta, RIGHT).shift(LEFT*0.02)
-        lineas_pag = VGroup(*[Line(paginas.get_left() + UP*(alto/2 - 0.08 - i*0.04), paginas.get_right() + UP*(alto/2 - 0.08 - i*0.04), color=C_MADERA_CLARA, stroke_width=1) for i in range(int(alto/0.05))])
-        lomo_detalle = Line(cubierta.get_left() + UP*(alto/3), cubierta.get_left() + DOWN*(alto/3), color=C_ORO_VIEJO, stroke_width=2).shift(RIGHT*0.15)
-        libro = VGroup(cubierta, paginas, lineas_pag, lomo_detalle).rotate(rotacion).shift(desplazamiento)
+        lineas_pag = VGroup(*[Line(paginas.get_left() + UP*(alto/2 - 0.08 - i*0.04), paginas.get_right() + UP*(alto/2 - 0.08 - i*0.04), color=MADERA_CLARA, stroke_width=1) for i in range(int(alto/0.05))])
+        lomo_detalle = Line(cubierta.get_left() + UP*(alto/3), cubierta.get_left() + DOWN*(alto/3), color=ORO_VIEJO, stroke_width=2).shift(RIGHT*0.15)
+        
+        libro = VGroup(cubierta, brillo_cubierta, paginas, lineas_pag, lomo_detalle).rotate(rotacion).shift(desplazamiento)
         return libro
 
-    libro1 = crear_libro(1.5, 0.35, C_ROJO_SANGRE, C_PERGAMINO, 0, ORIGIN)
-    libro2 = crear_libro(1.3, 0.3, C_AZUL_NOCHE, C_PERGAMINO, 2 * DEGREES, UP*0.32 + LEFT*0.05)
-    marcapaginas = Rectangle(width=0.08, height=0.5, fill_color=C_ORO_VIEJO, stroke_width=1, stroke_color=C_TINTA).move_to(libro2.get_right() + LEFT*0.3 + DOWN*0.2)
-    libro3 = crear_libro(1.2, 0.25, C_VERDE_BOSQUE, C_PERGAMINO, -8 * DEGREES, UP*0.58 + RIGHT*0.05)
+    libro1 = crear_libro(1.5, 0.35, ROJO_SANGRE, PERGAMINO, 0, ORIGIN)
+    libro2 = crear_libro(1.3, 0.3, AZUL_NOCHE, PERGAMINO, 2 * DEGREES, UP*0.32 + LEFT*0.05)
+    marcapaginas = Rectangle(width=0.08, height=0.5, fill_color=ORO_VIEJO, stroke_width=1, stroke_color=TINTA_NEGRA).move_to(libro2.get_right() + LEFT*0.3 + DOWN*0.2)
+    libro3 = crear_libro(1.2, 0.25, VERDE_BOSQUE, PERGAMINO, -8 * DEGREES, UP*0.58 + RIGHT*0.05)
 
     return VGroup(libro1, marcapaginas, libro2, libro3)
 
 def crear_escudo_y_lanza():
-    astil = Line(DOWN*1.2 + LEFT*0.6, UP*1.2 + RIGHT*0.6, color=C_MADERA_OSCURA, stroke_width=6)
-    punta_base = Polygon(astil.get_end() + LEFT*0.1 + DOWN*0.05, astil.get_end() + RIGHT*0.1 + DOWN*0.05, astil.get_end() + UP*0.3 + RIGHT*0.15, fill_color=C_ACERO, stroke_color=C_HIERRO, stroke_width=2)
+    """Escudo redondo con cruz roja y lanza de caballero.
+
+    Returns:
+        VGroup(astil, empunadura, punta, escudo).
+    """
+    # 1. El Astil (Cuerpo de la lanza)
+    astil = Line(DOWN*1.2 + LEFT*0.6, UP*1.2 + RIGHT*0.6, color=MADERA_OSCURA, stroke_width=6)
+    vector_dir = astil.get_unit_vector()
+    angulo_astil = astil.get_angle()
+
+    # 2. Empuñadura (Cuero entrelazado/envuelto)
+    # Creamos varias líneas inclinadas a lo largo de un segmento del astil
+    centro_empunadura = astil.get_center() + DOWN*0.4
+    empunadura = VGroup(*[
+        Line(LEFT*0.12, RIGHT*0.12, color=TINTA_NEGRA, stroke_width=4)
+        .rotate(angulo_astil + PI/6) # Inclinación para simular envoltura
+        .move_to(centro_empunadura + vector_dir * (i * 0.04))
+        for i in range(-5, 6)
+    ])
+
+    # 3. Punta de la lanza (Construida simétrica y luego rotada al ángulo correcto)
+    punta_base = Polygon(
+        UP*0.4, RIGHT*0.12, DOWN*0.1, LEFT*0.12,
+        fill_color=ACERO, fill_opacity=1, stroke_color=HIERRO, stroke_width=1.5
+    )
+    # Reflejo que toma solo la mitad derecha de la punta
+    brillo_punta = Polygon(
+        UP*0.4, RIGHT*0.12, DOWN*0.1,
+        fill_color=WHITE, fill_opacity=0.4, stroke_width=0
+    )
+    punta = VGroup(punta_base, brillo_punta)
+    punta.rotate(angulo_astil - PI/2) # Alinear perpendicularmente
+    punta.move_to(astil.get_end() + vector_dir * 0.15) # Anclar a la punta exacta
+
+    # 4. Construcción del Escudo
+    centro_escudo = astil.get_center() + DOWN*0.2 + RIGHT*0.2
     
-    escudo_borde = Circle(radius=0.55, fill_color=C_HIERRO, stroke_width=0)
-    escudo_fondo = Circle(radius=0.45, fill_color=C_MADERA_CLARA, stroke_width=0)
-    cruz_v = Rectangle(width=0.15, height=0.9, fill_color=C_TERRACOTA, stroke_width=0)
-    cruz_h = Rectangle(width=0.9, height=0.15, fill_color=C_TERRACOTA, stroke_width=0)
+    sombra_escudo = Circle(radius=0.55, fill_color=BLACK, fill_opacity=0.3, stroke_width=0).shift(DR*0.06)
+    escudo_borde = Circle(radius=0.55, fill_color=HIERRO, stroke_color=ACERO, stroke_width=3)
+    escudo_fondo = Circle(radius=0.48, fill_color=MADERA_CLARA, stroke_color=MADERA_OSCURA, stroke_width=1.5)
     
-    remaches = VGroup(*[Dot(radius=0.03, color=C_ACERO).move_to(escudo_borde.point_at_angle(i * PI/6)).shift(IN*0.05) for i in range(12)])
+    # Cruz pintada sobre la madera
+    cruz_v = Rectangle(width=0.18, height=0.96, fill_color=TERRACOTA, fill_opacity=0.9, stroke_width=0)
+    cruz_h = Rectangle(width=0.96, height=0.18, fill_color=TERRACOTA, fill_opacity=0.9, stroke_width=0)
     
-    escudo = VGroup(escudo_borde, escudo_fondo, cruz_v, cruz_h, remaches).move_to(astil.get_center() + DOWN*0.2 + RIGHT*0.2)
-    return VGroup(astil, punta_base, escudo)
+    # Umbo central (El característico domo de metal en el centro del escudo)
+    umbo_base = Circle(radius=0.15, fill_color=ACERO, stroke_color=HIERRO, stroke_width=2)
+    umbo_brillo = Arc(radius=0.1, start_angle=PI/4, angle=PI/2, color=WHITE, stroke_width=2, stroke_opacity=0.5)
+    
+    # Brillo perimetral del escudo
+    brillo_escudo = Arc(radius=0.49, start_angle=PI/3, angle=PI/2.5, color=WHITE, stroke_width=3, stroke_opacity=0.4)
+    
+    # Remaches con detalle 3D (un pequeño punto blanco para el brillo especular)
+    remaches = VGroup(*[
+        VGroup(
+            Dot(radius=0.025, color=HIERRO),
+            Dot(radius=0.01, color=WHITE).shift(UL*0.008)
+        ).move_to(escudo_borde.point_at_angle(i * PI/6))
+        for i in range(12)
+    ])
+    
+    # Ensamblamos el escudo y lo movemos a su posición final
+    escudo = VGroup(
+        sombra_escudo, escudo_borde, escudo_fondo, 
+        cruz_v, cruz_h, umbo_base, umbo_brillo, 
+        brillo_escudo, remaches
+    ).move_to(centro_escudo)
+    
+    return VGroup(astil, empunadura, punta, escudo)
 
 def crear_herradura():
+    """Herradura metálica con agujeros para clavos.
+
+    Returns:
+        VGroup(cuerpo, borde_interior, brillo, agujeros).
+    """
     cuerpo = AnnularSector(
         inner_radius=0.25, outer_radius=0.45, angle=PI*1.4, start_angle=-PI*0.2, 
-        fill_color=C_HIERRO, fill_opacity=1, stroke_color=C_TINTA, stroke_width=2
+        fill_color=HIERRO, fill_opacity=1, stroke_color=TINTA_NEGRA, stroke_width=2
     ).rotate(-PI/2 - PI*0.2)
     
     borde_interior = AnnularSector(
         inner_radius=0.32, outer_radius=0.38, angle=PI*1.3, start_angle=-PI*0.15,
-        fill_color=C_TINTA, fill_opacity=0.3, stroke_width=0
+        fill_color=TINTA_NEGRA, fill_opacity=0.3, stroke_width=0
     ).rotate(-PI/2 - PI*0.15)
+    brillo_metal = AnnularSector(
+        inner_radius=0.38, outer_radius=0.42, angle=PI*0.5, start_angle=PI*0.3,
+        fill_color=BLANCO, fill_opacity=0.3, stroke_width=0
+    ).rotate(-PI/2 - PI*0.2)
     
     agujeros = VGroup()
     for i in range(7):
         angulo = i * (PI/5) + PI*0.1
-        punto = Rectangle(width=0.02, height=0.06, fill_color=C_TINTA, stroke_width=0).move_to(
+        punto = Rectangle(width=0.02, height=0.06, fill_color=TINTA_NEGRA, stroke_width=0).move_to(
             [0.35 * np.cos(angulo), 0.35 * np.sin(angulo), 0]
         ).rotate(angulo + PI/2)
         agujeros.add(punto)
     
-    herradura = VGroup(cuerpo, borde_interior, agujeros).rotate(-PI*0.2)
+    herradura = VGroup(cuerpo, borde_interior, brillo_metal, agujeros).rotate(-PI*0.2)
     return herradura
 
 def crear_rueda_carreta():
-    aro_hierro = Circle(radius=0.6, stroke_color=C_HIERRO, stroke_width=8)
-    aro_madera = Circle(radius=0.54, stroke_color=C_MADERA_CLARA, stroke_width=12)
-    centro_madera = Circle(radius=0.15, fill_color=C_MADERA_OSCURA, stroke_color=C_HIERRO, stroke_width=3)
-    eje = Dot(radius=0.05, color=C_HIERRO)
+    """Rueda de carreta con 12 radios y aro de hierro.
+
+    Returns:
+        VGroup(radios, aros, centro, eje).
+    """
+    aro_hierro = Circle(radius=0.6, stroke_color=HIERRO, stroke_width=8)
+    aro_madera = Circle(radius=0.54, stroke_color=MADERA_CLARA, stroke_width=12)
+    aro_madera_interior = Circle(radius=0.48, stroke_color=MADERA_OSCURA, stroke_width=1, stroke_opacity=0.6)
+    
+    centro_madera = Circle(radius=0.15, fill_color=MADERA_OSCURA, stroke_color=HIERRO, stroke_width=3)
+    eje = Dot(radius=0.05, color=HIERRO)
     
     radios = VGroup(*[
-        Polygon([-0.03, 0.15, 0], [0.03, 0.15, 0], [0.02, 0.5, 0], [-0.02, 0.5, 0], fill_color=C_MADERA_CLARA, stroke_color=C_MADERA_OSCURA, stroke_width=1).rotate(i * PI/6, about_point=ORIGIN)
+        Polygon([-0.03, 0.15, 0], [0.03, 0.15, 0], [0.02, 0.5, 0], [-0.02, 0.5, 0], fill_color=MADERA_CLARA, stroke_color=MADERA_OSCURA, stroke_width=1).rotate(i * PI/6, about_point=ORIGIN)
         for i in range(12)
     ])
     
-    remaches = VGroup(*[Dot(radius=0.02, color=C_ACERO).move_to(aro_hierro.point_at_angle(i * PI/6)) for i in range(12)])
+    remaches = VGroup(*[Dot(radius=0.02, color=ACERO).move_to(aro_hierro.point_at_angle(i * PI/6)) for i in range(12)])
     
-    return VGroup(radios, aro_madera, aro_hierro, remaches, centro_madera, eje)
+    return VGroup(radios, aro_madera, aro_madera_interior, aro_hierro, remaches, centro_madera, eje)
 
 def crear_pergamino():
+    """Pergamino enrollado con líneas de texto y sello de cera.
+
+    Returns:
+        VGroup(cuerpo, rollos, lineas, cintas, sello).
+    """
     cuerpo = Polygon(
         [-0.4, 0.6, 0], [0.4, 0.6, 0], [0.35, -0.6, 0], [-0.45, -0.6, 0],
-        fill_color=C_PERGAMINO, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=2
+        fill_color=PERGAMINO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2
     )
     
-    rollo_sup = RoundedRectangle(corner_radius=0.1, width=1.0, height=0.25, fill_color=C_PERGAMINO, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=2).move_to(UP*0.6)
-    rollo_sup_espiral = Arc(radius=0.08, start_angle=0, angle=PI*1.5, color=C_MADERA_OSCURA, stroke_width=2).move_to(rollo_sup.get_right() + LEFT*0.1)
+    rollo_sup = RoundedRectangle(corner_radius=0.1, width=1.0, height=0.25, fill_color=PERGAMINO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2).move_to(UP*0.6)
+    rollo_sup_espiral = Arc(radius=0.08, start_angle=0, angle=PI*1.5, color=MADERA_OSCURA, stroke_width=2).move_to(rollo_sup.get_right() + LEFT*0.1)
     
-    rollo_inf = RoundedRectangle(corner_radius=0.1, width=0.9, height=0.25, fill_color=C_PERGAMINO, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=2).move_to(DOWN*0.6)
-    rollo_inf_espiral = Arc(radius=0.08, start_angle=PI, angle=PI*1.5, color=C_MADERA_OSCURA, stroke_width=2).move_to(rollo_inf.get_left() + RIGHT*0.1)
+    rollo_inf = RoundedRectangle(corner_radius=0.1, width=0.9, height=0.25, fill_color=PERGAMINO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2).move_to(DOWN*0.6)
+    rollo_inf_espiral = Arc(radius=0.08, start_angle=PI, angle=PI*1.5, color=MADERA_OSCURA, stroke_width=2).move_to(rollo_inf.get_left() + RIGHT*0.1)
+    cinta1 = Line(cuerpo.get_bottom() + UP*0.2 + RIGHT*0.2, cuerpo.get_bottom() + DOWN*0.1 + RIGHT*0.1, color=ROJO_SANGRE, stroke_width=4)
+    cinta2 = Line(cuerpo.get_bottom() + UP*0.2 + RIGHT*0.2, cuerpo.get_bottom() + DOWN*0.15 + RIGHT*0.3, color=ROJO_SANGRE, stroke_width=4)
     
-    sello_cera = Circle(radius=0.15, fill_color=C_ROJO_SANGRE, stroke_color=C_TINTA, stroke_width=1).move_to(cuerpo.get_bottom() + UP*0.2 + RIGHT*0.2)
-    sello_detalle = Circle(radius=0.1, stroke_color=C_TINTA, stroke_width=1).move_to(sello_cera)
+    sello_cera = Circle(radius=0.15, fill_color=ROJO_SANGRE, stroke_color=TINTA_NEGRA, stroke_width=1).move_to(cuerpo.get_bottom() + UP*0.2 + RIGHT*0.2)
+    sello_detalle = Circle(radius=0.1, stroke_color=TINTA_NEGRA, stroke_width=1).move_to(sello_cera)
     
     lineas = VGroup()
     anchos = [0.6, 0.7, 0.5, 0.65, 0.4]
     for i, ancho in enumerate(anchos):
-        linea = Line(LEFT*(ancho/2), RIGHT*(ancho/2), color=C_TINTA, stroke_width=2).shift(UP*(0.3 - i*0.15))
+        linea = Line(LEFT*(ancho/2), RIGHT*(ancho/2), color=TINTA_NEGRA, stroke_width=2).shift(UP*(0.3 - i*0.15))
         lineas.add(linea)
         
-    return VGroup(cuerpo, rollo_sup, rollo_sup_espiral, rollo_inf, rollo_inf_espiral, lineas, sello_cera, sello_detalle)
+    return VGroup(cuerpo, rollo_sup, rollo_sup_espiral, rollo_inf, rollo_inf_espiral, lineas, cinta1, cinta2, sello_cera, sello_detalle)
 
 def crear_yelmo_mambrino():
+    """Yelmo de Mambrino (la famosa bacía de barbero).
+
+    Returns:
+        VGroup(cuenco, borde, brillo, remaches, muesca).
+    """
     cuenco = Arc(
         radius=0.5, start_angle=0, angle=PI, 
-        fill_color=C_LATON, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=2
+        fill_color=LATON, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2
     )
-    
     brillo = Arc(
         radius=0.4, start_angle=PI/4, angle=PI/3,
-        color=C_PERGAMINO, stroke_width=4, stroke_opacity=0.6
+        color=PERGAMINO, stroke_width=6, stroke_opacity=0.7
     )
     
     borde = RoundedRectangle(
         corner_radius=0.08, width=1.5, height=0.15, 
-        fill_color=C_LATON, fill_opacity=1, stroke_color=C_MADERA_OSCURA, stroke_width=2
+        fill_color=LATON, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2
     ).next_to(cuenco, DOWN, buff=-0.05)
-    
+    remaches_borde = VGroup(*[
+        Dot(radius=0.025, color=ORO_VIEJO).move_to(borde.get_left() + RIGHT*0.15 + RIGHT*i*0.2)
+        for i in range(7)
+    ])
     muesca = Arc(
         radius=0.18, start_angle=0, angle=PI, 
-        fill_color=WHITE, fill_opacity=1, stroke_width=2, stroke_color=C_MADERA_OSCURA
+        fill_color=NEGRO_SUAVE, fill_opacity=1, stroke_width=2, stroke_color=MADERA_OSCURA
     ).move_to(borde.get_bottom() + UP*0.08)
     
-    return VGroup(cuenco, borde, brillo, muesca)
+    return VGroup(cuenco, borde, brillo, remaches_borde, muesca)
 
 def crear_rust_quijote():
+    """Carga la imagen assets/quijote_rust.png centrada en ORIGIN.
+
+    Returns:
+        ImageMobject escalado a 0.3.
+    """
     logo = ImageMobject(r"assets\quijote_rust.png").scale(0.3)
     
     return logo.move_to(ORIGIN)
 
 def crear_rust_sancho():
+    """Carga la imagen assets/sancho_rust.png centrada en ORIGIN.
+
+    Returns:
+        ImageMobject escalado a 0.3.
+    """
     imagen_sancho = ImageMobject(r"assets\sancho_rust.png").scale(0.3)
     
     return imagen_sancho.move_to(ORIGIN)
 
+
+# =============================================================================
+# 5. CLASE PRESENTACION
+# =============================================================================
+# Hereda de Slide (manim-slides). Toda la lógica de animación vive aquí.
+#
+# Organización interna:
+#   5a. construct()          — punto de entrada; activa/desactiva slides
+#   5b. Helpers de instancia — utilidades reutilizables entre slides
+#   5c. Diapositivas         — un método por tema, llamados desde construct()
+
 class Presentacion(Slide):
+    # =========================================================================
+    # 5a. PUNTO DE ENTRADA
+    # =========================================================================
+
     def construct(self):
+        """Punto de entrada de Manim. Define el orden de las diapositivas.
+
+        Las líneas comentadas están disponibles pero desactivadas.
+        Descomenta las que quieras incluir en la presentación.
+        """
         self.camera.background_color = WHITE
         
         self.slide_pronto_iniciamos()
         self.slide_introduction()
-        self.slide_credits()
-        self.slide_que_es_transformer()
-        self.slide_molinete_ai()
-        self.slide_por_que_rust()
+        # self.slide_credits()
+        # self.slide_que_es_transformer()
+        # self.slide_molinete_ai()
+        # self.slide_por_que_rust()
 
-        self.slide_que_es_un_tensor()
-        self.mostrar_snippet("tensor.rs")
+        # self.slide_que_es_un_tensor()
+        # self.mostrar_snippet("tensor.rs")
         
-        self.slide_strides()
+        # self.slide_strides()
         
-        self.slide_matmul()
-        self.mostrar_snippet("matmul_base.rs")
-        self.mostrar_snippet("cache_blocking.rs")
-        self.mostrar_snippet("parallel_rayon.rs")
-        self.mostrar_snippet("batched_matmul.rs")
-        self.mostrar_snippet("simd_vectorization.rs")
+        # self.slide_matmul()
+        # self.mostrar_snippet("matmul_base.rs")
+        # self.mostrar_snippet("cache_blocking.rs")
+        # self.mostrar_snippet("parallel_rayon.rs")
+        # self.mostrar_snippet("batched_matmul.rs")
+        # self.mostrar_snippet("simd_vectorization.rs")
         
-        self.slide_softmax()
-        self.mostrar_snippet("softmax.rs")
+        # self.slide_softmax()
+        # self.mostrar_snippet("softmax.rs")
 
-        self.slide_forward_pass()
-        self.diapo_problema_strawberry()
+        # self.slide_forward_pass()
+        # self.slide_problema_strawberry()
         
-        self.diapo_tokenizacion()
-        self.mostrar_snippet("BDPtokenizer.rs")
+        # self.slide_tokenizacion()
+        # self.mostrar_snippet("BDPtokenizer.rs")
         
-        self.diapo_byte_pair_encoding()
-        self.mostrar_snippet("pair_counts.rs")
+        # self.slide_byte_pair_encoding()
+        # self.mostrar_snippet("pair_counts.rs")
         
-        self.diapo_tamano_vocabulario()
+        # self.slide_tamano_vocabulario()
         
-        self.slide_embeddings()
-        self.mostrar_snippet("embedding.rs")
+        # self.slide_embeddings()
+        # self.mostrar_snippet("embedding.rs")
         
-        self.slide_position_embeddings()
+        # self.slide_position_embeddings()
 
-        self.slide_layer_normalization()
-        self.mostrar_snippet("normalization.rs")
+        # self.slide_layer_normalization()
+        # self.mostrar_snippet("normalization.rs")
 
-        self.slide_mha_acto1_intuicion()
-        self.slide_mha_acto2_formula()
-        self.slide_mha_acto3_calculo()
-        self.slide_mha_acto4_multihead()
-        self.mostrar_snippet("attention.rs")
+        # self.slide_mha_acto1_intuicion()
+        # self.slide_mha_acto2_formula()
+        # self.slide_mha_acto3_calculo()
+        # self.slide_mha_acto4_multihead()
+        # self.mostrar_snippet("attention.rs")
 
-        self.mostrar_acto_arquitectura_neurona()
-        self.mostrar_snippet("mlp_forward.rs")
+        # self.slide_arquitectura_neurona()
+        # self.mostrar_snippet("mlp_forward.rs")
         
-        self.mostrar_acto_zoom_neurona()
-        self.mostrar_acto_activacion()
-        self.mostrar_snippet("gelu.rs")
+        # self.slide_zoom_neurona()
+        # self.slide_activacion()
+        # self.mostrar_snippet("gelu.rs")
         
-        self.slide_capa_transformer()
+        # self.slide_capa_transformer()
 
-        self.slide_entrenamiento()
-        self.mostrar_snippet("compute_loss.rs")
+        # self.slide_entrenamiento()
+        # self.mostrar_snippet("compute_loss.rs")
         
-        self.slide_descenso_gradiente()
-        self.mostrar_snippet("linear_backward.rs")
+        # self.slide_descenso_gradiente()
+        # self.mostrar_snippet("linear_backward.rs")
         
-        self.slide_backpropagation()
+        # self.slide_backpropagation()
         
-        self.slide_residual()
-        self.mostrar_snippet("block_backward.rs")
+        # self.slide_residual()
+        # self.mostrar_snippet("block_backward.rs")
         
-        self.slide_adam()
-        self.mostrar_snippet("adamw_update.rs")
+        # self.slide_adam()
+        # self.mostrar_snippet("adamw_update.rs")
         
-        self.slide_dropout()
-        self.mostrar_snippet("dropout.rs")
+        # self.slide_dropout()
+        # self.mostrar_snippet("dropout.rs")
         
-        self.slide_training_metrics()
+        # self.slide_training_metrics()
         
-        self.slide_temperature()
-        self.mostrar_snippet("temperature.rs")
+        # self.slide_temperature()
+        # self.mostrar_snippet("temperature.rs")
         
-        self.slide_model_in_action()
-        self.slide_final()
+        # self.slide_model_in_action()
+        # self.slide_final()
                 
-    # --- FUNCIONES AUXILIARES ---
+
+    # =========================================================================
+    # 5b. HELPERS DE INSTANCIA
+    # =========================================================================
+    # Utilidades reutilizables por cualquier diapositiva.
+    # No llaman a self.next_slide() ni self.play() directamente
+    # (excepto limpiar_pantalla, que sí anima).
+    # =========================================================================
 
     def mostrar_snippet(self, titulo_archivo):
+        """Muestra el fragmento de código Rust asociado a `titulo_archivo`
+        usando la diapositiva de código y limpia la pantalla al terminar.
+
+        Args:
+            titulo_archivo: Clave en RUST_SNIPPETS (ej. "attention.rs").
+        """
         self.diapo_codigo(
             codigo_fuente=RUST_SNIPPETS[titulo_archivo],
             titulo_archivo=titulo_archivo
         )
         self.limpiar_pantalla()
-        
 
     def crear_titulo(self, texto, palabra_clave=None, color_clave=NARANJA_TERRACOTA, font_size=35):
+        """Crea un título con subrayado de color y resaltado opcional.
+
+        Args:
+            texto:         Texto completo del título.
+            palabra_clave: Palabra a resaltar con `color_clave`.
+            color_clave:   Color hex del resaltado (default: naranja).
+            font_size:     Tamaño de fuente (default: 35).
+
+        Returns:
+            Tuple[Text, Underline]
+        """
         t2c = {palabra_clave: color_clave} if palabra_clave else {}
         titulo = Text(texto, font=FUENTE, font_size=font_size, color=TINTA_NEGRA, t2c=t2c).to_edge(UP)
         linea = Underline(titulo, color=color_clave, stroke_width=4)
         return titulo, linea
 
     def crear_bloque(self, texto="", color_fondo=FONDO_CAJA, color_texto=TINTA_NEGRA, ancho=0.8, alto=0.8):
+        """Crea una celda rectangular redondeada con texto centrado.
+
+        Útil para representar tokens, celdas de matriz, etc.
+
+        Args:
+            texto:       Contenido de la celda.
+            color_fondo: Color de relleno del rectángulo.
+            color_texto: Color del texto.
+            ancho:       Ancho en unidades Manim.
+            alto:        Alto en unidades Manim.
+
+        Returns:
+            VGroup(rect, label).
+        """
         rect = RoundedRectangle(
             corner_radius=0.15, width=ancho, height=alto, 
             fill_color=color_fondo, fill_opacity=1, 
@@ -729,6 +1015,19 @@ class Presentacion(Slide):
         return VGroup(rect, lbl)
     
     def crear_matriz_bloques(self, filas, columnas, color_fondo=FONDO_CAJA, color_texto=TINTA_NEGRA, valores=None, ancho=0.8, alto=0.8):
+        """Crea una cuadrícula de celdas (filas × columnas).
+
+        Args:
+            filas, columnas: Dimensiones de la matriz.
+            color_fondo:     Color de relleno de cada celda.
+            color_texto:     Color del texto de cada celda.
+            valores:         Lista plana de textos (fila por fila).
+                             Si es None, todas las celdas quedan vacías.
+            ancho, alto:     Tamaño de cada celda.
+
+        Returns:
+            VGroup de VGroups (una fila por subgrupo).
+        """
         if valores is None:
             valores = [""] * (filas * columnas)
             
@@ -758,12 +1057,27 @@ class Presentacion(Slide):
         return matriz
 
     def limpiar_pantalla(self):
+        """Desvanece todos los Mobjects visibles en pantalla.
+
+        Se llama al final de cada diapositiva para dejar la escena limpia
+        antes de comenzar la siguiente.
+        """
         if self.mobjects:
             self.play(*[FadeOut(mob) for mob in self.mobjects])
 
-    # --- DIAPOSITIVAS ---
+
+    # =========================================================================
+    # 5c. DIAPOSITIVAS
+    # =========================================================================
+    # Cada método cubre un tema de la presentación.
+    # Convención de nombres:
+    #   slide_*  → una diapositiva por tema
+    # Todos terminan con self.limpiar_pantalla() o self.next_slide().
+    # =========================================================================
 
     def slide_pronto_iniciamos(self):
+
+        """Diapositiva: Slide Pronto Iniciamos."""
 
         gato_caballero = ImageMobject(r"assets\gato_armadura.png").scale(0.5)
         texto_inicio = Text("Pronto iniciamos", font=FUENTE, font_size=50, weight=BOLD, color=MARRON_OSCURO)
@@ -779,6 +1093,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_introduction(self):
+        """Diapositiva: Slide Introduction."""
+
         titulo, linea = self.crear_titulo("Construyendo un Transformer con Rust", palabra_clave="Rust")
         subtitulo = Text("Jerónimo Hoyos Botero", font=FUENTE, font_size=25, color=MARRON_OSCURO)
         VGroup(titulo, linea, subtitulo).arrange(DOWN, buff=0.2).to_edge(UP, buff=0.5)
@@ -788,37 +1104,36 @@ class Presentacion(Slide):
         escritorio_decor = crear_tintero_y_pluma().scale(0.8).next_to(titulo, RIGHT, buff=0.4).shift(DOWN*0.2)
         sol_decor = crear_sol_cervantino().scale(0.7).to_corner(UR, buff=0.5)
         
-        molino_grande = crear_molino().scale(0.8).to_corner(DR, buff=0.5).shift(UP*0.5 + LEFT*0.2)
-        molino_pequeño = crear_molino().scale(0.5).next_to(molino_grande, LEFT, buff=0.1).shift(DOWN*0.3 + RIGHT*0.2)
+        molino_grande = crear_molino().scale(1.1).to_corner(DR, buff=0.5).shift(UP*0.1 + LEFT*0.2)
+        molino_pequeño = crear_molino().scale(0.75).next_to(molino_grande, LEFT, buff=0.1).shift(DOWN*0.3 + RIGHT*0.2)
         molinos_paisaje = VGroup(molino_pequeño, molino_grande)
         
-        molino_grande[3].add_updater(lambda m, dt: m.rotate(-dt * 0.8))
-        molino_pequeño[3].add_updater(lambda m, dt: m.rotate(-dt * 0.5))
+        molino_grande[-1].add_updater(lambda m, dt: m.rotate(-dt * 0.8))
+        molino_pequeño[-1].add_updater(lambda m, dt: m.rotate(-dt * 0.5))
         
         libros_decor = crear_pila_libros().scale(0.9).to_corner(DL, buff=0.6).shift(UP*0.5)
-        armas_decor = crear_escudo_y_lanza().scale(0.8).next_to(libros_decor, RIGHT, buff=0.2).shift(DOWN*0.1)
-
-        estrellas = VGroup(
-            crear_estrella().move_to(escritorio_decor.get_top() + UP*0.3 + RIGHT*0.2),
-            crear_estrella().scale(0.6).move_to(escritorio_decor.get_bottom() + RIGHT*0.6),
-            crear_estrella().scale(0.8).move_to(armas_decor.get_top() + UP*0.2 + LEFT*0.2),
-            crear_estrella().scale(0.5).move_to(molinos_paisaje.get_top() + UP*0.4 + LEFT*0.5)
-        )
+        
+        armas_decor = crear_escudo_y_lanza().scale(0.8).to_corner(UL, buff=0.5)
 
         quijote = crear_rust_quijote().to_edge(DOWN, buff=0.2).shift(LEFT * 3)
         sancho = crear_rust_sancho().next_to(quijote, RIGHT, buff=0.5).shift(UP*0.1)
+
+        star1 = crear_estrella().move_to(armas_decor.get_top() + UP*0.3 + LEFT*0.2)
+        star2 = crear_estrella().scale(0.8).move_to(libros_decor.get_bottom() + DOWN*0.2 + RIGHT*0.3)
+        star3 = crear_estrella().scale(0.6).move_to(quijote.get_top() + UP*0.4 + RIGHT*0.5)
+        estrellas = VGroup(star1, star2, star3) 
 
         cajas = VGroup(*[
             RoundedRectangle(
                 corner_radius=0.1, width=2.6, height=1.8, fill_color=FONDO_CAJA, fill_opacity=1, 
                 stroke_color=MARRON_OSCURO, stroke_width=2
             ).shift(UP * i * 0.06 + RIGHT * i * 0.06) for i in range(5)
-        ]).move_to(LEFT * 5.5 + DOWN * 0.5) 
+        ]).move_to(LEFT * 5.0 + DOWN * 0.5) 
         
         txt_molinete = Text("Molinete AI", font=FUENTE, font_size=20, weight=BOLD, color=TINTA_NEGRA).move_to(cajas)
-        flecha = Arrow(LEFT, RIGHT, color=TINTA_NEGRA, stroke_width=4, max_tip_length_to_length_ratio=0.15).scale(0.6).next_to(cajas, RIGHT, buff=0.3)
+        flecha = Arrow(LEFT, RIGHT, color=TINTA_NEGRA, stroke_width=4).scale(0.5).next_to(cajas, RIGHT, buff=0.3)
 
-        pos_start = flecha.get_right() + RIGHT * 4.3 + UP * 1.6 
+        pos_start = RIGHT * 1.5 + UP * 1.5 
 
         def create_probs(target_word):
             dummies = ["hidalgo", "espada", "vino", "capa", "oro", "plaza", "mujer", "caballo"]
@@ -827,17 +1142,19 @@ class Presentacion(Slide):
 
             datos = [(target_word, probs[0], NARANJA_TERRACOTA), (dummies[0], probs[1], PAPEL_TAN), (dummies[1], probs[2], CAJA_INFERIOR)]
             txts = VGroup(*[Text(d[0], font=FUENTE, font_size=16, color=TINTA_NEGRA) for d in datos]).arrange(DOWN, aligned_edge=RIGHT, buff=0.15)
-            bars = VGroup(*[RoundedRectangle(corner_radius=0.05, height=0.15, width=max(0.1, d[1]*2), fill_color=d[2], fill_opacity=1, stroke_width=0) for d in datos]).arrange(DOWN, aligned_edge=LEFT, buff=0.15)
+            
+            bars = VGroup(*[RoundedRectangle(corner_radius=0.05, height=0.15, width=max(0.1, d[1]*2.5), fill_color=d[2], fill_opacity=1, stroke_width=0) for d in datos]).arrange(DOWN, aligned_edge=LEFT, buff=0.15)
             
             for i in range(len(datos)): bars[i].match_y(txts[i])
             
             col = VGroup(txts, bars).arrange(RIGHT, buff=0.15)
             bg = RoundedRectangle(
-                corner_radius=0.1, width=col.width+0.5, height=txts[0].height+0.3, 
+                corner_radius=0.1, width=col.width+0.5, height=txts[0].height*3 + 0.6, 
                 fill_color=CAJA_INFERIOR, fill_opacity=0.3, stroke_color=MARRON_OSCURO, stroke_width=1
-            ).move_to(txts[0]).match_x(col).shift(RIGHT*0.1)
+            ).move_to(col)
             
-            return VGroup(bg, col).move_to(flecha.get_right() + RIGHT * 0.4, aligned_edge=LEFT)
+            # 2. Caja de probabilidades posicionada a la derecha de la flecha
+            return VGroup(bg, col).move_to(LEFT * 0.5  + DOWN * 0.4)
         
         self.play(
             FadeIn(llanuras_fondo),
@@ -849,15 +1166,14 @@ class Presentacion(Slide):
             DrawBorderThenFill(armas_decor, run_time=1.2),
             Create(estrellas, lag_ratio=0.2),
             FadeIn(quijote, shift=UP), 
-            FadeIn(sancho, shift=UP)
+            FadeIn(sancho, shift=UP),
+            FadeIn(cajas, shift=RIGHT*0.5),
+            Write(txt_molinete), 
+            GrowArrow(flecha)
         )
         
         for estrella in estrellas:
             estrella.add_updater(lambda m, dt: m.rotate(dt * 0.5))
-
-        self.next_slide()
-        
-        self.play(FadeIn(cajas, shift=RIGHT*0.5), Write(txt_molinete), GrowArrow(flecha))
 
         poema = [
             ["retorciendo", "el", "mostacho", "soldadesco,"],
@@ -870,20 +1186,25 @@ class Presentacion(Slide):
         ]
         
         curr_y = pos_start[1]
-        curr_probs = create_probs("...").set_opacity(0)
+        curr_probs = Mobject() 
 
         for linea_texto in poema:
             curr_x = pos_start[0]
             for word in linea_texto:
                 new_probs = create_probs(word)
-                word_mob = Text(word, font=FUENTE, font_size=20, color=TINTA_NEGRA).move_to([curr_x, curr_y, 0], aligned_edge=LEFT)
+                word_mob = Text(word, font=FUENTE, font_size=18, color=TINTA_NEGRA).move_to([curr_x, curr_y, 0], aligned_edge=LEFT)
                 
-                self.play(ReplacementTransform(curr_probs, new_probs), FadeIn(word_mob, shift=LEFT*0.1), run_time=0.45)
-                curr_probs, curr_x = new_probs, curr_x + word_mob.width + 0.15
+                if not curr_probs.submobjects:
+                    self.play(FadeIn(new_probs), FadeIn(word_mob, shift=LEFT*0.1), run_time=0.45)
+                else:
+                    self.play(ReplacementTransform(curr_probs, new_probs), FadeIn(word_mob, shift=LEFT*0.1), run_time=0.45)
+                
+                curr_probs = new_probs
+                curr_x += word_mob.width + 0.15
             curr_y -= 0.45
 
-        molino_grande[3].clear_updaters()
-        molino_pequeño[3].clear_updaters()
+        molino_grande[-1].clear_updaters()
+        molino_pequeño[-1].clear_updaters()
         for estrella in estrellas:
             estrella.clear_updaters()
 
@@ -891,6 +1212,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_credits(self):
+        """Diapositiva: Slide Credits."""
+
         titulo_creditos, linea_creditos = self.crear_titulo(
             "Esta presentación se basa en:", 
             palabra_clave="basa en:", 
@@ -1003,6 +1326,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_que_es_transformer(self):
+        """Diapositiva: Slide Que Es Transformer."""
+
         titulo, linea = self.crear_titulo("¿Qué es un Transformer?", palabra_clave="Transformer", color_clave=NARANJA_TERRACOTA)
 
         molino = crear_molino().scale(0.8).to_corner(DL).shift(UP*0.5 + RIGHT*0.5)
@@ -1010,14 +1335,11 @@ class Presentacion(Slide):
         tintero = crear_tintero_y_pluma().scale(0.8).to_corner(DR).shift(UP*0.5 + LEFT*0.5)
         escudo = crear_escudo_y_lanza().scale(0.8).to_corner(UL).shift(DOWN*0.5 + RIGHT*0.5)
         adornos = VGroup(molino, sol, tintero, escudo)
-
-        COLOR_PRED = NARANJA_TERRACOTA 
-        
         explicacion_1 = Text(
             "TRANSFORMA la secuencia, observa todo el contexto\n"
             "para predecir qué palabra tiene más sentido a continuación.", 
             font=FUENTE, font_size=26, color=TINTA_NEGRA, line_spacing=1.2,
-            t2c={"TRANSFORMA": NARANJA_TERRACOTA, "todo el contexto": MARRON_OSCURO, "tiene más sentido": COLOR_PRED}
+            t2c={"TRANSFORMA": NARANJA_TERRACOTA, "todo el contexto": MARRON_OSCURO, "tiene más sentido": NARANJA_TERRACOTA}
         ).move_to(UP * 2.2)
 
         caja_maq = RoundedRectangle(corner_radius=0.2, width=2.5, height=1.5, fill_color=MARRON_OSCURO, fill_opacity=0.9, stroke_color=NARANJA_TERRACOTA, stroke_width=3)
@@ -1037,10 +1359,10 @@ class Presentacion(Slide):
             return VGroup(burbuja, txt)
 
         def animar_pensamiento(texto_ganador, texto_perdedor, pct_ganador, pct_perdedor, obj_referencia):
-            opcion_ganadora = Text(f"{texto_ganador} ({pct_ganador})", font=FUENTE, font_size=20, weight=BOLD, color=COLOR_PRED)
+            opcion_ganadora = Text(f"{texto_ganador} ({pct_ganador})", font=FUENTE, font_size=20, weight=BOLD, color=NARANJA_TERRACOTA)
             opcion_perdedora = Text(f"{texto_perdedor} ({pct_perdedor})", font=FUENTE, font_size=16, color=GRAY)
             textos_menu = VGroup(opcion_ganadora, opcion_perdedora).arrange(DOWN, buff=0.15)
-            caja_menu = SurroundingRectangle(textos_menu, color=COLOR_PRED, stroke_width=2, fill_color=WHITE, fill_opacity=0.95, corner_radius=0.1, buff=0.25)
+            caja_menu = SurroundingRectangle(textos_menu, color=NARANJA_TERRACOTA, stroke_width=2, fill_color=WHITE, fill_opacity=0.95, corner_radius=0.1, buff=0.25)
             menu_final = VGroup(caja_menu, textos_menu).next_to(obj_referencia, RIGHT, buff=0.5)
 
             self.play(Wiggle(obj_referencia))
@@ -1140,6 +1462,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_molinete_ai(self):
+        """Diapositiva: Slide Molinete Ai."""
+
         titulo, linea = self.crear_titulo(
             "Molinete AI", 
             palabra_clave="Molinete", 
@@ -1217,7 +1541,9 @@ class Presentacion(Slide):
 
         self.limpiar_pantalla()
 
-    def diapo_problema_strawberry(self):
+    def slide_problema_strawberry(self):
+        """Diapositiva: Slide Problema Strawberry."""
+
         titulo, linea = self.crear_titulo(
             "¿Por qué los LLM no saben 'leer'?", 
             palabra_clave="'leer'?", 
@@ -1287,11 +1613,11 @@ class Presentacion(Slide):
         def crear_fresa():
             cuerpo = Polygon(
                 [0, 0.3, 0], [-0.25, 0.1, 0], [-0.2, -0.2, 0], [0, -0.4, 0], [0.2, -0.2, 0], [0.25, 0.1, 0],
-                fill_color="#E24A4A", fill_opacity=1, stroke_width=1.5, stroke_color=MARRON_OSCURO
+                fill_color=ROJO_TOMATE, fill_opacity=1, stroke_width=1.5, stroke_color=MARRON_OSCURO
             )
             hojas = Polygon(
                 [0, 0.2, 0], [-0.2, 0.4, 0], [-0.1, 0.25, 0], [0, 0.45, 0], [0.1, 0.25, 0], [0.2, 0.4, 0],
-                fill_color="#6B8E23", fill_opacity=1, stroke_width=1.5, stroke_color=MARRON_OSCURO
+                fill_color=VERDE_OLIVA, fill_opacity=1, stroke_width=1.5, stroke_color=MARRON_OSCURO
             )
             return VGroup(cuerpo, hojas).scale(0.85)
 
@@ -1336,7 +1662,9 @@ class Presentacion(Slide):
         
         self.limpiar_pantalla()
 
-    def diapo_tokenizacion(self):
+    def slide_tokenizacion(self):
+        """Diapositiva: Slide Tokenizacion."""
+
         titulo, linea = self.crear_titulo(
             "La Tokenización", 
             palabra_clave="Tokenización", 
@@ -1423,7 +1751,9 @@ class Presentacion(Slide):
 
         self.limpiar_pantalla()
 
-    def diapo_byte_pair_encoding(self):
+    def slide_byte_pair_encoding(self):
+        """Diapositiva: Slide Byte Pair Encoding."""
+
         titulo, linea = self.crear_titulo(
             "Byte Pair Encoding (BPE)", 
             palabra_clave="Byte Pair Encoding (BPE)", 
@@ -1517,7 +1847,9 @@ class Presentacion(Slide):
         self.next_slide()
         self.limpiar_pantalla()
     
-    def diapo_tamano_vocabulario(self):
+    def slide_tamano_vocabulario(self):
+        """Diapositiva: Slide Tamano Vocabulario."""
+
         titulo, linea = self.crear_titulo(
             "El Tamaño del Vocabulario", 
             palabra_clave="Vocabulario", 
@@ -1610,7 +1942,9 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_que_es_un_tensor(self):
-        titulo11, linea11 = self.crear_titulo("¿Qué es un Tensor?", palabra_clave="Tensor?", color_clave=NARANJA_TERRACOTA)
+        """Diapositiva: Slide Que Es Un Tensor."""
+
+        titulo, linea = self.crear_titulo("¿Qué es un Tensor?", palabra_clave="Tensor?", color_clave=NARANJA_TERRACOTA)
         
         colina_fondo = FunctionGraph(lambda x: 0.3 * math.sin(x / 1.5 + 2) - 2.8, color=NARANJA_TERRACOTA).set_stroke(opacity=0.15)
         colina_frente = FunctionGraph(lambda x: 0.5 * math.sin(x / 2) - 3.2, color=MARRON_OSCURO).set_stroke(opacity=0.25)
@@ -1624,8 +1958,8 @@ class Presentacion(Slide):
         sol_adorno.add_updater(lambda m, dt: m.rotate(dt * 0.15))
 
         self.play(
-            Write(titulo11), 
-            Create(linea11),
+            Write(titulo), 
+            Create(linea),
             FadeIn(llanura, shift=UP * 0.5, run_time=2),
             LaggedStart(
                 FadeIn(sol_adorno, scale=0.5, shift=DOWN * 0.3),
@@ -1641,7 +1975,7 @@ class Presentacion(Slide):
             font=FUENTE, font_size=32, 
             color=MARRON_OSCURO,
             t2c={"múltiples dimensiones.": NARANJA_TERRACOTA}
-        ).next_to(linea11, DOWN, buff=0.4)
+        ).next_to(linea, DOWN, buff=0.4)
         
         self.play(Write(def_tensor))
         self.next_slide()
@@ -1696,7 +2030,7 @@ class Presentacion(Slide):
         
         self.play(FadeOut(txt_3d), FadeOut(tensor_3d), FadeOut(def_tensor))
 
-        nota_ram = Text("Pero en memoria RAM, todos terminan siendo un arreglo plano...", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA).next_to(linea11, DOWN, buff=0.5)
+        nota_ram = Text("Pero en memoria RAM, todos terminan siendo un arreglo plano...", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA).next_to(linea, DOWN, buff=0.5)
         self.play(Write(nota_ram))
         
         matriz_ram = self.crear_matriz_bloques(3, 4, valores=valores_matriz).next_to(nota_ram, DOWN, buff=0.8)
@@ -1717,6 +2051,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_softmax(self):
+            """Diapositiva: Slide Softmax."""
+
             titulo, linea = self.crear_titulo(
                 "Softmax", 
                 palabra_clave="Probabilidades", 
@@ -1862,6 +2198,8 @@ class Presentacion(Slide):
             self.limpiar_pantalla()
 
     def slide_broadcasting(self):
+        """Diapositiva: Slide Broadcasting."""
+
         titulo, linea = self.crear_titulo(
             "Broadcasting: Expansión Virtual", 
             palabra_clave="Expansión Virtual", 
@@ -1933,6 +2271,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_strides(self):
+        """Diapositiva: Slide Strides."""
+
         titulo, linea = self.crear_titulo(
             "Strides: Saltando en Memoria 1D", 
             palabra_clave="Strides:", 
@@ -2020,6 +2360,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_masked_fill(self):
+        """Diapositiva: Slide Masked Fill."""
+
         titulo, linea = self.crear_titulo(
             "Masked Fill: Causalidad", 
             palabra_clave="Causalidad", 
@@ -2078,6 +2420,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_reshape_transpose(self):
+        """Diapositiva: Slide Reshape Transpose."""
+
         titulo, linea = self.crear_titulo(
             "Reshaping vs Transposing", 
             palabra_clave="vs", 
@@ -2149,6 +2493,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_forward_pass(self):
+        """Diapositiva: Slide Forward Pass."""
+
         titulo, linea = self.crear_titulo("Arquitectura: El Forward Pass", color_clave=NARANJA_TERRACOTA)
         
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
@@ -2174,30 +2520,24 @@ class Presentacion(Slide):
         
         self.play(Write(frase_base))
         self.next_slide()
-  
-        BG_CAJA = PAPEL_CREMA
-        BORDE_CAJA = MARRON_OSCURO
-        TXT_PRINCIPAL = TINTA_NEGRA
-        TXT_SECUNDARIO = MARRON_OSCURO 
-
         def crear_caja_nodo(label_sup, valor_array, label_inf, funcion_adorno=None, is_stack=False, highlight_last=False):
             grupo = VGroup()
-            txt_sup = Text(label_sup, font="Monospace", font_size=16, weight=BOLD, color=TXT_SECUNDARIO)
+            txt_sup = Text(label_sup, font="Monospace", font_size=16, weight=BOLD, color=MARRON_OSCURO)
             
-            ANCHO = 2.5 
-            ALTO = 1.6
-            RADIO = 0.2
+            ancho_caja = 2.5 
+            alto_caja = 1.6
+            radio_caja = 0.2
             
             sombra = RoundedRectangle(corner_radius=RADIO, width=ANCHO, height=ALTO)
             sombra.set_fill(MARRON_OSCURO, opacity=0.12).set_stroke(width=0)
             sombra.shift(RIGHT * 0.08 + DOWN * 0.08)
             
             caja = RoundedRectangle(corner_radius=RADIO, width=ANCHO, height=ALTO)
-            caja.set_fill(color=BG_CAJA, opacity=1).set_stroke(color=BORDE_CAJA, width=2.5)
+            caja.set_fill(color=PAPEL_CREMA, opacity=1).set_stroke(color=MARRON_OSCURO, width=2.5)
             
-            color_array = NARANJA_TERRACOTA if highlight_last else TXT_PRINCIPAL
+            color_array = NARANJA_TERRACOTA if highlight_last else TINTA_NEGRA
             txt_arr = Text(valor_array, font="Monospace", font_size=16, weight=BOLD, color=color_array) 
-            txt_inf = Text(label_inf, font=FUENTE, font_size=15, color=TXT_PRINCIPAL) 
+            txt_inf = Text(label_inf, font=FUENTE, font_size=15, color=TINTA_NEGRA) 
             
             if txt_arr.width > (ANCHO - 0.4):
                 txt_arr.scale_to_fit_width(ANCHO - 0.4)
@@ -2348,6 +2688,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_embeddings(self):
+        """Diapositiva: Slide Embeddings."""
+
         titulo_p1 = Text("Embeddings: ", font=FUENTE, font_size=42, weight=BOLD, color=TINTA_NEGRA)
         titulo_p2 = Text("De IDs a Vectores", font=FUENTE, font_size=42, weight=BOLD, color=NARANJA_TERRACOTA)
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
@@ -2435,13 +2777,12 @@ class Presentacion(Slide):
 
         matriz_v = VGroup()
         filas, cols = 8, 10
-        COLOR_VECTOR = NARANJA_TERRACOTA
         for i in range(filas):
             fila = VGroup()
             for j in range(cols):
                 cuadro = RoundedRectangle(corner_radius=0.05, width=0.35, height=0.35).set_stroke(CAJA_INFERIOR, opacity=0.6)
                 if i == 4:
-                    cuadro.set_fill(COLOR_VECTOR, opacity=0.2).set_stroke(COLOR_VECTOR, opacity=0.8)
+                    cuadro.set_fill(NARANJA_TERRACOTA, opacity=0.2).set_stroke(NARANJA_TERRACOTA, opacity=0.8)
                 fila.add(cuadro)
             matriz_v.add(fila.arrange(RIGHT, buff=0.08))
             
@@ -2454,7 +2795,7 @@ class Presentacion(Slide):
         flecha_busqueda = Arrow(grupo_id.get_right(), matriz_v[4].get_left(), color=MARRON_OSCURO, buff=0.2)
         self.play(GrowArrow(flecha_busqueda))
         
-        fila_sel = matriz_v[4].copy().set_fill(COLOR_VECTOR, 0.9).set_stroke(MARRON_OSCURO, 2)
+        fila_sel = matriz_v[4].copy().set_fill(NARANJA_TERRACOTA, 0.9).set_stroke(MARRON_OSCURO, 2)
         self.play(Transform(matriz_v[4], fila_sel))
         self.next_slide()
 
@@ -2466,7 +2807,7 @@ class Presentacion(Slide):
             bloque_v = RoundedRectangle(
                 corner_radius=0.05, 
                 width=0.7, height=0.7, 
-                fill_color=COLOR_VECTOR if not es_puntos else FONDO_CAJA, 
+                fill_color=NARANJA_TERRACOTA if not es_puntos else FONDO_CAJA, 
                 fill_opacity=0.8 if not es_puntos else 0
             ).set_stroke(MARRON_OSCURO if not es_puntos else FONDO_CAJA, 1.5 if not es_puntos else 0)
             
@@ -2498,6 +2839,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_position_embeddings(self):
+        """Diapositiva: Slide Position Embeddings."""
+
         titulo_p1 = Text("Embeddings de ", font=FUENTE, font_size=42, weight=BOLD, color=TINTA_NEGRA)
         titulo_p2 = Text(" Posición", font=FUENTE, font_size=42, weight=BOLD, color=NARANJA_TERRACOTA)
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
@@ -2626,6 +2969,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_layer_normalization(self):
+        """Diapositiva: Slide Layer Normalization."""
+
         def crear_cajita(texto, bg_color, borde_color=MARRON_OSCURO, w=2.6, h=0.7, tam_fuente=20):
             caja = RoundedRectangle(corner_radius=0.1, width=w, height=h, 
                                     fill_color=bg_color, fill_opacity=1, 
@@ -2653,7 +2998,7 @@ class Presentacion(Slide):
         nota_caos = Text("Sin normalización: Los valores explotan o desaparecen", font_size=24, color=NARANJA_TERRACOTA).move_to(UP * 1.5)
 
         valores_inestables = ["8459.1", "-7302.4", "0.00001", "5120.9", "-9999.9", "..."]
-        vec_inestable = crear_vector_visual(valores_inestables, bg_color="#F2D5CE", borde_color=NARANJA_TERRACOTA)
+        vec_inestable = crear_vector_visual(valores_inestables, bg_color=SALMON_CLARO, borde_color=NARANJA_TERRACOTA)
         vec_inestable.next_to(nota_caos, DOWN, buff=0.8).set_x(0) 
         
         self.play(Write(nota_caos))
@@ -2664,7 +3009,7 @@ class Presentacion(Slide):
         nota_estable = Text("Con LayerNorm: Se fuerza una Media=0 y Varianza=1", font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
         
         valores_estables = ["1.34", "-1.15", "0.00", "0.89", "-1.52", "..."]
-        vec_estable = crear_vector_visual(valores_estables, bg_color="#E8DCC4", borde_color=MARRON_OSCURO)
+        vec_estable = crear_vector_visual(valores_estables, bg_color=CREMA_CALIDA, borde_color=MARRON_OSCURO)
         vec_estable.next_to(nota_estable, DOWN, buff=0.8).set_x(0)
         
         self.play(
@@ -2712,12 +3057,12 @@ class Presentacion(Slide):
         
         textos_izq = VGroup(nota_final, paso_1, paso_2).arrange(DOWN, aligned_edge=LEFT, buff=0.4).to_edge(LEFT, buff=1).shift(UP * 0.5)
 
-        b_in = crear_cajita("Input", "#E8DCC4")       
-        b_ln1 = crear_cajita("LayerNorm 1", "#D9C8AA")  
-        b_attn = crear_cajita("Attention", "#E6A87C", borde_color="#C0573E")
-        b_ln2 = crear_cajita("LayerNorm 2", "#D9C8AA") 
-        b_mlp = crear_cajita("MLP (FFN)", "#C2B280")    
-        b_out = crear_cajita("Output", "#E8DCC4")       
+        b_in = crear_cajita("Input", CREMA_CALIDA)       
+        b_ln1 = crear_cajita("LayerNorm 1", BEIGE_MEDIO)  
+        b_attn = crear_cajita("Attention", SALMON_ATENCION, borde_color=LADRILLO_VIVO)
+        b_ln2 = crear_cajita("LayerNorm 2", BEIGE_MEDIO) 
+        b_mlp = crear_cajita("MLP (FFN)", ARENA_DORADA)    
+        b_out = crear_cajita("Output", CREMA_CALIDA)       
 
         bloques = VGroup(b_in, b_ln1, b_attn, b_ln2, b_mlp, b_out).arrange(DOWN, buff=0.4)
         
@@ -2737,7 +3082,7 @@ class Presentacion(Slide):
         self.play(
             FadeIn(paso_1, shift=RIGHT), 
             Create(resalto_1), 
-            b_ln1[0].animate.set_fill("#C0573E") 
+            b_ln1[0].animate.set_fill(LADRILLO_VIVO) 
         )
         self.next_slide()
 
@@ -2745,13 +3090,15 @@ class Presentacion(Slide):
         self.play(
             FadeIn(paso_2, shift=RIGHT), 
             Create(resalto_2), 
-            b_ln2[0].animate.set_fill("#C0573E") 
+            b_ln2[0].animate.set_fill(LADRILLO_VIVO) 
         )
         self.next_slide()
 
         self.limpiar_pantalla()
 
     def slide_mha_acto1_intuicion(self):
+
+        """Diapositiva: Slide Mha Acto1 Intuicion."""
 
         titulo, linea = self.crear_titulo(
             "Multi-Head Self-Attention",
@@ -2907,6 +3254,8 @@ class Presentacion(Slide):
         self.play(FadeOut(elementos_escena))
         
     def slide_mha_acto2_formula(self):
+        """Diapositiva: Slide Mha Acto2 Formula."""
+
         titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
         subtitulo = Text("La Ecuación de Atención", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
         
@@ -2956,6 +3305,8 @@ class Presentacion(Slide):
 
     def slide_mha_acto3_calculo(self):
 
+        """Diapositiva: Slide Mha Acto3 Calculo."""
+
         titulo, linea = self.crear_titulo("Flujo Cálculo Self-Attention", palabra_clave="Flujo", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
         self.next_slide()
@@ -2995,7 +3346,7 @@ class Presentacion(Slide):
         nodo_x = Dot(radius=0.06, color=TINTA_NEGRA).next_to(X, RIGHT, buff=0.15)
         linea_x = Line(X.get_right(), nodo_x.get_center(), color=TINTA_NEGRA, stroke_width=3)
 
-        color_w = "#C4C4FF" 
+        color_w = LAVANDA 
         W_q = crear_caja(r"W^{(q)}", color_w, ancho=1.4, alto=0.8).move_to([col_2_x, fila_q_y, 0])
         W_k = crear_caja(r"W^{(k)}", color_w, ancho=1.4, alto=0.8).move_to([col_2_x, fila_k_y, 0])
         W_v = crear_caja(r"W^{(v)}", color_w, ancho=1.4, alto=0.8).move_to([col_2_x, fila_v_y, 0])
@@ -3020,18 +3371,18 @@ class Presentacion(Slide):
         a_wv = Arrow(W_v.get_right(), V.get_left(), buff=0.1, color=TINTA_NEGRA, stroke_width=3)
 
         y_qk_branch = (fila_q_y + fila_k_y) / 2
-        matmul_1 = crear_caja("mat mul", "#FFCC99", ancho=1.2, alto=1.8).move_to([col_4_x, y_qk_branch, 0])
+        matmul_1 = crear_caja("mat mul", NARANJA_CLARO, ancho=1.2, alto=1.8).move_to([col_4_x, y_qk_branch, 0])
   
         a_q_mm = Arrow(Q.get_right(), [matmul_1.get_left()[0], Q.get_y(), 0], buff=0.05, color=TINTA_NEGRA, stroke_width=3)
         a_k_mm = Arrow(K.get_right(), [matmul_1.get_left()[0], K.get_y(), 0], buff=0.05, color=TINTA_NEGRA, stroke_width=3)
 
-        scale_box = crear_caja("scale", "#FFFFCC", ancho=1.2, alto=1.8).move_to([col_5_x, y_qk_branch, 0])
+        scale_box = crear_caja("scale", AMARILLO_PALIDO, ancho=1.2, alto=1.8).move_to([col_5_x, y_qk_branch, 0])
         a_mm_sc = Arrow(matmul_1.get_right(), scale_box.get_left(), buff=0.05, color=TINTA_NEGRA, stroke_width=3)
 
-        softmax_box = crear_caja("softmax", "#CCFFCC", ancho=1.2, alto=1.8).move_to([col_6_x, y_qk_branch, 0])
+        softmax_box = crear_caja("softmax", MENTA_PALIDA, ancho=1.2, alto=1.8).move_to([col_6_x, y_qk_branch, 0])
         a_sc_sm = Arrow(scale_box.get_right(), softmax_box.get_left(), buff=0.05, color=TINTA_NEGRA, stroke_width=3)
 
-        matmul_2 = crear_caja("mat mul", "#FFCC99", ancho=1.8, alto=2.8).move_to([col_7_x, 0, 0])
+        matmul_2 = crear_caja("mat mul", NARANJA_CLARO, ancho=1.8, alto=2.8).move_to([col_7_x, 0, 0])
         
         a_sm_mm2 = Arrow(softmax_box.get_right(), [matmul_2.get_left()[0], softmax_box.get_y(), 0], buff=0.05, color=TINTA_NEGRA, stroke_width=3)
         a_v_mm2 = Arrow(V.get_right(), [matmul_2.get_left()[0], V.get_y(), 0], buff=0.05, color=TINTA_NEGRA, stroke_width=3)
@@ -3043,7 +3394,7 @@ class Presentacion(Slide):
         
         panel_fondo = RoundedRectangle(
             corner_radius=0.2, width=12.5, height=0.8, 
-            fill_color="#F4EBD0", fill_opacity=1, 
+            fill_color=PERGAMINO_CLARO, fill_opacity=1, 
             stroke_color=TINTA_NEGRA, stroke_width=2
         ).move_to(zona_texto)
 
@@ -3088,6 +3439,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_mha_acto4_multihead(self):
+        """Diapositiva: Slide Mha Acto4 Multihead."""
+
         titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
         subtitulo = Text("¿Por qué 'Multi-Head'?", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
         
@@ -3127,6 +3480,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_causal_masking(self):
+        """Diapositiva: Slide Causal Masking."""
+
         titulo, linea = self.crear_titulo("Causal Masking", palabra_clave="Masking", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
         
@@ -3228,10 +3583,10 @@ class Presentacion(Slide):
 
         self.limpiar_pantalla()
 
-    def mostrar_acto_arquitectura_neurona(self):
-        HIGHLIGHT_COLOR = NARANJA_TERRACOTA 
-        
-        titulo, linea = self.crear_titulo("La Capa MLP: Una Función Matemática", palabra_clave="Función", color_clave=HIGHLIGHT_COLOR)
+    def slide_arquitectura_neurona(self):
+        """Diapositiva: Slide Arquitectura Neurona."""
+
+        titulo, linea = self.crear_titulo("La Capa MLP: Una Función Matemática", palabra_clave="Función", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
 
         eq_top = MathTex(r"f : \mathbb{R}^{768} \rightarrow \mathbb{R}^{768}", color=TINTA_NEGRA, font_size=42).next_to(linea, DOWN, buff=0.3)
@@ -3242,9 +3597,9 @@ class Presentacion(Slide):
         
         capa_in = VGroup(*[Circle(radius=r, fill_color=PAPEL_TAN, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(5)]).arrange(DOWN, buff=0.2)
         
-        hid_1 = VGroup(*[Circle(radius=r, fill_color=HIGHLIGHT_COLOR, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
-        hid_2 = VGroup(*[Circle(radius=r, fill_color=HIGHLIGHT_COLOR, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
-        hid_3 = VGroup(*[Circle(radius=r, fill_color=HIGHLIGHT_COLOR, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
+        hid_1 = VGroup(*[Circle(radius=r, fill_color=NARANJA_TERRACOTA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
+        hid_2 = VGroup(*[Circle(radius=r, fill_color=NARANJA_TERRACOTA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
+        hid_3 = VGroup(*[Circle(radius=r, fill_color=NARANJA_TERRACOTA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2) for _ in range(7)]).arrange(DOWN, buff=0.1)
 
         capas_profundas = VGroup(hid_1, hid_2, hid_3).arrange(RIGHT, buff=0.8)
         capa_out = VGroup(*[Circle(radius=r, fill_color=MARRON_OSCURO, fill_opacity=1, stroke_color=TINTA_NEGRA, stroke_width=2) for _ in range(5)]).arrange(DOWN, buff=0.2)
@@ -3259,15 +3614,15 @@ class Presentacion(Slide):
         brace_in = Brace(capa_in, direction=LEFT, color=MARRON_OSCURO)
         lbl_in = MathTex(r"x \in \mathbb{R}^{768}", color=TINTA_NEGRA, font_size=28).next_to(brace_in, LEFT)
         
-        brace_hid = Brace(capas_profundas, direction=UP, color=HIGHLIGHT_COLOR)
-        lbl_hid = MathTex(r"3072", color=HIGHLIGHT_COLOR, font_size=32).next_to(brace_hid, UP)
+        brace_hid = Brace(capas_profundas, direction=UP, color=NARANJA_TERRACOTA)
+        lbl_hid = MathTex(r"3072", color=NARANJA_TERRACOTA, font_size=32).next_to(brace_hid, UP)
         
         brace_out = Brace(capa_out, direction=RIGHT, color=MARRON_OSCURO)
         lbl_out = MathTex(r"f(x) \in \mathbb{R}^{768}", color=TINTA_NEGRA, font_size=28).next_to(brace_out, RIGHT)
 
-        flecha_1 = MathTex(r"\xrightarrow{\quad \phi_1 \quad}", color=HIGHLIGHT_COLOR).next_to(capas_profundas[0], DOWN, buff=0.5)
-        flecha_2 = MathTex(r"\xrightarrow{\quad \phi_2 \quad}", color=HIGHLIGHT_COLOR).next_to(capas_profundas[1], DOWN, buff=0.5)
-        flecha_3 = MathTex(r"\xrightarrow{\quad \phi_3 \quad}", color=HIGHLIGHT_COLOR).next_to(capas_profundas[2], DOWN, buff=0.5)
+        flecha_1 = MathTex(r"\xrightarrow{\quad \phi_1 \quad}", color=NARANJA_TERRACOTA).next_to(capas_profundas[0], DOWN, buff=0.5)
+        flecha_2 = MathTex(r"\xrightarrow{\quad \phi_2 \quad}", color=NARANJA_TERRACOTA).next_to(capas_profundas[1], DOWN, buff=0.5)
+        flecha_3 = MathTex(r"\xrightarrow{\quad \phi_3 \quad}", color=NARANJA_TERRACOTA).next_to(capas_profundas[2], DOWN, buff=0.5)
         eq_composicion = MathTex(r"f(x) = \phi_3(\phi_2(\phi_1(x)))", color=TINTA_NEGRA, font_size=32).next_to(VGroup(flecha_1, flecha_3), DOWN, buff=0.3)
 
 
@@ -3292,15 +3647,15 @@ class Presentacion(Slide):
 
         self.limpiar_pantalla()
 
-    def mostrar_acto_zoom_neurona(self):
-        HIGHLIGHT_COLOR = NARANJA_TERRACOTA 
-        
-        titulo, linea = self.crear_titulo("La Capa MLP: Dentro de una Neurona", palabra_clave="Neurona", color_clave=HIGHLIGHT_COLOR)
+    def slide_zoom_neurona(self):
+        """Diapositiva: Slide Zoom Neurona."""
+
+        titulo, linea = self.crear_titulo("La Capa MLP: Dentro de una Neurona", palabra_clave="Neurona", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
 
         r_mini = 0.08
         columna_in = VGroup(*[Circle(radius=r_mini, fill_color=PAPEL_TAN, fill_opacity=1, stroke_color=MARRON_OSCURO) for _ in range(3)]).arrange(DOWN, buff=0.1)
-        columna_hid = VGroup(*[Circle(radius=r_mini, fill_color=HIGHLIGHT_COLOR, fill_opacity=1, stroke_color=MARRON_OSCURO) for _ in range(5)]).arrange(DOWN, buff=0.1)
+        columna_hid = VGroup(*[Circle(radius=r_mini, fill_color=NARANJA_TERRACOTA, fill_opacity=1, stroke_color=MARRON_OSCURO) for _ in range(5)]).arrange(DOWN, buff=0.1)
         
         mini_red = VGroup(columna_in, columna_hid).arrange(RIGHT, buff=0.6)
 
@@ -3316,10 +3671,10 @@ class Presentacion(Slide):
         self.next_slide()
 
         posicion_neurona = RIGHT * 2.2 + UP * 0.4
-        neurona_gigante = Circle(radius=1.6, fill_color=HIGHLIGHT_COLOR, fill_opacity=0.1, stroke_color=HIGHLIGHT_COLOR, stroke_width=4).move_to(posicion_neurona)
+        neurona_gigante = Circle(radius=1.6, fill_color=NARANJA_TERRACOTA, fill_opacity=0.1, stroke_color=NARANJA_TERRACOTA, stroke_width=4).move_to(posicion_neurona)
         
         sumatoria = MathTex(r"\Sigma", color=TINTA_NEGRA, font_size=55).move_to(neurona_gigante).shift(LEFT * 0.6)
-        separador = Line(neurona_gigante.get_top() + DOWN*0.1, neurona_gigante.get_bottom() + UP*0.1, color=HIGHLIGHT_COLOR)
+        separador = Line(neurona_gigante.get_top() + DOWN*0.1, neurona_gigante.get_bottom() + UP*0.1, color=NARANJA_TERRACOTA)
         
         ejes_act = Axes(x_range=[-2, 2], y_range=[-0.5, 1.5], x_length=1.0, y_length=1.0, axis_config={"color": MARRON_OSCURO, "include_ticks": False}).move_to(neurona_gigante).shift(RIGHT * 0.6)
         curva_act = ejes_act.plot(lambda x: x if x > 0 else 0, color=MARRON_OSCURO) 
@@ -3348,9 +3703,9 @@ class Presentacion(Slide):
         flechas_in = VGroup(*[Arrow(e.get_right(), neurona_gigante.get_left(), buff=0.15, color=MARRON_OSCURO, max_tip_length_to_length_ratio=0.08) for e in entradas_text if e.tex_string != r"\vdots"])
         
         pesos_text = VGroup(
-            MathTex(r"w_1", color=HIGHLIGHT_COLOR).move_to(flechas_in[0].get_center() + UP * 0.35).scale(0.8),
-            MathTex(r"w_2", color=HIGHLIGHT_COLOR).move_to(flechas_in[1].get_center() + DOWN * 0.2).scale(0.8),
-            MathTex(r"w_n", color=HIGHLIGHT_COLOR).move_to(flechas_in[2].get_center() + DOWN * 0.35).scale(0.8)
+            MathTex(r"w_1", color=NARANJA_TERRACOTA).move_to(flechas_in[0].get_center() + UP * 0.35).scale(0.8),
+            MathTex(r"w_2", color=NARANJA_TERRACOTA).move_to(flechas_in[1].get_center() + DOWN * 0.2).scale(0.8),
+            MathTex(r"w_n", color=NARANJA_TERRACOTA).move_to(flechas_in[2].get_center() + DOWN * 0.35).scale(0.8)
         )
 
         bias_text = MathTex(r"b", color=MARRON_OSCURO).next_to(neurona_gigante, UP, buff=0.4)
@@ -3372,11 +3727,11 @@ class Presentacion(Slide):
         eq_final = MathTex(r"\phi(x)", r"=", r"\sigma", r"(", r"\sum x_i \cdot w_i", r"+ b", r")", color=TINTA_NEGRA, font_size=46).move_to(DOWN * 1.8)
         
         eq_final[2].set_color(MARRON_OSCURO) 
-        eq_final[4].set_color(HIGHLIGHT_COLOR) 
+        eq_final[4].set_color(NARANJA_TERRACOTA) 
         eq_final[5].set_color(MARRON_OSCURO) 
 
-        nota_w = Text("Suma ponderada\n(Lo que la red aprende)", font=FUENTE, font_size=16, color=HIGHLIGHT_COLOR).next_to(eq_final[4], DOWN, buff=0.6)
-        flecha_w = Arrow(nota_w.get_top(), eq_final[4].get_bottom(), buff=0.1, color=HIGHLIGHT_COLOR)
+        nota_w = Text("Suma ponderada\n(Lo que la red aprende)", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(eq_final[4], DOWN, buff=0.6)
+        flecha_w = Arrow(nota_w.get_top(), eq_final[4].get_bottom(), buff=0.1, color=NARANJA_TERRACOTA)
         
         nota_act = Text("Activación no lineal\n(La flexibilidad)", font=FUENTE, font_size=16, color=MARRON_OSCURO).next_to(eq_final[2], DOWN, buff=0.6).shift(LEFT * 0.5)
         flecha_act = Arrow(nota_act.get_top(), eq_final[2].get_bottom(), buff=0.1, color=MARRON_OSCURO)
@@ -3388,12 +3743,8 @@ class Presentacion(Slide):
 
         self.limpiar_pantalla()
 
-    def mostrar_acto_activacion(self):
-        COLOR_NODO_BG = PAPEL_CREMA
-        COLOR_BORDE = MARRON_OSCURO
-        COLOR_TEXTO = TINTA_NEGRA
-        COLOR_RESALTE = NARANJA_TERRACOTA
-        COLOR_SECUNDARIO = "#8B2500"
+    def slide_activacion(self):
+        """Diapositiva: Slide Activacion."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -3402,7 +3753,7 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "Función de Activación: GELU", 
             palabra_clave="GELU", 
-            color_clave=COLOR_RESALTE
+            color_clave=NARANJA_TERRACOTA
         )
         
         self.play(
@@ -3415,18 +3766,18 @@ class Presentacion(Slide):
 
         formula_principal = MathTex(
             r"\text{GELU}(x) = x \cdot \Phi(x)",
-            color=COLOR_TEXTO, font_size=42
+            color=TINTA_NEGRA, font_size=42
         )
         formula_aprox = MathTex(
             r"\approx 0.5x \left(1 + \tanh\left(\sqrt{\frac{2}{\pi}} (x + 0.044715x^3)\right)\right)",
-            color=COLOR_BORDE, font_size=26
+            color=MARRON_OSCURO, font_size=26
         )
         
         grupo_formulas = VGroup(formula_principal, formula_aprox).arrange(DOWN, buff=0.4)
         
         texto_contexto = Text(
             "Apagado de las neuronas", 
-            font=FUENTE, font_size=20, color=COLOR_RESALTE, line_spacing=1.2
+            font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, line_spacing=1.2
         )
         
         grupo_izq = VGroup(grupo_formulas, texto_contexto).arrange(DOWN, buff=0.8)
@@ -3439,7 +3790,7 @@ class Presentacion(Slide):
         ejes = Axes(
             x_range=[-3, 3, 1], y_range=[-1, 3, 1],
             x_length=6, y_length=4.5,
-            axis_config={"color": COLOR_BORDE, "include_numbers": True, "font_size": 16}
+            axis_config={"color": MARRON_OSCURO, "include_numbers": True, "font_size": 16}
         ).to_edge(RIGHT, buff=0.8).shift(DOWN * 0.5)
 
         curva_relu = ejes.plot(lambda x: np.maximum(0, x), color=GRAY_C, stroke_width=4)
@@ -3447,23 +3798,23 @@ class Presentacion(Slide):
 
         curva_gelu = ejes.plot(
             lambda x: 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * x**3))),
-            color=COLOR_RESALTE, stroke_width=5
+            color=NARANJA_TERRACOTA, stroke_width=5
         )
-        lbl_gelu = Text("GELU", font=FUENTE, font_size=26, color=COLOR_RESALTE).next_to(ejes.c2p(2.5, 2.5), DR, buff=0.1)
+        lbl_gelu = Text("GELU", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA).next_to(ejes.c2p(2.5, 2.5), DR, buff=0.1)
         
         punto_minimo = ejes.c2p(-0.75, -0.17)
-        lbl_suavizado = Text("Apagado suave", font=FUENTE, font_size=16, color=COLOR_SECUNDARIO).next_to(punto_minimo, DOWN, buff=0.5).shift(RIGHT * 1)
-        flecha_suav = Arrow(lbl_suavizado.get_left(), punto_minimo, buff=0.1, color=COLOR_SECUNDARIO, tip_length=0.15)
+        lbl_suavizado = Text("Apagado suave", font=FUENTE, font_size=16, color=MARRON_QUIJOTE).next_to(punto_minimo, DOWN, buff=0.5).shift(RIGHT * 1)
+        flecha_suav = Arrow(lbl_suavizado.get_left(), punto_minimo, buff=0.1, color=MARRON_QUIJOTE, tip_length=0.15)
 
         self.play(Create(ejes), Write(lbl_relu))
         self.play(Create(curva_relu))
         self.next_slide()
 
-        nodo = Circle(radius=0.7, fill_color=COLOR_NODO_BG, fill_opacity=1, stroke_color=GRAY_C, stroke_width=4)
+        nodo = Circle(radius=0.7, fill_color=PAPEL_CREMA, fill_opacity=1, stroke_color=GRAY_C, stroke_width=4)
         lbl_nodo = Text("ReLU", font=FUENTE, font_size=20, color=GRAY_C).move_to(nodo)
         
-        flecha_in = Arrow(ORIGIN, RIGHT * 1.5, buff=0.1, color=COLOR_BORDE)
-        val_in = MathTex("x = -1", font_size=28, color=COLOR_TEXTO).next_to(flecha_in, UP, buff=0.1)
+        flecha_in = Arrow(ORIGIN, RIGHT * 1.5, buff=0.1, color=MARRON_OSCURO)
+        val_in = MathTex("x = -1", font_size=28, color=TINTA_NEGRA).next_to(flecha_in, UP, buff=0.1)
         grupo_in = VGroup(val_in, flecha_in)
         
         flecha_out = Arrow(ORIGIN, RIGHT * 1.5, buff=0.1, color=GRAY_C)
@@ -3487,19 +3838,19 @@ class Presentacion(Slide):
         self.play(Create(cruz_muerte))
         self.next_slide()
 
-        lbl_nodo_gelu = Text("GELU", font=FUENTE, font_size=20, color=COLOR_RESALTE).move_to(nodo)
+        lbl_nodo_gelu = Text("GELU", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA).move_to(nodo)
         
         self.play(
             ReplacementTransform(curva_relu, curva_gelu),
             ReplacementTransform(lbl_relu, lbl_gelu),
-            nodo.animate.set_stroke(color=COLOR_RESALTE),
+            nodo.animate.set_stroke(color=NARANJA_TERRACOTA),
             ReplacementTransform(lbl_nodo, lbl_nodo_gelu),
-            flecha_out.animate.set_color(COLOR_RESALTE),
+            flecha_out.animate.set_color(NARANJA_TERRACOTA),
             FadeOut(cruz_muerte)
         )
         
-        val_out_gelu = MathTex("-0.15", font_size=32, color=COLOR_RESALTE).next_to(flecha_out, UP, buff=0.1)
-        chispa = Star(n=5, outer_radius=0.25, inner_radius=0.12, color=COLOR_SECUNDARIO, fill_opacity=1).next_to(val_out_gelu, RIGHT, buff=0.2)
+        val_out_gelu = MathTex("-0.15", font_size=32, color=NARANJA_TERRACOTA).next_to(flecha_out, UP, buff=0.1)
+        chispa = Star(n=5, outer_radius=0.25, inner_radius=0.12, color=MARRON_QUIJOTE, fill_opacity=1).next_to(val_out_gelu, RIGHT, buff=0.2)
 
         val_in_anim_2 = val_in.copy()
         self.play(val_in_anim_2.animate.move_to(nodo).scale(0.5).set_opacity(0), run_time=0.8)
@@ -3515,17 +3866,14 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_capa_transformer(self):
-        COLOR_NODO_BG = PAPEL_TAN
-        COLOR_BORDE = MARRON_OSCURO
-        COLOR_TEXTO = TINTA_NEGRA
-        COLOR_RESALTE = NARANJA_TERRACOTA
-        
+        """Diapositiva: Slide Capa Transformer."""
+
         escala = 0.65 
 
         def crear_nodo(texto, ancho=2.5 * escala, alto=0.8 * escala, resaltado=False):
-            bg = COLOR_RESALTE if resaltado else COLOR_NODO_BG
+            bg = NARANJA_TERRACOTA if resaltado else PAPEL_CREMA
             borde = MARRON_OSCURO
-            txt_color = WHITE if resaltado else COLOR_TEXTO
+            txt_color = WHITE if resaltado else TINTA_NEGRA
             
             caja = RoundedRectangle(
                 corner_radius=0.15 * escala, width=ancho, height=alto, 
@@ -3534,7 +3882,7 @@ class Presentacion(Slide):
             txt = Text(texto, font=FUENTE, font_size=20 * escala, color=txt_color)
             return VGroup(caja, txt)
 
-        titulo, linea = self.crear_titulo("Arquitectura: Transformer Layer", palabra_clave="Transformer", color_clave=COLOR_RESALTE)
+        titulo, linea = self.crear_titulo("Arquitectura: Transformer Layer", palabra_clave="Transformer", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), Create(linea))
         
         pos_explicacion = RIGHT * 0.5 + UP * 1.5 
@@ -3545,13 +3893,13 @@ class Presentacion(Slide):
         nodo_input = crear_nodo("Input").move_to(UP * 2.5 * escala + EJE_X_RESIDUAL)
         
         add_1 = VGroup(
-            Circle(radius=0.25 * escala, fill_color=COLOR_NODO_BG, fill_opacity=1, stroke_color=COLOR_BORDE, stroke_width=2 * escala),
-            Text("+", font_size=24 * escala, color=COLOR_TEXTO, weight=BOLD)
+            Circle(radius=0.25 * escala, fill_color=PAPEL_CREMA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2 * escala),
+            Text("+", font_size=24 * escala, color=TINTA_NEGRA, weight=BOLD)
         ).move_to(UP * 0.2 * escala + EJE_X_RESIDUAL)
         
         add_2 = VGroup(
-            Circle(radius=0.25 * escala, fill_color=COLOR_NODO_BG, fill_opacity=1, stroke_color=COLOR_BORDE, stroke_width=2 * escala),
-            Text("+", font_size=24 * escala, color=COLOR_TEXTO, weight=BOLD)
+            Circle(radius=0.25 * escala, fill_color=PAPEL_CREMA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2 * escala),
+            Text("+", font_size=24 * escala, color=TINTA_NEGRA, weight=BOLD)
         ).move_to(DOWN * 2.2 * escala + EJE_X_RESIDUAL)
         
         nodo_output = crear_nodo("Output").move_to(DOWN * 3.3 * escala + EJE_X_RESIDUAL)
@@ -3562,31 +3910,31 @@ class Presentacion(Slide):
         nodo_ln2 = crear_nodo("Layer Norm").move_to(DOWN * 1.0 * escala + EJE_X_BLOQUES)
         nodo_mlp = crear_nodo("MLP", resaltado=True).move_to(DOWN * 2.2 * escala + EJE_X_BLOQUES)
 
-        S_WIDTH = 2.5 * escala
+        grosor_linea = 2.5 * escala
 
-        linea_baja_input = Line(nodo_input.get_bottom(), add_1.get_top(), stroke_color=COLOR_BORDE, stroke_width=S_WIDTH)
+        linea_baja_input = Line(nodo_input.get_bottom(), add_1.get_top(), stroke_color=MARRON_OSCURO, stroke_width=grosor_linea)
         punto_split_1 = linea_baja_input.point_from_proportion(0.3)
-        flecha_res_1 = Arrow(punto_split_1, add_1.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH, max_tip_length_to_length_ratio=0.15)
+        flecha_res_1 = Arrow(punto_split_1, add_1.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea, max_tip_length_to_length_ratio=0.15)
         txt_res_1 = Text("Residual Stream", font=FUENTE, font_size=12 * escala, color=GRAY_B).rotate(PI/2).next_to(flecha_res_1, LEFT, buff=0.1)
 
         esquina_1 = [nodo_ln1.get_center()[0], punto_split_1[1], 0]
-        linea_der_1 = Line(punto_split_1, esquina_1, stroke_color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_ln1 = Arrow(esquina_1, nodo_ln1.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_attn = Arrow(nodo_ln1.get_bottom(), nodo_attn.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_retorno_1 = Arrow(nodo_attn.get_left(), add_1.get_right(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
+        linea_der_1 = Line(punto_split_1, esquina_1, stroke_color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_ln1 = Arrow(esquina_1, nodo_ln1.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_attn = Arrow(nodo_ln1.get_bottom(), nodo_attn.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_retorno_1 = Arrow(nodo_attn.get_left(), add_1.get_right(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
 
-        linea_baja_add1 = Line(add_1.get_bottom(), add_2.get_top(), stroke_color=COLOR_BORDE, stroke_width=S_WIDTH)
+        linea_baja_add1 = Line(add_1.get_bottom(), add_2.get_top(), stroke_color=MARRON_OSCURO, stroke_width=grosor_linea)
         punto_split_2 = linea_baja_add1.point_from_proportion(0.3)
-        flecha_res_2 = Arrow(punto_split_2, add_2.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH, max_tip_length_to_length_ratio=0.15)
+        flecha_res_2 = Arrow(punto_split_2, add_2.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea, max_tip_length_to_length_ratio=0.15)
         txt_res_2 = Text("Residual Stream", font=FUENTE, font_size=12 * escala, color=GRAY_B).rotate(PI/2).next_to(flecha_res_2, LEFT, buff=0.1)
 
         esquina_2 = [nodo_ln2.get_center()[0], punto_split_2[1], 0]
-        linea_der_2 = Line(punto_split_2, esquina_2, stroke_color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_ln2 = Arrow(esquina_2, nodo_ln2.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_mlp = Arrow(nodo_ln2.get_bottom(), nodo_mlp.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
-        flecha_retorno_2 = Arrow(nodo_mlp.get_left(), add_2.get_right(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
+        linea_der_2 = Line(punto_split_2, esquina_2, stroke_color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_ln2 = Arrow(esquina_2, nodo_ln2.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_mlp = Arrow(nodo_ln2.get_bottom(), nodo_mlp.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
+        flecha_retorno_2 = Arrow(nodo_mlp.get_left(), add_2.get_right(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
 
-        flecha_out = Arrow(add_2.get_bottom(), nodo_output.get_top(), buff=0, color=COLOR_BORDE, stroke_width=S_WIDTH)
+        flecha_out = Arrow(add_2.get_bottom(), nodo_output.get_top(), buff=0, color=MARRON_OSCURO, stroke_width=grosor_linea)
 
         self.play(FadeIn(nodo_input, shift=DOWN * escala))
         
@@ -3608,13 +3956,13 @@ class Presentacion(Slide):
         self.next_slide()
         
         def crear_bloque_texto(titulo, items):
-            head = Text(titulo, font=FUENTE, font_size=28, color=COLOR_RESALTE, weight=BOLD)
-            bullets = VGroup(*[Text(f"• {item}", font=FUENTE, font_size=22, color=COLOR_TEXTO) for item in items])
+            head = Text(titulo, font=FUENTE, font_size=28, color=NARANJA_TERRACOTA, weight=BOLD)
+            bullets = VGroup(*[Text(f"• {item}", font=FUENTE, font_size=22, color=TINTA_NEGRA) for item in items])
             bullets.arrange(DOWN, aligned_edge=LEFT, buff=0.2).next_to(head, DOWN, aligned_edge=LEFT, buff=0.4)
             return VGroup(head, bullets).move_to(pos_explicacion).align_to(pos_explicacion, LEFT)
 
         grupo_residual = VGroup(linea_baja_input, add_1, linea_baja_add1, add_2, flecha_out)
-        caja1 = SurroundingRectangle(grupo_residual, color=COLOR_RESALTE, buff=0.2, stroke_width=3)
+        caja1 = SurroundingRectangle(grupo_residual, color=NARANJA_TERRACOTA, buff=0.2, stroke_width=3)
         texto1 = crear_bloque_texto("Residual Stream (Autopista):", [
             "Mantiene la información original intacta.",
             "Permite redes muy profundas sin perder gradiente.",
@@ -3626,8 +3974,8 @@ class Presentacion(Slide):
         self.play(FadeOut(caja1), FadeOut(texto1))
 
         caja2 = VGroup(
-            SurroundingRectangle(nodo_ln1, color=COLOR_BORDE, buff=0.1, stroke_width=3),
-            SurroundingRectangle(nodo_ln2, color=COLOR_BORDE, buff=0.1, stroke_width=3)
+            SurroundingRectangle(nodo_ln1, color=MARRON_OSCURO, buff=0.1, stroke_width=3),
+            SurroundingRectangle(nodo_ln2, color=MARRON_OSCURO, buff=0.1, stroke_width=3)
         )
         texto2 = crear_bloque_texto("Pre-Layer Normalization:", [
             "Normaliza antes de entrar al bloque.",
@@ -3640,8 +3988,8 @@ class Presentacion(Slide):
         self.play(FadeOut(caja2), FadeOut(texto2))
 
         caja3 = VGroup(
-            SurroundingRectangle(nodo_attn, color=COLOR_RESALTE, buff=0.15, stroke_width=3),
-            SurroundingRectangle(nodo_mlp, color=COLOR_RESALTE, buff=0.15, stroke_width=3)
+            SurroundingRectangle(nodo_attn, color=NARANJA_TERRACOTA, buff=0.15, stroke_width=3),
+            SurroundingRectangle(nodo_mlp, color=NARANJA_TERRACOTA, buff=0.15, stroke_width=3)
         )
         texto3 = crear_bloque_texto("Bloques de Cómputo:", [
             "Attention: Relaciona palabras entre sí.",
@@ -3655,6 +4003,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_entrenamiento(self):
+
+        """Diapositiva: Slide Entrenamiento."""
 
         titulo, linea = self.crear_titulo(
             "Entrenamiento: Ajustando Perillas", 
@@ -3812,6 +4162,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_descenso_gradiente(self):
+        """Diapositiva: Slide Descenso Gradiente."""
+
         titulo, linea = self.crear_titulo(
             "Descenso del Gradiente: Bajando la Colina", 
             palabra_clave="Gradiente:", 
@@ -3954,6 +4306,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_backpropagation(self):
+        """Diapositiva: Slide Backpropagation."""
+
         titulo, linea = self.crear_titulo(
             "Backpropagation: Regla de la Cadena", 
             palabra_clave="Regla de la Cadena", 
@@ -4183,6 +4537,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_adam(self):
+        """Diapositiva: Slide Adam."""
+
         titulo_intro, linea_intro = self.crear_titulo(
             "Optimizador Adam", 
             palabra_clave="Adam", 
@@ -4384,6 +4740,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_residual_connections(self):
+        """Diapositiva: Slide Residual Connections."""
+
         titulo, linea = self.crear_titulo("Conexiones Residuales: La Autopista", palabra_clave="Conexiones Residuales:", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
@@ -4448,6 +4806,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
     
     def slide_training_techniques(self):
+        """Diapositiva: Slide Training Techniques."""
+
         titulo, linea = self.crear_titulo("Estabilizadores y Optimización", palabra_clave="Estabilizadores", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
@@ -4529,11 +4889,7 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_training_metrics(self):
-        BG_CAJA = PAPEL_CREMA
-        BORDE_CAJA = MARRON_OSCURO
-        TXT_PRINCIPAL = TINTA_NEGRA
-        TXT_SECUNDARIO = MARRON_OSCURO 
-        COLOR_CLAVE = NARANJA_TERRACOTA
+        """Diapositiva: Slide Training Metrics."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -4542,7 +4898,7 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "Análisis de Convergencia: Loss vs. PPL", 
             palabra_clave="Análisis", 
-            color_clave=COLOR_CLAVE
+            color_clave=NARANJA_TERRACOTA
         )
         
         self.play(
@@ -4555,16 +4911,16 @@ class Presentacion(Slide):
 
         loss_eq = MathTex(
             r"L = -\frac{1}{N} \sum_{i=1}^{N} \ln P(x_i)", 
-            color=TXT_PRINCIPAL
+            color=TINTA_NEGRA
         ).scale(1.2)
-        label_loss = Text("Cross-Entropy Loss", font=FUENTE, font_size=18, color=TXT_SECUNDARIO).next_to(loss_eq, UP, buff=0.2)
+        label_loss = Text("Cross-Entropy Loss", font=FUENTE, font_size=18, color=MARRON_OSCURO).next_to(loss_eq, UP, buff=0.2)
         loss_group = VGroup(label_loss, loss_eq)
 
         ppl_eq = MathTex(
             r"PPL(X) = e^L", 
-            color=COLOR_CLAVE
+            color=NARANJA_TERRACOTA
         ).scale(1.8)
-        label_ppl = Text("Perplexity", font=FUENTE, font_size=20, color=COLOR_CLAVE, weight=BOLD).next_to(ppl_eq, UP, buff=0.2)
+        label_ppl = Text("Perplexity", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD).next_to(ppl_eq, UP, buff=0.2)
         ppl_group = VGroup(label_ppl, ppl_eq)
 
         math_block = VGroup(loss_group, ppl_group).arrange(DOWN, buff=1.0).move_to(ORIGIN).shift(DOWN * 0.5)
@@ -4581,7 +4937,7 @@ class Presentacion(Slide):
         
         explicacion = Tex(
             r"La PPL mide el ``branching factor'':\\¿Entre cuántas palabras duda el modelo?",
-            font_size=28, color=TXT_SECUNDARIO
+            font_size=28, color=MARRON_OSCURO
         ).next_to(math_block, DOWN, buff=0.3)
 
         self.play(FadeIn(explicacion, shift=UP))
@@ -4594,30 +4950,30 @@ class Presentacion(Slide):
             y_range=[0, 150, 50],
             x_length=6,        
             y_length=4,        
-            axis_config={"include_tip": False, "color": TXT_SECUNDARIO},
+            axis_config={"include_tip": False, "color": MARRON_OSCURO},
             x_axis_config={"label_direction": DOWN},
             y_axis_config={"label_direction": LEFT}
         ).shift(LEFT * 2 + DOWN * 0.5)
         
         labels_ax = ax.get_axis_labels(
-            x_label=Text("Loss", font=FUENTE, font_size=16, color=TXT_PRINCIPAL), 
-            y_label=Text("PPL", font=FUENTE, font_size=16, color=COLOR_CLAVE)
+            x_label=Text("Loss", font=FUENTE, font_size=16, color=TINTA_NEGRA), 
+            y_label=Text("PPL", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA)
         )
-        curva = ax.plot(lambda x: np.exp(x), x_range=[0, 5], color=COLOR_CLAVE, stroke_width=4)
+        curva = ax.plot(lambda x: np.exp(x), x_range=[0, 5], color=NARANJA_TERRACOTA, stroke_width=4)
         
-        dot1 = Dot(ax.c2p(4.5, np.exp(4.5)), color=TXT_SECUNDARIO)
-        dot2 = Dot(ax.c2p(1.5, np.exp(1.5)), color=COLOR_CLAVE)
+        dot1 = Dot(ax.c2p(4.5, np.exp(4.5)), color=MARRON_OSCURO)
+        dot2 = Dot(ax.c2p(1.5, np.exp(1.5)), color=NARANJA_TERRACOTA)
         
         lineas_d1 = ax.get_lines_to_point(
-            dot1.get_center(), color=TXT_SECUNDARIO
+            dot1.get_center(), color=MARRON_OSCURO
         ).set_opacity(0.4)
         
         lineas_d2 = ax.get_lines_to_point(
-            dot2.get_center(), color=COLOR_CLAVE
+            dot2.get_center(), color=NARANJA_TERRACOTA
         ).set_opacity(0.4)
 
-        txt_caos = Text("ENTRENAMIENTO INICIAL\n(PPL > 100)", font=FUENTE, font_size=16, color=TXT_SECUNDARIO).next_to(dot1, UR)
-        txt_orden = Text("BUEN ENTRENAMIENTO\n(PPL < 5)", font=FUENTE, font_size=16, color=COLOR_CLAVE).next_to(dot2, DL)
+        txt_caos = Text("ENTRENAMIENTO INICIAL\n(PPL > 100)", font=FUENTE, font_size=16, color=MARRON_OSCURO).next_to(dot1, UR)
+        txt_orden = Text("BUEN ENTRENAMIENTO\n(PPL < 5)", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(dot2, DL)
 
         self.play(Create(ax), Write(labels_ax))
         self.play(Create(curva), run_time=2)
@@ -4633,16 +4989,16 @@ class Presentacion(Slide):
             sombra.shift(RIGHT * 0.08 + DOWN * 0.08)
             
             rect = RoundedRectangle(corner_radius=0.15, height=2.2, width=8)
-            rect.set_fill(color=BG_CAJA, opacity=1).set_stroke(color=BORDE_CAJA, width=1.5)
+            rect.set_fill(color=PAPEL_CREMA, opacity=1).set_stroke(color=MARRON_OSCURO, width=1.5)
             
             icon = Circle(radius=0.25, color=color_usuario, fill_opacity=1)
             label_icon = Text("M", font=FUENTE, font_size=20, color=WHITE, weight=BOLD).move_to(icon)
             user_icon = VGroup(icon, label_icon).next_to(rect, LEFT, buff=0.3).shift(UP * 0.5)
             
-            username = Text("MolineteAI", font=FUENTE, font_size=14, color=TXT_SECUNDARIO).next_to(rect, UP, aligned_edge=LEFT).shift(UP*0.1)
+            username = Text("MolineteAI", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(rect, UP, aligned_edge=LEFT).shift(UP*0.1)
 
             contenido = Paragraph(
-                texto, font=FUENTE, font_size=22, color=TXT_PRINCIPAL, 
+                texto, font=FUENTE, font_size=22, color=TINTA_NEGRA, 
                 line_spacing=1.3, alignment="left"
             ).scale_to_fit_width(rect.width - 0.8).move_to(rect)
 
@@ -4656,9 +5012,9 @@ class Presentacion(Slide):
             
             return full_msg
 
-        p1 = crear_mensaje_chat("0000", "8.12", "3360.1", "\"Esta q7e llama8 p0r a#í F0rtun4...\"", TXT_SECUNDARIO)
-        p2 = crear_mensaje_chat("4000", "4.45", "85.6", "\"Esta que llaman por ahí Fortuna es una mujer...\"", TXT_PRINCIPAL)
-        p3 = crear_mensaje_chat("16000", "2.85", "17.2", "\"Esta que llaman por ahí Fortuna es una mujer borracha...\"", COLOR_CLAVE)
+        p1 = crear_mensaje_chat("0000", "8.12", "3360.1", "\"Esta q7e llama8 p0r a#í F0rtun4...\"", MARRON_OSCURO)
+        p2 = crear_mensaje_chat("4000", "4.45", "85.6", "\"Esta que llaman por ahí Fortuna es una mujer...\"", TINTA_NEGRA)
+        p3 = crear_mensaje_chat("16000", "2.85", "17.2", "\"Esta que llaman por ahí Fortuna es una mujer borracha...\"", NARANJA_TERRACOTA)
 
         actual = p1
         self.play(FadeIn(actual, scale=0.9))
@@ -4672,15 +5028,17 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_model_in_action(self):
+        """Diapositiva: Slide Model In Action."""
+
         titulo, linea = self.crear_titulo("Molinete AI: Demostración en Vivo", palabra_clave="Vivo", color_clave=NARANJA_TERRACOTA)
         self.play(Write(titulo), GrowFromCenter(linea))
 
         terminal_window = RoundedRectangle(corner_radius=0.2, width=11, height=6, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=0.95)
         terminal_header = Rectangle(width=11, height=0.5, color=MARRON_OSCURO, fill_color=MARRON_OSCURO, fill_opacity=1).align_to(terminal_window, UP)
         
-        dot_1 = Circle(radius=0.08, color="#FF5F56", fill_color="#FF5F56", fill_opacity=1).move_to(terminal_header.get_left() + RIGHT*0.4)
-        dot_2 = Circle(radius=0.08, color="#FFBD2E", fill_color="#FFBD2E", fill_opacity=1).next_to(dot_1, RIGHT, buff=0.15)
-        dot_3 = Circle(radius=0.08, color="#27C93F", fill_color="#27C93F", fill_opacity=1).next_to(dot_2, RIGHT, buff=0.15)
+        dot_1 = Circle(radius=0.08, color=ROJO_MAC, fill_color=ROJO_MAC, fill_opacity=1).move_to(terminal_header.get_left() + RIGHT*0.4)
+        dot_2 = Circle(radius=0.08, color=AMARILLO_MAC, fill_color=AMARILLO_MAC, fill_opacity=1).next_to(dot_1, RIGHT, buff=0.15)
+        dot_3 = Circle(radius=0.08, color=VERDE_MAC, fill_color=VERDE_MAC, fill_opacity=1).next_to(dot_2, RIGHT, buff=0.15)
         
 
         terminal_title = Text("demostración en vivo", font_size=14, color=FONDO_CAJA, weight=BOLD).move_to(terminal_header) 
@@ -4696,7 +5054,7 @@ class Presentacion(Slide):
         
         barra_vacia = Text("Cargando el modelo: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0%", font_size=16, font="Monospace", color=TINTA_NEGRA).next_to(comando, DOWN, buff=0.3, aligned_edge=LEFT)
 
-        barra_llena = Text("Cargando el modelo: [████████████████████████████████████████] 100%", font_size=16, font="Monospace", color="#A36536").next_to(comando, DOWN, buff=0.3, aligned_edge=LEFT)
+        barra_llena = Text("Cargando el modelo: [████████████████████████████████████████] 100%", font_size=16, font="Monospace", color=NARANJA_TERRACOTA).next_to(comando, DOWN, buff=0.3, aligned_edge=LEFT)
 
         msg_listo = Text("¡Modelo cargado! Ya puedes chatear.", font_size=16, font="Monospace", color=TINTA_NEGRA).next_to(barra_llena, DOWN, buff=0.3, aligned_edge=LEFT)
         
@@ -4734,6 +5092,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_final(self):
+        """Diapositiva: Slide Final."""
+
         gracias = Text("¡Muchas Gracias!", font_size=60, weight=BOLD, color=NARANJA_TERRACOTA).move_to(UP*2.5)
         sub = Text("Por tu asistencia y atención", font_size=24, color=MARRON_OSCURO).next_to(gracias, DOWN)
         
@@ -4796,9 +5156,9 @@ class Presentacion(Slide):
         self.play(Rotate(aspas, angle=2*PI*4, about_point=nuevo_centro_aspas, run_time=10, rate_func=linear))
 
     def slide_por_que_rust(self):
-        titulo, linea = self.crear_titulo("¿Por qué Rust?", palabra_clave="Rust", color_clave=NARANJA_TERRACOTA)
-        COLOR_CONTRA = "#B33A3A"
+        """Diapositiva: Slide Por Que Rust."""
 
+        titulo, linea = self.crear_titulo("¿Por qué Rust?", palabra_clave="Rust", color_clave=NARANJA_TERRACOTA)
         molino_adorno = crear_molino().scale(0.6).to_corner(DL, buff=0.8)
         sol_adorno = crear_sol_cervantino().scale(0.6).to_corner(UR, buff=0.8)
         tintero_adorno = crear_tintero_y_pluma().scale(0.6).to_corner(DR, buff=0.8)
@@ -4807,15 +5167,15 @@ class Presentacion(Slide):
 
         logo_py = ImageMobject("assets/logo_python.png").set_height(2)
         py_txt1 = Text("Fácil prototipado", font=FUENTE, font_size=24, color=MARRON_OSCURO)
-        py_txt2 = Text("✗ Pausas por GC", font=FUENTE, font_size=24, color=COLOR_CONTRA)
-        py_txt3 = Text("✗ Lento en inferencia", font=FUENTE, font_size=24, color=COLOR_CONTRA)
+        py_txt2 = Text("✗ Pausas por GC", font=FUENTE, font_size=24, color=ROJO_CONTRA)
+        py_txt3 = Text("✗ Lento en inferencia", font=FUENTE, font_size=24, color=ROJO_CONTRA)
         py_grupo = VGroup(py_txt1, py_txt2, py_txt3).arrange(DOWN, buff=0.3)
         bloque_py = Group(logo_py, py_grupo).arrange(DOWN, buff=0.5)
 
         logo_cpp = ImageMobject("assets/logo_cpp.png").set_height(2)
         cpp_txt1 = Text("Máximo rendimiento", font=FUENTE, font_size=24, color=MARRON_OSCURO)
-        cpp_txt2 = Text("✗ Ya muy visto en AI", font=FUENTE, font_size=24, color=COLOR_CONTRA)
-        cpp_txt3 = Text("✗ Riesgo en memoria", font=FUENTE, font_size=24, color=COLOR_CONTRA)
+        cpp_txt2 = Text("✗ Ya muy visto en AI", font=FUENTE, font_size=24, color=ROJO_CONTRA)
+        cpp_txt3 = Text("✗ Riesgo en memoria", font=FUENTE, font_size=24, color=ROJO_CONTRA)
         cpp_grupo = VGroup(cpp_txt1, cpp_txt2, cpp_txt3).arrange(DOWN, buff=0.3)
         bloque_cpp = Group(logo_cpp, cpp_grupo).arrange(DOWN, buff=0.5)
 
@@ -4896,6 +5256,7 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def diapo_codigo(self, codigo_fuente: str, titulo_archivo: str = "codigo.rs"):
+        """Muestra un bloque de código Rust en un editor estilizado tipo macOS."""
         from pygments.style import Style
         from pygments.token import Keyword, Name, String, Number, Operator, Punctuation, Token, Comment
 
@@ -4920,13 +5281,13 @@ class Presentacion(Slide):
             background="rectangle"
         ).scale(0.8)
 
-        MAX_ALTO = 6.0 
-        MAX_ANCHO = 12.0
+        max_alto = 6.0 
+        max_ancho = 12.0
         
-        if bloque_codigo.height > MAX_ALTO:
-            bloque_codigo.scale_to_fit_height(MAX_ALTO)
-        if bloque_codigo.width > MAX_ANCHO:
-            bloque_codigo.scale_to_fit_width(MAX_ANCHO)
+        if bloque_codigo.height > max_alto:
+            bloque_codigo.scale_to_fit_height(max_alto)
+        if bloque_codigo.width > max_ancho:
+            bloque_codigo.scale_to_fit_width(max_ancho)
 
         if len(bloque_codigo) > 0:
             bloque_codigo[0].set_opacity(0)
@@ -4934,12 +5295,12 @@ class Presentacion(Slide):
         if len(bloque_codigo) > 1:
             bloque_codigo[1].set_color(PAPEL_TAN)
 
-        HEADER = 0.6
-        PADDING_X = 1.2
-        PADDING_Y = 1.0
+        alto_header = 0.6
+        padding_x = 1.2
+        padding_y = 1.0
 
-        ANCHO = max(bloque_codigo.width + PADDING_X, 6.0)
-        ALTO = bloque_codigo.height + PADDING_Y + HEADER
+        ancho_caja = max(bloque_codigo.width + padding_x, 6.0)
+        alto_caja = bloque_codigo.height + padding_y + alto_header
 
         sombra = RoundedRectangle(
             corner_radius=0.1,
@@ -4960,7 +5321,7 @@ class Presentacion(Slide):
         )
 
         editor_header = Rectangle(
-            width=ANCHO, height=HEADER,
+            width=ANCHO, height=alto_header,
             color=MARRON_OSCURO,
             stroke_width=3,
             fill_color=MARRON_OSCURO,
@@ -4981,7 +5342,7 @@ class Presentacion(Slide):
         editor_ui = VGroup(sombra, editor_bg, editor_header, botones, file_title)
         editor_ui.move_to(ORIGIN)
         
-        area_util = editor_bg.get_center() + DOWN * (HEADER / 2)
+        area_util = editor_bg.get_center() + DOWN * (alto_header / 2)
         bloque_codigo.move_to(area_util)
 
         self.play(
@@ -5010,6 +5371,8 @@ class Presentacion(Slide):
         self.play(FadeOut(VGroup(editor_ui, bloque_codigo), shift=DOWN * 0.3), run_time=0.8)
     
     def slide_matmul(self):
+        """Diapositiva: Slide Matmul."""
+
         titulo, linea = self.crear_titulo(
             "Multiplicación: El 'Dot Product'", 
             palabra_clave="'Dot Product'", 
@@ -5107,11 +5470,7 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_temperature(self):
-        BG_CAJA = PAPEL_CREMA
-        BORDE_CAJA = MARRON_OSCURO
-        TXT_PRINCIPAL = TINTA_NEGRA
-        TXT_SECUNDARIO = MARRON_OSCURO 
-        COLOR_CLAVE = NARANJA_TERRACOTA
+        """Diapositiva: Slide Temperature."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -5120,7 +5479,7 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "La Temperatura: Controlando la Locura", 
             palabra_clave="Temperatura", 
-            color_clave=COLOR_CLAVE
+            color_clave=NARANJA_TERRACOTA
         )
         
         self.play(
@@ -5131,14 +5490,14 @@ class Presentacion(Slide):
             FadeIn(llanuras_fondo, shift=UP)
         )
 
-        label_eq = Text("Softmax con Temperatura (T)", font=FUENTE, font_size=18, color=TXT_SECUNDARIO)
+        label_eq = Text("Softmax con Temperatura (T)", font=FUENTE, font_size=18, color=MARRON_OSCURO)
         
         eq_temp = MathTex(
             r"P(x_i) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}", 
-            color=TXT_PRINCIPAL
+            color=TINTA_NEGRA
         ).scale(1.3)
         
-        eq_temp.set_color_by_tex("T", COLOR_CLAVE)
+        eq_temp.set_color_by_tex("T", NARANJA_TERRACOTA)
         
         math_group = VGroup(label_eq, eq_temp).arrange(DOWN, buff=0.3).move_to(ORIGIN).shift(UP * 0.5)
 
@@ -5148,7 +5507,7 @@ class Presentacion(Slide):
 
         explicacion = Tex(
             r"$T \to 0$: Determinista, conservador (Como Sancho)\\$T > 1$: Aleatorio, creativo, ``alucinaciones'' (Como el Quijote)",
-            font_size=28, color=TXT_SECUNDARIO, tex_environment="flushleft"
+            font_size=28, color=MARRON_OSCURO, tex_environment="flushleft"
         ).next_to(math_group, DOWN, buff=0.8)
 
         self.play(FadeIn(explicacion, shift=UP))
@@ -5157,13 +5516,13 @@ class Presentacion(Slide):
         self.play(FadeOut(math_group, explicacion))
 
         rect_prompt = RoundedRectangle(corner_radius=0.15, height=1.2, width=8)
-        rect_prompt.set_fill(color=MARRON_OSCURO, opacity=0.1).set_stroke(color=TXT_SECUNDARIO, width=1.5)
+        rect_prompt.set_fill(color=MARRON_OSCURO, opacity=0.1).set_stroke(color=MARRON_OSCURO, width=1.5)
         
-        user_label = Text("Usuario", font=FUENTE, font_size=14, color=TXT_SECUNDARIO).next_to(rect_prompt, UP, aligned_edge=LEFT).shift(DOWN*0.1 + RIGHT*0.2)
+        user_label = Text("Usuario", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(rect_prompt, UP, aligned_edge=LEFT).shift(DOWN*0.1 + RIGHT*0.2)
         
         texto_prompt = Text(
             "Prompt: \"En un lugar de la Mancha...\"", 
-            font=FUENTE, font_size=22, color=TXT_PRINCIPAL, weight=BOLD
+            font=FUENTE, font_size=22, color=TINTA_NEGRA, weight=BOLD
         ).move_to(rect_prompt)
 
         grupo_prompt = VGroup(rect_prompt, user_label, texto_prompt).to_edge(UP, buff=1.5)
@@ -5176,16 +5535,16 @@ class Presentacion(Slide):
             sombra.shift(RIGHT * 0.08 + DOWN * 0.08)
             
             rect = RoundedRectangle(corner_radius=0.15, height=2.2, width=8)
-            rect.set_fill(color=BG_CAJA, opacity=1).set_stroke(color=BORDE_CAJA, width=1.5)
+            rect.set_fill(color=PAPEL_CREMA, opacity=1).set_stroke(color=MARRON_OSCURO, width=1.5)
             
             icon = Circle(radius=0.25, color=color_perfil, fill_opacity=1)
             label_icon = Text(titulo_perfil[5], font=FUENTE, font_size=20, color=WHITE, weight=BOLD).move_to(icon)
             user_icon = VGroup(icon, label_icon).next_to(rect, LEFT, buff=0.3).shift(UP * 0.5)
             
-            username = Text(f"{titulo_perfil} (T={temp_val})", font=FUENTE, font_size=14, color=TXT_SECUNDARIO).next_to(rect, UP, aligned_edge=LEFT).shift(UP*0.1)
+            username = Text(f"{titulo_perfil} (T={temp_val})", font=FUENTE, font_size=14, color=MARRON_OSCURO).next_to(rect, UP, aligned_edge=LEFT).shift(UP*0.1)
 
             contenido = Paragraph(
-                texto, font=FUENTE, font_size=22, color=TXT_PRINCIPAL, 
+                texto, font=FUENTE, font_size=22, color=TINTA_NEGRA, 
                 line_spacing=1.3, alignment="left"
             ).scale_to_fit_width(rect.width - 0.8).move_to(rect)
 
@@ -5196,11 +5555,11 @@ class Presentacion(Slide):
             
             return VGroup(bubble_group, info).next_to(grupo_prompt, DOWN, buff=1.0)
 
-        r_sancho_1 = crear_respuesta("0.1", 1, "\"...de cuyo nombre no quiero acordarme.\"", TXT_SECUNDARIO, "Sancho")
-        r_sancho_2 = crear_respuesta("0.1", 2, "\"...de cuyo nombre no quiero acordarme.\"", TXT_SECUNDARIO, "Sancho")
+        r_sancho_1 = crear_respuesta("0.1", 1, "\"...de cuyo nombre no quiero acordarme.\"", MARRON_OSCURO, "Sancho")
+        r_sancho_2 = crear_respuesta("0.1", 2, "\"...de cuyo nombre no quiero acordarme.\"", MARRON_OSCURO, "Sancho")
         
-        r_quijote_1 = crear_respuesta("1.5", 1, "\"...donde los dragones mecánicos beben aceite de oliva.\"", COLOR_CLAVE, "El Quijote")
-        r_quijote_2 = crear_respuesta("1.5", 2, "\"...los molinos me hablan en código binario al amanecer.\"", COLOR_CLAVE, "El Quijote")
+        r_quijote_1 = crear_respuesta("1.5", 1, "\"...donde los dragones mecánicos beben aceite de oliva.\"", NARANJA_TERRACOTA, "El Quijote")
+        r_quijote_2 = crear_respuesta("1.5", 2, "\"...los molinos me hablan en código binario al amanecer.\"", NARANJA_TERRACOTA, "El Quijote")
 
         actual = r_sancho_1
         self.play(FadeIn(actual, shift=UP))
@@ -5220,12 +5579,8 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_residual(self):
-        COLOR_NODO_BG = PAPEL_CREMA
-        COLOR_BORDE = MARRON_OSCURO
-        COLOR_TEXTO = TINTA_NEGRA
-        COLOR_RESALTE = NARANJA_TERRACOTA
-        COLOR_SECUNDARIO = "#8B2500"  
-        
+        """Diapositiva: Slide Residual."""
+
         escala = 0.85 
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
@@ -5235,7 +5590,7 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "Conexiones Residuales: El Atajo de Sancho", 
             palabra_clave="Residuales", 
-            color_clave=COLOR_RESALTE
+            color_clave=NARANJA_TERRACOTA
         )
         
         self.play(
@@ -5251,23 +5606,23 @@ class Presentacion(Slide):
         pos_add = RIGHT * 2.5
         pos_y = RIGHT * 4.5
 
-        label_x = MathTex("x", font_size=48 * escala, color=COLOR_TEXTO).move_to(pos_x)
+        label_x = MathTex("x", font_size=48 * escala, color=TINTA_NEGRA).move_to(pos_x)
         
-        nodo_f = RoundedRectangle(corner_radius=0.2, width=1.5 * escala, height=2.2 * escala, fill_color=COLOR_SECUNDARIO, fill_opacity=1, stroke_color=WHITE, stroke_width=3)
+        nodo_f = RoundedRectangle(corner_radius=0.2, width=1.5 * escala, height=2.2 * escala, fill_color=MARRON_QUIJOTE, fill_opacity=1, stroke_color=WHITE, stroke_width=3)
         label_f = MathTex("f", font_size=48 * escala, color=WHITE).move_to(nodo_f)
         grupo_f = VGroup(nodo_f, label_f).move_to(pos_f)
         
-        nodo_add = Circle(radius=0.4 * escala, fill_color=COLOR_SECUNDARIO, fill_opacity=1, stroke_color=WHITE, stroke_width=3)
+        nodo_add = Circle(radius=0.4 * escala, fill_color=MARRON_QUIJOTE, fill_opacity=1, stroke_color=WHITE, stroke_width=3)
         label_add = MathTex("+", font_size=40 * escala, color=WHITE).move_to(nodo_add)
         grupo_add = VGroup(nodo_add, label_add).move_to(pos_add)
         
-        label_y = MathTex("y", font_size=48 * escala, color=COLOR_TEXTO).move_to(pos_y)
+        label_y = MathTex("y", font_size=48 * escala, color=TINTA_NEGRA).move_to(pos_y)
         
-        eq_final = MathTex("y = x + f(x)", font_size=42 * escala, color=COLOR_TEXTO).next_to(grupo_f, DOWN, buff=1.2)
+        eq_final = MathTex("y = x + f(x)", font_size=42 * escala, color=TINTA_NEGRA).next_to(grupo_f, DOWN, buff=1.2)
 
-        arrow_x_f = Arrow(label_x.get_right(), grupo_f.get_left(), buff=0.2, color=COLOR_BORDE, stroke_width=3)
-        arrow_f_add = Arrow(grupo_f.get_right(), grupo_add.get_left(), buff=0.2, color=COLOR_BORDE, stroke_width=3)
-        arrow_add_y = Arrow(grupo_add.get_right(), label_y.get_left(), buff=0.2, color=COLOR_BORDE, stroke_width=3)
+        arrow_x_f = Arrow(label_x.get_right(), grupo_f.get_left(), buff=0.2, color=MARRON_OSCURO, stroke_width=3)
+        arrow_f_add = Arrow(grupo_f.get_right(), grupo_add.get_left(), buff=0.2, color=MARRON_OSCURO, stroke_width=3)
+        arrow_add_y = Arrow(grupo_add.get_right(), label_y.get_left(), buff=0.2, color=MARRON_OSCURO, stroke_width=3)
 
         punto_inicio_skip = pos_x + RIGHT * 0.8
         p1 = punto_inicio_skip
@@ -5275,9 +5630,9 @@ class Presentacion(Slide):
         p3 = np.array([grupo_add.get_center()[0], p2[1], 0])
         p4 = grupo_add.get_top() + UP * 0.1
         
-        line_up = Line(p1, p2, color=COLOR_BORDE, stroke_width=3)
-        line_across = Line(p2, p3, color=COLOR_BORDE, stroke_width=3)
-        arrow_down = Arrow(p3, p4, buff=0, color=COLOR_BORDE, stroke_width=3)
+        line_up = Line(p1, p2, color=MARRON_OSCURO, stroke_width=3)
+        line_across = Line(p2, p3, color=MARRON_OSCURO, stroke_width=3)
+        arrow_down = Arrow(p3, p4, buff=0, color=MARRON_OSCURO, stroke_width=3)
         skip_connection = VGroup(line_up, line_across, arrow_down)
 
         self.play(FadeIn(label_x, shift=RIGHT))
@@ -5290,16 +5645,16 @@ class Presentacion(Slide):
 
         pos_texto = DOWN * 3
         
-        txt_desc_1 = Text("La señal original viaja por la red...", font=FUENTE, font_size=24 * escala, color=COLOR_TEXTO).move_to(pos_texto)
-        txt_desc_2 = Text("El Quijote f(x) transforma el mundo, pero la señal se desvanece.", font=FUENTE, font_size=24 * escala, color=COLOR_SECUNDARIO).move_to(pos_texto)
-        txt_desc_3 = Text("Sancho lleva una copia intacta de la realidad por un 'atajo'.", font=FUENTE, font_size=24 * escala, color=COLOR_RESALTE).move_to(pos_texto)
-        txt_desc_4 = Text("La realidad de Sancho y la visión del Quijote se suman.", font=FUENTE, font_size=24 * escala, color=COLOR_BORDE).move_to(pos_texto)
+        txt_desc_1 = Text("La señal original viaja por la red...", font=FUENTE, font_size=24 * escala, color=TINTA_NEGRA).move_to(pos_texto)
+        txt_desc_2 = Text("El Quijote f(x) transforma el mundo, pero la señal se desvanece.", font=FUENTE, font_size=24 * escala, color=MARRON_QUIJOTE).move_to(pos_texto)
+        txt_desc_3 = Text("Sancho lleva una copia intacta de la realidad por un 'atajo'.", font=FUENTE, font_size=24 * escala, color=NARANJA_TERRACOTA).move_to(pos_texto)
+        txt_desc_4 = Text("La realidad de Sancho y la visión del Quijote se suman.", font=FUENTE, font_size=24 * escala, color=MARRON_OSCURO).move_to(pos_texto)
 
         def crear_imagen_pixelada(resolucion="alta"):
             cuadros = []
             filas, cols = (6, 6) if resolucion == "alta" else (3, 3)
             lado = 0.15 if resolucion == "alta" else 0.3
-            colores = [COLOR_RESALTE, COLOR_BORDE, COLOR_SECUNDARIO, "#D4A373"]
+            colores = [NARANJA_TERRACOTA, MARRON_OSCURO, MARRON_QUIJOTE, OCRE_CERVANTINO]
             
             for i in range(filas):
                 for j in range(cols):
@@ -5317,12 +5672,12 @@ class Presentacion(Slide):
         img_alta_copia = crear_imagen_pixelada("alta").move_to(pos_x).shift(UP*1.2)
         img_final_y = crear_imagen_pixelada("alta").move_to(pos_y).shift(UP*1.2)
 
-        txt_input = Text("Imagen Real", font=FUENTE, font_size=18, color=COLOR_BORDE).next_to(img_alta_x, UP)
+        txt_input = Text("Imagen Real", font=FUENTE, font_size=18, color=MARRON_OSCURO).next_to(img_alta_x, UP)
         self.play(FadeIn(img_alta_x, shift=DOWN), FadeIn(txt_input), FadeIn(txt_desc_1))
         self.next_slide()
 
         self.play(ReplacementTransform(txt_desc_1, txt_desc_2))
-        txt_f = Text("Visión Alterada f(x)", font=FUENTE, font_size=18, color=COLOR_SECUNDARIO).next_to(img_baja_f, UP)
+        txt_f = Text("Visión Alterada f(x)", font=FUENTE, font_size=18, color=MARRON_QUIJOTE).next_to(img_baja_f, UP)
         self.play(
             ReplacementTransform(img_alta_x.copy(), img_baja_f),
             FadeIn(txt_f)
@@ -5330,7 +5685,7 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(ReplacementTransform(txt_desc_2, txt_desc_3))
-        txt_skip = Text("La Copia de Sancho", font=FUENTE, font_size=18, color=COLOR_RESALTE).next_to(line_across, UP)
+        txt_skip = Text("La Copia de Sancho", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA).next_to(line_across, UP)
         self.play(FadeIn(txt_skip))
         self.play(
             img_alta_copia.animate.move_to(p2).shift(UP*0.5),
@@ -5347,7 +5702,7 @@ class Presentacion(Slide):
         self.next_slide()
 
         self.play(ReplacementTransform(txt_desc_3, txt_desc_4))
-        txt_output = Text("Realidad Recuperada", font=FUENTE, font_size=18, color=COLOR_BORDE).next_to(img_final_y, UP)
+        txt_output = Text("Realidad Recuperada", font=FUENTE, font_size=18, color=MARRON_OSCURO).next_to(img_final_y, UP)
         
         self.play(
             FadeOut(img_baja_f, shift=RIGHT),
@@ -5355,19 +5710,14 @@ class Presentacion(Slide):
             FadeIn(txt_output)
         )
         
-        caja_eq = SurroundingRectangle(eq_final, color=COLOR_RESALTE, buff=0.2, stroke_width=2)
+        caja_eq = SurroundingRectangle(eq_final, color=NARANJA_TERRACOTA, buff=0.2, stroke_width=2)
         self.play(Create(caja_eq))
         self.next_slide()
 
         self.limpiar_pantalla()
 
     def slide_dropout(self):
-        BG_CAJA = PAPEL_CREMA
-        TXT_PRINCIPAL = TINTA_NEGRA
-        TXT_SECUNDARIO = MARRON_OSCURO 
-        COLOR_CLAVE = NARANJA_TERRACOTA
-        COLOR_INPUT = BLUE_D
-        COLOR_OUTPUT = GREEN_D
+        """Diapositiva: Slide Dropout."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -5376,7 +5726,7 @@ class Presentacion(Slide):
         titulo, linea = self.crear_titulo(
             "Dropout: El Arte de Olvidar", 
             palabra_clave="Dropout", 
-            color_clave=COLOR_CLAVE
+            color_clave=NARANJA_TERRACOTA
         )
         
         self.play(
@@ -5389,27 +5739,27 @@ class Presentacion(Slide):
 
         label_proposito = Text(
             "Es una técnica de regularización.", 
-            font=FUENTE, font_size=24, color=TXT_PRINCIPAL, weight=BOLD
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD
         )
 
         label_eq = Text(
             "Se basa en una Distribución de Bernoulli:", 
-            font=FUENTE, font_size=20, color=TXT_SECUNDARIO
+            font=FUENTE, font_size=20, color=MARRON_OSCURO
         )
         
         eq_dropout = MathTex(
             r"r_i \sim \text{Bernoulli}(p)", 
             r"\quad \Rightarrow \quad",
             r"y_i = \frac{r_i \cdot x_i}{p}",
-            color=TXT_PRINCIPAL
+            color=TINTA_NEGRA
         ).scale(1.2)
         
-        eq_dropout.set_color_by_tex("p", COLOR_CLAVE)
+        eq_dropout.set_color_by_tex("p", NARANJA_TERRACOTA)
         eq_dropout.set_color_by_tex("r_i", MARRON_OSCURO)
 
         explicacion = Tex(
             r"Al escalar por $p$, mantenemos la esperanza matemática: $\mathbb{E}[y_i] = x_i$",
-            font_size=24, color=TXT_SECUNDARIO
+            font_size=24, color=MARRON_OSCURO
         )
         
         grupo_intro = VGroup(label_proposito, label_eq, eq_dropout, explicacion).arrange(DOWN, buff=0.4).move_to(ORIGIN)
@@ -5420,7 +5770,7 @@ class Presentacion(Slide):
         self.play(FadeOut(grupo_intro))
 
         tamaños_capas = [4, 5, 5, 5, 4]
-        colores_capas = [COLOR_INPUT, COLOR_CLAVE, COLOR_CLAVE, COLOR_CLAVE, COLOR_OUTPUT]
+        colores_capas = [BLUE_D, NARANJA_TERRACOTA, NARANJA_TERRACOTA, NARANJA_TERRACOTA, GREEN_D]
         nombres_capas = ["Input", "Dense 1", "Dense 2", "Dense 3", "Output"]
         
         nodos = VGroup()
@@ -5430,7 +5780,7 @@ class Presentacion(Slide):
             capa = VGroup(*[Dot(radius=0.15, color=color) for _ in range(size)]).arrange(DOWN, buff=0.4)
             nodos.add(capa)
             
-            etiqueta = Text(nombre, font=FUENTE, font_size=16, color=TXT_SECUNDARIO, weight=BOLD)
+            etiqueta = Text(nombre, font=FUENTE, font_size=16, color=MARRON_OSCURO, weight=BOLD)
             etiqueta.next_to(capa, UP, buff=0.3)
             etiquetas.add(etiqueta)
             
@@ -5446,7 +5796,7 @@ class Presentacion(Slide):
             grupo_conexiones = VGroup()
             for n1 in capa_act:
                 for n2 in capa_sig:
-                    grupo_conexiones.add(Line(n1.get_center(), n2.get_center(), stroke_width=1.5, color=TXT_SECUNDARIO, stroke_opacity=0.3))
+                    grupo_conexiones.add(Line(n1.get_center(), n2.get_center(), stroke_width=1.5, color=MARRON_OSCURO, stroke_opacity=0.3))
             conexiones.add(grupo_conexiones)
 
         red_grupo = VGroup(conexiones, nodos, etiquetas)
@@ -5471,7 +5821,7 @@ class Presentacion(Slide):
                         line_idx = idx * tamaños_capas[indice_capa + 1] + n2_idx
                         animaciones.append(conexiones[indice_capa][line_idx].animate.set_stroke(opacity=0.02))
             
-            texto = Text(texto_explicativo, font=FUENTE, font_size=20, color=TXT_PRINCIPAL).to_edge(DOWN, buff=0.5)
+            texto = Text(texto_explicativo, font=FUENTE, font_size=20, color=TINTA_NEGRA).to_edge(DOWN, buff=0.5)
             
             self.play(*animaciones, FadeIn(texto, shift=UP), run_time=1.5)
             self.next_slide()
@@ -5483,10 +5833,9 @@ class Presentacion(Slide):
 
         texto_metafora = Text(
             "\"No confíes la batalla a un solo caballero,\nhaz que toda la orden luche unida.\"",
-            font=FUENTE, font_size=24, color=TXT_SECUNDARIO, slant=ITALIC
+            font=FUENTE, font_size=24, color=MARRON_OSCURO, slant=ITALIC
         ).to_edge(DOWN, buff=0.5)
 
         self.play(Write(texto_metafora))
         self.next_slide()
 
-        self.limpiar_pantalla()
