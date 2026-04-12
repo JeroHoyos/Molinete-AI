@@ -117,7 +117,7 @@ Config {
 
 ```
 Molinete-AI/
-├── src/
+├── src/                        ← Implementación del modelo en Rust
 │   ├── layers/
 │   │   ├── activation.rs
 │   │   ├── attention.rs
@@ -137,12 +137,23 @@ Molinete-AI/
 │   ├── registrador_entrenamiento.rs
 │   ├── tensor.rs
 │   └── tokenizador.rs
-├── examples/              ← Scripts de ejemplo en Rust
-├── presentation/          ← Animaciones Manim
+├── examples/                   ← Scripts de exploración en Python
+│   └── modulos/
+│       ├── arquitectura.py     ← Exploración de la arquitectura del modelo
+│       ├── chat.py             ← Interfaz de chat con el modelo entrenado
+│       ├── datos.py            ← Carga y preprocesamiento del corpus
+│       ├── entrenamiento.py    ← Bucle de entrenamiento paso a paso
+│       ├── infraestructura.py  ← Warmup, clipping y utilidades de entrenamiento
+│       ├── tensores.py         ← Operaciones tensoriales básicas
+│       ├── tokenizadores.py    ← Entrenamiento y uso del tokenizador BPE
+│       └── ui.py               ← Interfaz de usuario para generación de texto
+├── presentation/               ← Animaciones Manim de la arquitectura
+├── molineteai.py               ← Punto de entrada principal Python
+├── shakespeare.txt             ← Corpus alternativo para pruebas rápidas
 ├── Cargo.toml
+├── Cargo.lock
 ├── pyproject.toml
-├── download_data.py       ← Script de descarga del corpus
-├── DATA.md                ← Guía del corpus de datos
+├── DATA.md                     ← Guía del corpus de datos
 └── README.md
 ```
 
@@ -167,14 +178,11 @@ git clone https://github.com/JeroHoyos/Molinete-AI.git
 cd Molinete-AI
 ```
 
-### 2. Descargar el corpus
+### 2. Preparar el corpus
 
-```bash
-python download_data.py
-# Genera: cervantes.txt (~5–7 MB)
-```
+El corpus de Cervantes debe descargarse manualmente. Ver [DATA.md](DATA.md) para instrucciones detalladas y fuentes recomendadas.
 
-Ver [DATA.md](DATA.md) para más detalles y opciones alternativas de descarga.
+Para pruebas rápidas, el repositorio incluye `shakespeare.txt` como corpus alternativo en inglés.
 
 ### 3. Compilar los bindings Python
 
@@ -182,45 +190,30 @@ Ver [DATA.md](DATA.md) para más detalles y opciones alternativas de descarga.
 maturin develop --release
 ```
 
-### 4. Ejecutar los ejemplos
+### 4. Ejecutar el modelo
 
 ```bash
-# Con Rust (ver sección de ejemplos más abajo)
-cargo run --release --example 05_train_cervantes
-
-# Con Python (una vez compilados los bindings)
-python examples/05_entrenar_shakespeare_diminuto.py
+python molineteai.py
 ```
 
 ---
 
-## Ejemplos en Rust
+## Módulos Python
 
-```bash
-# 1. Tokenización BPE con diferentes tamaños de vocabulario
-cargo run --release --example 01_train_tokenizers
+Una vez compilados los bindings con `maturin develop --release`, los módulos en `examples/modulos/` permiten explorar cada componente del sistema de forma aislada:
 
-# 2. Multiplicación de matrices y operaciones tensoriales
-cargo run --release --example 02_tensor_operations
+| Módulo | Descripción |
+|:---|:---|
+| `tensores.py` | Operaciones tensoriales: multiplicación de matrices, strides, broadcasting |
+| `tokenizadores.py` | Entrenamiento del tokenizador BPE y exploración del vocabulario |
+| `arquitectura.py` | Inspección de la arquitectura: capas, parámetros, flujo de datos |
+| `infraestructura.py` | Warmup, gradient clipping y utilidades del bucle de entrenamiento |
+| `entrenamiento.py` | Entrenamiento completo con registro de métricas |
+| `datos.py` | Carga, preprocesamiento y exploración del corpus |
+| `chat.py` | Chat interactivo con un modelo ya entrenado |
+| `ui.py` | Interfaz para generación de texto con control de temperatura |
 
-# 3. Exploración visual de la arquitectura Transformer
-cargo run --release --example 03_model_architecture
-
-# 4. Análisis de los componentes del bucle de entrenamiento
-cargo run --release --example 04_training_infrastructure
-
-# 5. Entrenamiento completo con la obra de Cervantes
-cargo run --release --example 05_train_cervantes
-
-# 6. Inferencia, generación de texto y experimentación con prompts
-cargo run --release --example 06_promting
-```
-
----
-
-## Bindings Python
-
-El proyecto incluye bindings completos vía PyO3/maturin. Una vez compilado con `maturin develop --release`:
+### Ejemplo de uso desde Python
 
 ```python
 import molineteai
@@ -245,8 +238,6 @@ ids_out = modelo.generar(tok.codificar("En un lugar"), max_tokens=100, temperatu
 print(tok.decodificar(ids_out))
 ```
 
-Para la API completa e instrucciones de integración con tu propio proyecto Rust, consulta la guía de bindings en [`pyproject.toml`](pyproject.toml).
-
 ---
 
 ## Presentación
@@ -265,8 +256,8 @@ python main.py
 
 | Aporte | Descripción |
 |:---|:---|
-| **Corpus en español** | Cervantes en lugar de Shakespeare, con script de descarga automatizado |
-| **Scripts experimentales** | Aíslan y muestran el comportamiento interno de cada componente |
+| **Corpus en español** | Cervantes en lugar de Shakespeare, con guía de descarga en DATA.md |
+| **Módulos de exploración** | Scripts Python que aíslan y demuestran el comportamiento de cada componente |
 | **Bindings Python** | API completa con PyO3/maturin para usar el modelo desde Python |
 | **Presentación Manim** | Animaciones de la arquitectura Transformer para uso pedagógico |
 | **Documentación en español** | Explicaciones adicionales orientadas a la comprensión del código |

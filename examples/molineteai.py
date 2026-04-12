@@ -26,10 +26,21 @@ import sys
 import os
 
 # ─────────────────────────────────────────────────────────────────────────────
+# FIX: Python agrega el directorio de este script al sys.path, lo que hace
+# que "import molineteai" resuelva a este mismo archivo en vez del módulo
+# Rust compilado (.pyd/.so). Solución: reemplazar la entrada por un import
+# de sistema que apunte directamente a la carpeta de site-packages, dejando
+# la carpeta examples/ accesible solo para los módulos locales.
+# ─────────────────────────────────────────────────────────────────────────────
+_este_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _este_dir]
+sys.path.append(_este_dir)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Compatibilidad Windows: activar colores ANSI en la terminal
 # ─────────────────────────────────────────────────────────────────────────────
 if sys.platform == "win32":
-    os.system("")   # habilita secuencias ANSI en Windows 10+
+    os.system("")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Importar módulos del proyecto
@@ -57,56 +68,56 @@ CATEGORIAS = [
         "titulo": "📚  APRENDIZAJE — Conceptos fundamentales",
         "items": [
             {
-                "clave": "1",
-                "nombre": "Tokenizadores BPE",
-                "desc":   "Entrena tokenizadores con varios tamaños de vocabulario y analiza la compresión",
+                "clave":   "1",
+                "nombre":  "Tokenizadores BPE",
+                "desc":    "Entrena tokenizadores sobre Cervantes y analiza la compresión del vocabulario",
                 "funcion": run_01_tokenizadores,
             },
             {
-                "clave": "2",
-                "nombre": "Operaciones tensoriales",
-                "desc":   "Demuestra matmul, softmax, máscaras causales y forward pass real",
+                "clave":   "2",
+                "nombre":  "Operaciones tensoriales",
+                "desc":    "Matmul, softmax, máscaras causales y forward pass real con GPT-2",
                 "funcion": run_02_tensores,
             },
             {
-                "clave": "3",
-                "nombre": "Arquitectura GPT-2",
-                "desc":   "Crea modelos de distintos tamaños, cuenta parámetros y hace benchmarks",
+                "clave":   "3",
+                "nombre":  "Arquitectura GPT-2",
+                "desc":    "Crea modelos de distintos tamaños, cuenta parámetros y hace benchmarks",
                 "funcion": run_03_arquitectura,
             },
             {
-                "clave": "4",
-                "nombre": "Infraestructura de entrenamiento",
-                "desc":   "Data loaders, división train/val y logging CSV (sin entrenar)",
+                "clave":   "4",
+                "nombre":  "Infraestructura de entrenamiento",
+                "desc":    "División train/val, estadísticas BPE y estimación de params (sin entrenar)",
                 "funcion": run_04_infraestructura,
             },
         ],
     },
     {
-        "titulo": "🏋️  ENTRENAMIENTO — Modelos en Shakespeare",
+        "titulo": "🏋️  ENTRENAMIENTO — Modelos sobre Cervantes",
         "items": [
             {
-                "clave": "5",
-                "nombre": "GPT-2 Diminuto  (~170K params)",
-                "desc":   "Entrena en minutos. Ideal para ver el ciclo completo rápido",
+                "clave":   "5",
+                "nombre":  "GPT-2 Diminuto  (~50K params)",
+                "desc":    "Entrena en minutos. Ideal para ver el ciclo completo rápido",
                 "funcion": run_05_diminuto,
             },
             {
-                "clave": "6",
-                "nombre": "GPT-2 Pequeño   (~200K params)",
-                "desc":   "~15 minutos. Mejor coherencia, buena opción para experimentar",
+                "clave":   "6",
+                "nombre":  "GPT-2 Pequeño   (~200K params)",
+                "desc":    "~15-20 minutos. Mejor coherencia, buena opción para experimentar",
                 "funcion": run_06_pequeno,
             },
             {
-                "clave": "7",
-                "nombre": "GPT-2 Mediano   (~4M params)",
-                "desc":   "~1-3 horas. Texto más natural y fluido",
+                "clave":   "7",
+                "nombre":  "GPT-2 Mediano   (~4M params)",
+                "desc":    "~1-3 horas. Texto más natural y fluido en español cervantino",
                 "funcion": run_07_mediano,
             },
             {
-                "clave": "8",
-                "nombre": "GPT-2 Small completo (~163M params)",
-                "desc":   "Toda la noche. Arquitectura original de OpenAI",
+                "clave":   "8",
+                "nombre":  "GPT-2 Small completo (~163M params)",
+                "desc":    "Toda la noche. Arquitectura original de OpenAI sobre el corpus completo",
                 "funcion": run_08_gpt2,
             },
         ],
@@ -115,26 +126,26 @@ CATEGORIAS = [
         "titulo": "⚙️   HERRAMIENTAS — Configuración avanzada",
         "items": [
             {
-                "clave": "9",
-                "nombre": "Entrenador con presets",
-                "desc":   "pocket-bard, spider, cyclops, wide, narrow... con argumentos CLI",
+                "clave":   "9",
+                "nombre":  "Entrenador con presets",
+                "desc":    "pocket-bard, spider, cyclops, wide, narrow... configuración personalizada",
                 "funcion": run_entrenar_presets,
             },
             {
-                "clave": "10",
-                "nombre": "Chat con modelo entrenado",
-                "desc":   "Carga un checkpoint .bin y chatea con él en tiempo real",
+                "clave":   "10",
+                "nombre":  "Chat con modelo entrenado",
+                "desc":    "Carga un checkpoint .bin y chatea con él en tiempo real",
                 "funcion": run_chat,
             },
         ],
     },
     {
-        "titulo": "🌐  DATOS — Descarga y gestión de corpus",
+        "titulo": "📖  DATOS — Corpus de Cervantes",
         "items": [
             {
-                "clave": "11",
-                "nombre": "Descargar corpus de Cervantes",
-                "desc":   "Descarga obras completas de Cervantes desde Project Gutenberg",
+                "clave":   "11",
+                "nombre":  "Descargar corpus de Cervantes",
+                "desc":    "Descarga las obras completas desde Project Gutenberg → cervantes.txt",
                 "funcion": run_descargar_datos,
             },
         ],
@@ -142,13 +153,10 @@ CATEGORIAS = [
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Mapa de funciones por clave (construido automáticamente desde CATEGORIAS)
+# Mapa de funciones por clave
 # ─────────────────────────────────────────────────────────────────────────────
 
-FUNCIONES = {}
-for cat in CATEGORIAS:
-    for item in cat["items"]:
-        FUNCIONES[item["clave"]] = item["funcion"]
+FUNCIONES = {item["clave"]: item["funcion"] for cat in CATEGORIAS for item in cat["items"]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -172,14 +180,17 @@ def mostrar_menu():
 def main():
     mostrar_arte()
     barra_progreso("Iniciando Molinete AI", segundos=1.2)
-    imprimir_lento("¡Bienvenido a Molinete AI! Un transformer GPT-2 desde cero en Rust.", ms_por_letra=12)
+    imprimir_lento(
+        "¡Bienvenido a Molinete AI! Un transformer GPT-2 entrenado con Cervantes, desde cero en Rust.",
+        ms_por_letra=12,
+    )
 
     while True:
         mostrar_menu()
         opcion = pedir_input("\n  Elige una opción: ").strip()
 
         if opcion == "0":
-            imprimir_lento("\n¡Hasta pronto!", ms_por_letra=25)
+            imprimir_lento("\n¡Hasta pronto, ingenioso hidalgo!", ms_por_letra=25)
             break
         elif opcion in FUNCIONES:
             try:

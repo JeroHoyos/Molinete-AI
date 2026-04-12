@@ -27,6 +27,7 @@ use pyo3::prelude::*;
 
 use crate::gpt2_entrenable::{entrenar_gpt2, GPT2Entrenable, PuntoControl};
 use crate::modelo::{Config, GPT2};
+use crate::tensor::Tensor;
 use crate::tokenizador::TokenizadorBPE;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -488,6 +489,227 @@ impl PyGPT2Entrenable {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Wrapper: Tensor
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Tensor multidimensional para operaciones de redes neuronales
+///
+/// Arreglo plano (f32) con información de forma y saltos.
+/// Equivalente educativo a un numpy array, implementado en Rust.
+///
+/// Example:
+///     >>> t = molineteai.Tensor([1.0, 2.0, 3.0, 4.0], [2, 2])
+///     >>> t.forma
+///     [2, 2]
+///     >>> t.datos
+///     [1.0, 2.0, 3.0, 4.0]
+#[pyclass(name = "Tensor")]
+#[derive(Clone)]
+pub struct PyTensor {
+    pub inner: Tensor,
+}
+
+#[pymethods]
+impl PyTensor {
+    /// Crea un tensor con datos y forma dados
+    ///
+    /// Args:
+    ///     datos: Lista plana de valores float
+    ///     forma: Dimensiones del tensor (ej. [2, 3] para una matriz 2×3)
+    #[new]
+    pub fn new(datos: Vec<f32>, forma: Vec<usize>) -> PyResult<Self> {
+        let esperado: usize = forma.iter().product();
+        if datos.len() != esperado {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "datos tiene {} elementos pero la forma {:?} requiere {}",
+                datos.len(), forma, esperado
+            )));
+        }
+        Ok(Self { inner: Tensor::new(datos, forma) })
+    }
+
+    /// Crea un tensor lleno de ceros
+    ///
+    /// Args:
+    ///     forma: Dimensiones del tensor
+    ///
+    /// Returns:
+    ///     Tensor con todos sus elementos en 0.0
+    #[staticmethod]
+    pub fn ceros(forma: Vec<usize>) -> Self {
+        Self { inner: Tensor::ceros(forma) }
+    }
+
+    /// Crea un tensor con valores enteros secuenciales [inicio, fin)
+    ///
+    /// Args:
+    ///     inicio: Valor inicial (inclusivo)
+    ///     fin:    Valor final (exclusivo)
+    ///
+    /// Returns:
+    ///     Tensor 1D con los valores inicio, inicio+1, ..., fin-1
+    #[staticmethod]
+    pub fn arange(inicio: usize, fin: usize) -> Self {
+        Self { inner: Tensor::arange(inicio, fin) }
+    }
+
+    /// Forma del tensor (dimensiones)
+    #[getter]
+    pub fn forma(&self) -> Vec<usize> {
+        self.inner.forma.clone()
+    }
+
+    /// Datos del tensor como lista plana de floats
+    #[getter]
+    pub fn datos(&self) -> Vec<f32> {
+        self.inner.datos.clone()
+    }
+
+    /// Número total de elementos
+    pub fn numel(&self) -> usize {
+        self.inner.datos.len()
+    }
+
+    // ── Operaciones de forma ─────────────────────────────────────────────────
+
+    /// Redimensiona el tensor a una nueva forma (los datos no cambian)
+    ///
+    /// Args:
+    ///     nueva_forma: Nueva lista de dimensiones (el producto debe ser igual)
+    pub fn reshape(&self, nueva_forma: Vec<usize>) -> PyResult<Self> {
+        let esperado: usize = nueva_forma.iter().product();
+        if self.inner.datos.len() != esperado {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "No se puede redimensionar {} elementos a la forma {:?}",
+                self.inner.datos.len(), nueva_forma
+            )));
+        }
+        Ok(Self { inner: self.inner.reshape(&nueva_forma) })
+    }
+
+    /// Transpone dos dimensiones
+    ///
+    /// Args:
+    ///     dim1: Primera dimensión (soporta índices negativos)
+    ///     dim2: Segunda dimensión (soporta índices negativos)
+    pub fn transpose(&self, dim1: isize, dim2: isize) -> Self {
+        Self { inner: self.inner.transpose(dim1, dim2) }
+    }
+
+    // ── Operaciones elemento a elemento ─────────────────────────────────────
+
+    /// Suma elemento a elemento (con broadcasting)
+    pub fn add(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.add(&other.inner) }
+    }
+
+    /// Resta elemento a elemento (con broadcasting)
+    pub fn sub(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.sub(&other.inner) }
+    }
+
+    /// Multiplicación elemento a elemento (con broadcasting)
+    pub fn mul(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.mul(&other.inner) }
+    }
+
+    /// División elemento a elemento (con broadcasting)
+    pub fn div(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.div(&other.inner) }
+    }
+
+    /// Suma un escalar a todos los elementos
+    pub fn add_scalar(&self, escalar: f32) -> Self {
+        Self { inner: self.inner.add_scalar(escalar) }
+    }
+
+    /// Multiplica todos los elementos por un escalar
+    pub fn mul_scalar(&self, escalar: f32) -> Self {
+        Self { inner: self.inner.mul_scalar(escalar) }
+    }
+
+    /// Divide todos los elementos por un escalar
+    pub fn div_scalar(&self, escalar: f32) -> Self {
+        Self { inner: self.inner.div_scalar(escalar) }
+    }
+
+    /// Raíz cuadrada elemento a elemento
+    pub fn sqrt(&self) -> Self {
+        Self { inner: self.inner.sqrt() }
+    }
+
+    // ── Álgebra lineal ───────────────────────────────────────────────────────
+
+    /// Multiplicación de matrices (2D) o por lotes (4D para atención)
+    ///
+    /// Para 2D: [m, k] @ [k, n] → [m, n]
+    /// Para 4D: [lote, cabezas, sec, dim] @ [lote, cabezas, dim, sec] → [lote, cabezas, sec, sec]
+    pub fn matmul(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.matmul(&other.inner) }
+    }
+
+    // ── Operaciones estadísticas ─────────────────────────────────────────────
+
+    /// Softmax a lo largo de un eje (numéricamente estable)
+    ///
+    /// Args:
+    ///     eje: Eje sobre el que calcular softmax (-1 = último eje)
+    pub fn softmax(&self, eje: isize) -> Self {
+        Self { inner: self.inner.softmax(eje) }
+    }
+
+    /// Media a lo largo de un eje
+    ///
+    /// Args:
+    ///     eje:         Eje sobre el que calcular la media (-1 = último eje)
+    ///     mantener_dim: Si True, mantiene la dimensión reducida con tamaño 1
+    pub fn mean(&self, eje: isize, mantener_dim: bool) -> Self {
+        Self { inner: self.inner.mean(eje, mantener_dim) }
+    }
+
+    /// Varianza a lo largo de un eje
+    ///
+    /// Args:
+    ///     eje:         Eje sobre el que calcular la varianza (-1 = último eje)
+    ///     mantener_dim: Si True, mantiene la dimensión reducida con tamaño 1
+    pub fn var(&self, eje: isize, mantener_dim: bool) -> Self {
+        Self { inner: self.inner.var(eje, mantener_dim) }
+    }
+
+    // ── Enmascaramiento ──────────────────────────────────────────────────────
+
+    /// Reemplaza elementos donde la máscara ≠ 0 con el valor dado
+    ///
+    /// Usado para la máscara causal en la atención (pone -inf en posiciones futuras).
+    ///
+    /// Args:
+    ///     mascara: Tensor de máscara (≠ 0 = posición a enmascarar)
+    ///     valor:   Valor de relleno (típicamente float('-inf'))
+    pub fn masked_fill(&self, mascara: &PyTensor, valor: f32) -> Self {
+        Self { inner: self.inner.masked_fill(&mascara.inner, valor) }
+    }
+
+    /// Concatena con otro tensor a lo largo de la primera dimensión
+    pub fn concat(&self, other: &PyTensor) -> Self {
+        Self { inner: self.inner.concat(&other.inner) }
+    }
+
+    // ── Representación ───────────────────────────────────────────────────────
+
+    pub fn __repr__(&self) -> String {
+        format!(
+            "Tensor(forma={:?}, numel={})",
+            self.inner.forma,
+            self.inner.datos.len()
+        )
+    }
+
+    pub fn __len__(&self) -> usize {
+        self.inner.datos.len()
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Funciones utilitarias a nivel de módulo
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -537,6 +759,7 @@ pub fn contar_parametros_config(config: &PyConfig) -> usize {
 /// Registra todas las clases y funciones en el módulo Python.
 /// Esta función es llamada desde lib.rs, que es el punto de entrada real.
 pub fn molineteai(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyTensor>()?;
     m.add_class::<PyConfig>()?;
     m.add_class::<PyTokenizadorBPE>()?;
     m.add_class::<PyGPT2>()?;

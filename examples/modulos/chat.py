@@ -3,7 +3,10 @@ modulos/chat.py
 ━━━━━━━━━━━━━━━
 Ejemplo 10 — Chat con Modelo Entrenado.
 
-Carga un checkpoint .bin y permite chatear con él en tiempo real.
+Carga un checkpoint .bin generado por Rust y permite chatear
+con el modelo en tiempo real. Todo el procesamiento de tokens
+y la generación ocurren en Rust (molineteai).
+
 Soporta comandos: salir, temp X, max X.
 
 Exporta:
@@ -12,6 +15,7 @@ Exporta:
 
 import os
 import threading
+import time
 
 from modulos.ui import titulo, pedir_input, barra_progreso, imprimir_lento
 
@@ -36,7 +40,7 @@ def run_chat():
     # ── Buscar checkpoints disponibles ──────────────────────────────────────
     checkpoints = []
     if os.path.exists("data"):
-        for root, dirs, files in os.walk("data"):
+        for root, _, files in os.walk("data"):
             for f in files:
                 if f.endswith(".bin"):
                     checkpoints.append(os.path.join(root, f))
@@ -74,13 +78,14 @@ def run_chat():
             barra = "█" * llenos + "░" * (longitud - llenos)
             print(f"\rCargando modelo: [{barra}] ", end="", flush=True)
             i += 1
-            import time; time.sleep(0.05)
+            time.sleep(0.05)
         barra_llena = "█" * longitud
         print(f"\rCargando modelo: [{barra_llena}] ✓", flush=True)
 
     hilo = threading.Thread(target=animar_carga, daemon=True)
     hilo.start()
 
+    # ── Cargar checkpoint completo (modelo + tokenizador) desde Rust ─────────
     try:
         modelo, tok = molineteai.GPT2Entrenable.cargar_checkpoint(ruta_ck)
     except Exception as e:
@@ -92,7 +97,7 @@ def run_chat():
     cargado.set()
     hilo.join()
 
-    # ── Cargar tokenizador si no viene en el checkpoint ──────────────────────
+    # ── Cargar tokenizador si no venía en el checkpoint ──────────────────────
     if tok is None:
         dir_ck = os.path.dirname(ruta_ck)
         ruta_tok = os.path.join(dir_ck, "tokenizador.json")
@@ -105,6 +110,9 @@ def run_chat():
                 print("⚠️  Tokenizador no encontrado.")
                 return
             tok = molineteai.TokenizadorBPE.cargar(ruta_tok)
+
+    print(f"Modelo: {repr(modelo)}")
+    print(f"Tokenizador: {repr(tok)}")
 
     # ── Parámetros de generación ─────────────────────────────────────────────
     temp_str = pedir_input("\nTemperatura de generación (Enter para 0.8): ", "0.8")
@@ -125,7 +133,7 @@ def run_chat():
         ms_por_letra=12,
     )
 
-    # ── Bucle de chat ────────────────────────────────────────────────────────
+    # ── Bucle de chat ─────────────────────────────────────────────────────────
     while True:
         try:
             entrada = input("Tú: ").strip()
@@ -156,6 +164,7 @@ def run_chat():
                 print("  → Uso: max 100")
             continue
 
+        # Codificar prompt, generar y decodificar — todo en Rust
         ids_prompt = tok.codificar(entrada)
         ids_gen    = modelo.generar(ids_prompt, max_tok, temperatura)
         texto_gen  = tok.decodificar(ids_gen)
