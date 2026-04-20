@@ -1,94 +1,57 @@
-//! Funciones de Activación
+//! # La Llama de la Activación — GELU
 //!
-//! Este módulo proporciona funciones de activación y sus derivadas para
-//! la retropropagación (backpropagation).
+//! Así como Don Quijote no reacciona de igual manera ante todos los estímulos
+//! —con valentía ante los gigantes y ternura ante Dulcinea— las neuronas de
+//! Molinete no amplifican linealmente todos los valores. La activación GELU
+//! decide cuánto "encender" cada neurona según su valor de entrada.
 //!
-//! ## GELU (Unidad Lineal de Error Gaussiano)
+//! ## ¿Por qué GELU y no ReLU?
 //!
-//! GELU se usa en transformers en lugar de ReLU porque proporciona gradientes 
-//! más suaves y a menudo funciona mejor en la práctica.
+//! ReLU apaga brutalmente todo valor negativo (gradiente cero para x < 0).
+//! GELU es más compasiva: permite que los valores negativos pequeños pasen
+//! con una chispa de gradiente, facilitando el aprendizaje en redes profundas.
 //!
-//! ### Fórmula
-//!
-//! ```text
-//! GELU(x) = x × Φ(x)
-//! ```
-//!
-//! donde Φ(x) es la función de distribución acumulativa de la distribución normal estándar.
-//!
-//! ### Aproximación
-//!
-//! Usamos la aproximación con tanh para mayor eficiencia:
+//! ## La Fórmula del Alquimista
 //!
 //! ```text
-//! GELU(x) ≈ 0.5 × x × (1 + tanh(√(2/π) × (x + 0.044715 × x³)))
+//! GELU(x) ≈ 0.5 · x · (1 + tanh(√(2/π) · (x + 0.044715 · x³)))
 //! ```
 //!
-//! Esto es más rápido que calcular la función de distribución acumulativa exacta y es lo 
-//! suficientemente preciso para redes neuronales.
-
-
-
-//! ### ¿Por qué GELU?
-//!
-//! - **Gradientes suaves**: A diferencia de ReLU (que tiene gradiente cero para x<0), GELU tiene
-//!   gradientes distintos de cero en todas partes.
-//! - **Mejor rendimiento empírico**: Especialmente en grandes transformers como GPT-2/BERT.
-//! - **Interpretación probabilística**: GELU puede verse como una aproximación suave al
-//!   dropout a nivel de neurona.
+//! Esta aproximación con tanh es más rápida que calcular la función de
+//! distribución acumulativa exacta, y suficientemente precisa para el entrenamiento.
 
 use crate::tensor::Tensor;
 use rayon::prelude::*;
 
-/// Activación GELU 
+/// Activación GELU — el temple del caballero aplicado elemento a elemento
 ///
-/// Calcula la activación GELU usando la aproximación con tanh.
-///
-/// # Argumentos
-///
-/// * `x` - Tensor de entrada
-///
-/// # Retorna
-///
-/// Tensor con la activación GELU aplicada elemento a elemento
-///
-/// # Rendimiento
-///
-/// Utiliza computación paralela vía Rayon para un mejor rendimiento en CPUs multinúcleo.
+/// Calcula GELU usando la aproximación con tanh. Rayon paraliza el cálculo
+/// entre los núcleos de la CPU como escuderos trabajando al unísono.
 pub fn gelu_forward(x: &Tensor) -> Tensor {
     let resultado = x
         .datos
         .par_iter()
         .map(|&valor| {
+            // La fórmula del alquimista: suave, continua, diferenciable en todas partes
             0.5 * valor
                 * (1.0
-                    + ((2.0 / std::f32::consts::PI).sqrt() * (valor + 0.044715 * valor.powi(3))).tanh())
+                    + ((2.0 / std::f32::consts::PI).sqrt()
+                        * (valor + 0.044715 * valor.powi(3)))
+                    .tanh())
         })
         .collect();
     Tensor::new(resultado, x.forma.clone())
 }
 
-/// Derivada de la activación GELU 
+/// Derivada de GELU — el camino de vuelta por la regla de la cadena
 ///
-/// Calcula el gradiente de GELU con respecto a su entrada.
+/// Para entrenar el modelo necesitamos saber cómo fluye el error hacia atrás.
+/// La derivada involucra la regla del producto y la derivada de tanh (sech²).
 ///
 /// # Argumentos
 ///
-/// * `grad_salida` - Gradiente de la siguiente capa
-/// * `x` - Entrada original a GELU (del paso hacia adelante)
-///
-/// # Retorna
-///
-/// Gradiente con respecto a la entrada: grad_x = grad_salida * GELU'(x)
-///
-/// # Derivación Matemática
-///
-/// La derivada involucra:
-/// 1. Derivada de tanh (término sech²)
-/// 2. Derivada del polinomio interno
-/// 3. Aplicación de la regla del producto
-///
-/// Esto nos da un gradiente complejo pero suave que ayuda al entrenamiento.
+/// * `grad_salida` - El error que llega de la siguiente capa
+/// * `x` - La entrada original a GELU guardada durante el forward
 pub fn gelu_backward(grad_salida: &Tensor, x: &Tensor) -> Tensor {
     let datos_grad: Vec<f32> = x
         .datos
@@ -98,10 +61,12 @@ pub fn gelu_backward(grad_salida: &Tensor, x: &Tensor) -> Tensor {
             let raiz_2_pi = (2.0 / std::f32::consts::PI).sqrt();
             let interno = raiz_2_pi * (valor_x + 0.044715 * valor_x.powi(3));
             let tanh_interno = interno.tanh();
+            // sech²(u) = 1 - tanh²(u) — la curvatura de la activación
             let sech_cuadrado = 1.0 - tanh_interno * tanh_interno;
 
             let grad_gelu = 0.5 * (1.0 + tanh_interno)
-                + 0.5 * valor_x * sech_cuadrado * raiz_2_pi * (1.0 + 3.0 * 0.044715 * valor_x.powi(2));
+                + 0.5 * valor_x * sech_cuadrado * raiz_2_pi
+                    * (1.0 + 3.0 * 0.044715 * valor_x.powi(2));
 
             valor_grad * grad_gelu
         })

@@ -56,19 +56,16 @@ ROJO_CONTRA        = "#B33A3A"
 
 RUST_SNIPPETS = {
     "tensor.rs": """pub struct Tensor {
-    pub datos: Vec<f32>,      // Arreglo plano de valores en memoria lineal
-    pub forma: Vec<usize>,    // Dimensiones (ej. [lote, secuencia, dim_embd])
-    pub saltos: Vec<usize>,   // Saltos para indexar la memoria 1D como N-D
+    pub datos: Vec<f32>,
+    pub forma: Vec<usize>,
+    pub saltos: Vec<usize>,
 }""",
 
-    "matmul_base.rs": """// Versión secuencial — se usa cuando m*n*k < 1_000 operaciones
-// (evita el overhead de lanzar hilos para trabajo pequeño)
-let mut resultado = vec![0.0; m * n];
+    "matmul_base.rs": """let mut resultado = vec![0.0; m * n];
 for i in 0..m {
     for j in 0..n {
         let mut suma = 0.0;
         for l in 0..k {
-            // Producto punto clásico: filas de self × columnas de other
             suma += self.datos[i * k + l] * other.datos[l * n + j];
         }
         resultado[i * n + j] = suma;
@@ -76,17 +73,15 @@ for i in 0..m {
 }
 Tensor::new(resultado, vec![m, n])""",
 
-    "cache_blocking.rs": """// Tamaño de bloque 8×8 = 256 bytes → cabe en la caché L1 (32-64 KB)
-const TAM_BLOQUE: usize = 8;
+    "cache_blocking.rs": """const TAM_BLOQUE: usize = 8;
 
 resultado
-    .par_chunks_mut(TAM_BLOQUE * n)   // cada hilo recibe TAM_BLOQUE filas
+    .par_chunks_mut(TAM_BLOQUE * n)
     .enumerate()
     .for_each(|(i_bloque, bloque_resultado)| {
         let i_inicio = i_bloque * TAM_BLOQUE;
         for j_inicio in (0..n).step_by(TAM_BLOQUE) {
             for k_inicio in (0..k).step_by(TAM_BLOQUE) {
-                // Bucle interno: acceso secuencial → alta tasa de aciertos de caché
                 for i in i_inicio..(i_inicio + TAM_BLOQUE).min(m) {
                     for k_idx in k_inicio..(k_inicio + TAM_BLOQUE).min(k) {
                         let val_a = self.datos[i * k + k_idx];
@@ -101,28 +96,20 @@ resultado
         }
     })""",
 
-    "parallel_rayon.rs": """// par_chunks_mut divide el buffer de resultado en franjas de TAM_BLOQUE filas.
-// Rayon asigna cada franja a un hilo del pool automáticamente.
-resultado
+    "parallel_rayon.rs": """resultado
     .par_chunks_mut(TAM_BLOQUE * n)
     .enumerate()
     .for_each(|(i_bloque, bloque_resultado)| {
-        // i_bloque → qué grupo de filas somos
-        // bloque_resultado → porción exclusiva del buffer de salida (sin locks)
         let i_inicio = i_bloque * TAM_BLOQUE;
         let i_fin = (i_inicio + TAM_BLOQUE).min(m);
-        // ... cálculo independiente para estas filas ...
     });""",
 
-    "batched_matmul.rs": """// Tensor 4D: [lote, num_cabezas, sec, dim_cabeza]
-// Cada par (lote, cabeza) ejecuta su propia matmul 2D de forma independiente.
-resultado
-    .par_chunks_mut(sec1 * sec2)   // un slab por (lote, cabeza)
+    "batched_matmul.rs": """resultado
+    .par_chunks_mut(sec1 * sec2)
     .enumerate()
     .for_each(|(idx_lc, bloque)| {
-        let b = idx_lc / num_cabezas;   // índice de lote
-        let h = idx_lc % num_cabezas;   // índice de cabeza
-        // matmul 2D aislada para este (b, h) — escribe en bloque exclusivo
+        let b = idx_lc / num_cabezas;
+        let h = idx_lc % num_cabezas;
         for i in 0..sec1 {
             for j in 0..sec2 {
                 let mut suma = 0.0;
@@ -136,40 +123,26 @@ resultado
         }
     });""",
 
-    "simd_vectorization.rs": """// Bucle más interno del cache-blocked matmul.
-// iter_mut().zip() elimina el bounds-checking en runtime.
-// Sin esas ramas extra, LLVM auto-vectoriza con AVX2 (8×f32) o NEON (4×f32).
-#[inline(always)]
-fn matmul_interno_simd(val_a: f32, b: &[f32], resultado: &mut [f32]) {
+    "simd_vectorization.rs": """fn matmul_interno_simd(val_a: f32, b: &[f32], resultado: &mut [f32]) {
     for (r, &val_b) in resultado.iter_mut().zip(b.iter()) {
         *r += val_a * val_b;
-        // Una instrucción SIMD procesa 4-8 de estos pares en paralelo
     }
 }""",
 
     "BDPtokenizer.rs": """#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct TokenizadorBPE {
-    /// Asocia cadenas de texto de tokens a sus IDs enteros
-    /// Siempre comienza con 256 tokens base (un token por cada byte 0-255)
     vocabulario: HashMap<String, usize>,
-
-    /// Reglas de fusión aprendidas durante el entrenamiento.
-    /// Se aplican en orden durante la codificación.
     fusiones: Vec<(String, String)>,
 }""",
 
     "pair_counts.rs": """let conteo_pares: HashMap<(String, String), usize> = tokens
-    // par_chunks divide el vector entre los hilos disponibles
     .par_chunks(tam_fragmento)
     .enumerate()
-    // fold: cada hilo acumula sus propios conteos locales (sin Mutex → lock-free)
     .fold(HashMap::new, |mut conteos_locales, (idx_fragmento, fragmento)| {
         for ventana in fragmento.windows(2) {
             let par = (ventana[0].clone(), ventana[1].clone());
             *conteos_locales.entry(par).or_insert(0) += 1;
         }
-        // Manejo de fronteras: el par entre el último token del fragmento N
-        // y el primero del fragmento N+1 quedaría excluido sin este bloque
         if let (Some(ultimo), Some(siguiente)) = (
             fragmento.last(),
             tokens.get(idx_fragmento * tam_fragmento + fragmento.len()),
@@ -178,21 +151,16 @@ pub struct TokenizadorBPE {
         }
         conteos_locales
     })
-    // reduce: fusiona los HashMaps locales en uno global (patrón MapReduce)
     .reduce(HashMap::new, |mut a, b| {
         for (par, conteo) in b { *a.entry(par).or_insert(0) += conteo; }
         a
     });""",
 
     "embedding.rs": """pub fn forward(&self, ids_tokens: &[Vec<usize>]) -> Tensor {
-    // === 1. Embeddings de tokens (lookup table) ===
     let mut x = self.embedding_tokens.forward(ids_tokens);
 
-    // === 2. Embeddings de posición ===
-    // Creamos índices [0, 1, 2, ..., long_sec-1] y los sumamos al tensor
     let posiciones: Vec<Vec<usize>> = vec![(0..long_sec).collect()];
     let emb_pos = self.embedding_posicion.forward(&posiciones);
-    // broadcast: [1, long_sec, n_embd] → [lote, long_sec, n_embd]
     for l in 0..tamano_lote {
         for s in 0..long_sec {
             for e in 0..self.configuracion.n_embd {
@@ -201,23 +169,19 @@ pub struct TokenizadorBPE {
             }
         }
     }
-    // === 3-5. Bloques transformer → LayerNorm final → proyección al vocabulario ===
     for bloque in &self.bloques { x = bloque.forward(&x); }
     x = self.ln_final.forward(&x);
     self.cabeza_lm.forward(&x)
 }""",
 
     "normalization.rs": """pub fn forward(&self, x: &Tensor) -> (Tensor, CacheNormCapa) {
-    // 1. Media y varianza a lo largo de la última dimensión
     let media    = x.mean(-1, true);
     let varianza = x.var(-1, true);
-    let desv_est = varianza.add_scalar(self.eps).sqrt(); // eps evita división por cero
+    let desv_est = varianza.add_scalar(self.eps).sqrt();
 
-    // 2. Normalizar: (x - media) / desv_est → media 0, varianza 1
     let x_centrado = x.sub(&media);
     let x_norm     = x_centrado.div(&desv_est);
 
-    // 3. Escala y desplazamiento aprendibles: y = γ * x_norm + β
     let y = x_norm.mul(&self.gamma).add(&self.beta);
 
     let cache = CacheNormCapa { x: x.clone(), x_norm, media, desv_est };
@@ -225,34 +189,27 @@ pub struct TokenizadorBPE {
 }""",
 
     "attention.rs": """pub fn forward(&self, x: &Tensor) -> (Tensor, CacheAtencion) {
-    // 1. Proyecciones Q, K, V separadas
     let (q, cache_q) = self.proy_q.forward(x);
     let (k, cache_k) = self.proy_k.forward(x);
     let (v, cache_v) = self.proy_v.forward(x);
 
-    // 2. Puntuaciones escaladas: (Q @ K^T) / √d_k
     let escala = (self.n_embd as f32).sqrt();
     let puntuaciones = q.matmul(&k.transpose(-2, -1)).mul_scalar(1.0 / escala);
 
-    // 3. Máscara causal: posiciones futuras → -1e9 (≈ -∞ antes del softmax)
     let puntuaciones_enmascaradas = puntuaciones.masked_fill(&tensor_mascara, -1e9);
 
-    // 4. Softmax → pesos de atención → multiplicar por V
     let pesos_atencion = puntuaciones_enmascaradas.softmax(-1);
     let salida_atencion = pesos_atencion.matmul(&v);
 
-    // 5. Proyección de salida + dropout residual
     let (y_proy, cache_salida) = self.proy_salida.forward(&salida_atencion);
     let (y, cache_dropout_resid) = self.dropout_resid.forward(&y_proy);
     (y, /* cache ... */)
 }""",
 
     "gelu.rs": """pub fn gelu_forward(x: &Tensor) -> Tensor {
-    // Aproximación con tanh (más rápida que la CDF exacta, suficientemente precisa)
-    // GELU(x) ≈ 0.5 · x · (1 + tanh(√(2/π) · (x + 0.044715 · x³)))
     let resultado = x
         .datos
-        .par_iter()   // Rayon: paraleliza elemento a elemento entre núcleos
+        .par_iter()
         .map(|&valor| {
             0.5 * valor
                 * (1.0
@@ -264,39 +221,29 @@ pub struct TokenizadorBPE {
     Tensor::new(resultado, x.forma.clone())
 }""",
 
-    "softmax.rs": """// Softmax 2D por fila — caso común para las puntuaciones de atención
-let resultado: Vec<f32> = (0..filas)
-    .into_par_iter()  // Rayon: cada fila se calcula en paralelo
+    "softmax.rs": """let resultado: Vec<f32> = (0..filas)
+    .into_par_iter()
     .flat_map_iter(|i| {
         let fila = &self.datos[i * columnas..(i + 1) * columnas];
 
-        // 1. Restamos el máximo para evitar overflow en exp() (truco de estabilidad)
         let maximo = fila.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
 
-        // 2. exp(x - max)
         let valores_exp: Vec<f32> = fila.iter().map(|&x| (x - maximo).exp()).collect();
 
-        // 3. Normalizar → la fila suma exactamente 1.0
         let suma: f32 = valores_exp.iter().sum();
         valores_exp.into_iter().map(move |val| val / suma)
     })
     .collect();""",
 
     "mlp_forward.rs": """pub fn forward(&self, x: &Tensor) -> (Tensor, CacheMLP) {
-    // 1. Expansión 4×: n_embd → 4·n_embd
-    //    Le da al modelo "espacio" para representar transformaciones complejas
     let (h, cache_fc1) = self.fc1.forward(x);
 
-    // 2. Activación GELU: no-linealidad suave (mejor que ReLU en transformers)
     let h_activada = gelu_forward(&h);
 
-    // 3. Compresión: 4·n_embd → n_embd (vuelve a la dimensionalidad del transformer)
     let (y_proy, cache_fc2) = self.fc2.forward(&h_activada);
 
-    // 4. Dropout residual: regularización para evitar sobreajuste (overfitting)
     let (y, cache_dropout_resid) = self.dropout_resid.forward(&y_proy);
 
-    // Guardamos la pre-activación (h) porque gelu_backward la necesitará
     let cache = CacheMLP { cache_fc1, h, h_activada, cache_fc2, cache_dropout_resid };
     (y, cache)
 }""",
@@ -307,25 +254,18 @@ let resultado: Vec<f32> = (0..filas)
         let inicio = i * self.config.vocab_size;
         let slice_logits = &logits.datos[inicio..inicio + self.config.vocab_size];
 
-        // Truco de estabilidad: restamos el máximo para evitar overflow en exp()
         let logit_max = slice_logits.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
         let suma_exp: f32 = slice_logits.iter().map(|&x| (x - logit_max).exp()).sum();
 
-        // Cross-Entropy = -log P(token_correcto)
-        // log P = logit_objetivo - logit_max - log(Σ exp)
         let log_prob = (slice_logits[objetivo] - logit_max) - suma_exp.ln();
         perdida_total -= log_prob;
     }
-    // Promediamos a lo largo de la secuencia → pérdida por token
     perdida_total / objetivos.len() as f32
 }""",
 
     "linear_backward.rs": """pub fn backward(&self, grad_salida: &Tensor, cache: &CacheLineal) -> GradientesLineales {
-    // grad_W = x^T @ grad_salida
-    // "¿cuánto cambia la pérdida si cambiamos cada peso?"
     let grad_peso = cache.x.transpose(-2, -1).matmul(grad_salida);
 
-    // grad_b = Σ grad_salida  (suma sobre todas las posiciones de la secuencia)
     let datos_grad_sesgo: Vec<f32> = (0..self.sesgo.datos.len())
         .map(|i| (0..grad_salida.forma[0])
             .map(|fila| grad_salida.datos[fila * grad_salida.forma[1] + i])
@@ -333,28 +273,22 @@ let resultado: Vec<f32> = (0..filas)
         .collect();
     let grad_sesgo = Tensor::new(datos_grad_sesgo, self.sesgo.forma.clone());
 
-    // grad_x = grad_salida @ W^T  → el gradiente sigue bajando a la capa anterior
     let grad_x = grad_salida.matmul(&self.peso.transpose(-2, -1));
 
     GradientesLineales { peso: grad_peso, sesgo: grad_sesgo, x: grad_x }
 }""",
 
     "block_backward.rs": """pub fn backward(&self, grad_salida: &Tensor, cache: &CacheBloque) -> GradientesBloque {
-    // La conexión residual bifurca el gradiente: fluye por AMBOS caminos a la vez
-    let mut grad_x_despues_atencion = grad_salida.clone(); // camino directo (skip)
+    let mut grad_x_despues_atencion = grad_salida.clone();
 
-    // --- Camino del MLP (segunda conexión residual) ---
     let grads_mlp = self.mlp.backward(grad_salida, &cache.cache_mlp);
     let grads_ln2 = self.ln2.backward(&grads_mlp.x, &cache.cache_ln2);
-    // Acumulamos: el gradiente del skip + el del camino MLP
     for i in 0..grad_x_despues_atencion.datos.len() {
         grad_x_despues_atencion.datos[i] += grads_ln2.x.datos[i];
     }
 
-    // --- Camino de Atención (primera conexión residual) ---
     let grads_atencion = self.atencion.backward(&grad_x_despues_atencion, &cache.cache_atencion);
     let grads_ln1 = self.ln1.backward(&grads_atencion.x, &cache.cache_ln1);
-    // Acumulamos de nuevo: skip + camino atención
     let mut grad_x = grad_x_despues_atencion;
     for i in 0..grad_x.datos.len() {
         grad_x.datos[i] += grads_ln1.x.datos[i];
@@ -367,24 +301,19 @@ let resultado: Vec<f32> = (0..filas)
     "adamw_update.rs": """pub fn actualizar_adamw(model: &mut GPT2Entrenable, grads: &GradientesGPT2,
                          optimizer: &mut OptimizadorAdamW, lr: f32, weight_decay: f32) {
     optimizer.step += 1;
-    let correcc1 = 1.0 - optimizer.beta1.powf(optimizer.step as f32); // corrige sesgo de m
-    let correcc2 = 1.0 - optimizer.beta2.powf(optimizer.step as f32); // corrige sesgo de v
+    let correcc1 = 1.0 - optimizer.beta1.powf(optimizer.step as f32);
+    let correcc2 = 1.0 - optimizer.beta2.powf(optimizer.step as f32);
 
-    // Paralelizamos con Rayon para tensores grandes (>1000 elementos)
     param.datos.par_iter_mut()
         .zip(grad.datos.par_iter())
         .zip(m.datos.par_iter_mut().zip(v.datos.par_iter_mut()))
         .for_each(|((param_val, &grad_val), (m_val, v_val))| {
-            // 1. Decaimiento de pesos desacoplado (solo en matrices 2D, no en sesgos/LayerNorm)
             if aplicar_decay { *param_val *= 1.0 - lr * weight_decay; }
 
-            // 2. Primer momento (momentum): promedio móvil exponencial del gradiente
             *m_val = optimizer.beta1 * *m_val + (1.0 - optimizer.beta1) * grad_val;
 
-            // 3. Segundo momento (varianza): promedio móvil del gradiente al cuadrado
             *v_val = optimizer.beta2 * *v_val + (1.0 - optimizer.beta2) * grad_val * grad_val;
 
-            // 4. Corrección de sesgo + actualización del parámetro
             let m_hat = *m_val / correcc1;
             let v_hat = *v_val / correcc2;
             *param_val -= lr * m_hat / (v_hat.sqrt() + optimizer.epsilon);
@@ -392,27 +321,21 @@ let resultado: Vec<f32> = (0..filas)
 }""",
 
     "dropout.rs": """pub fn forward(&self, x: &Tensor) -> (Tensor, CacheDropout) {
-    // Durante inferencia (o tasa = 0) → pasamos los datos sin tocar
     if !self.entrenando || self.tasa == 0.0 {
         return (x.clone(), CacheDropout { mascara: None, escala: 1.0 });
     }
 
-    // Inverted dropout: escalamos los valores supervivientes en (1 / (1 - tasa))
-    // para mantener la misma esperanza matemática que sin dropout
     let escala = 1.0 / (1.0 - self.tasa);
     let mut mascara = Vec::with_capacity(x.datos.len());
     let mut salida  = Tensor::ceros(x.forma.clone());
 
     for i in 0..x.datos.len() {
-        let mantener = rand::random::<f32>() > self.tasa; // ¿sobrevive esta neurona?
+        let mantener = rand::random::<f32>() > self.tasa;
         mascara.push(mantener);
         if mantener {
-            salida.datos[i] = x.datos[i] * escala; // boost al superviviente
+            salida.datos[i] = x.datos[i] * escala;
         }
-        // else: la neurona queda a 0 (apagada)
     }
-    // Guardamos la MISMA máscara: el backward la reutilizará para bloquear
-    // los gradientes de las neuronas que fueron apagadas en el forward
     let cache = CacheDropout { mascara: Some(mascara), escala };
     (salida, cache)
 }""",
@@ -420,26 +343,19 @@ let resultado: Vec<f32> = (0..filas)
     "temperature.rs": """pub fn generar(&self, prompt: &[usize], max_tokens: usize, temperatura: f32) -> Vec<usize> {
     let mut tokens = prompt.to_vec();
 
-    // Bucle autoregresivo: cada token generado se convierte en la entrada del siguiente
     for _ in 0..max_tokens {
         let (logits, _) = self.forward(&tokens);
 
-        // 1. Tomamos solo los logits de la última posición (el próximo token a predecir)
         let inicio_ultima = (tokens.len() - 1) * self.config.vocab_size;
         let ultimos_logits = &logits.datos[inicio_ultima..inicio_ultima + self.config.vocab_size];
 
-        // 2. Temperatura: dividimos por T antes del softmax
-        //    T < 1.0 → distribución más concentrada (respuestas conservadoras)
-        //    T > 1.0 → distribución más plana (respuestas más creativas/aleatorias)
         let logits_escalados: Vec<f32> = ultimos_logits.iter().map(|&x| x / temperatura).collect();
 
-        // 3. Softmax con estabilidad numérica → probabilidades
         let logit_max = logits_escalados.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
         let valores_exp: Vec<f32> = logits_escalados.iter().map(|&x| (x - logit_max).exp()).collect();
         let suma: f32 = valores_exp.iter().sum();
         let probs: Vec<f32> = valores_exp.iter().map(|&x| x / suma).collect();
 
-        // 4. Muestreo estocástico: tiramos los dados según la distribución
         tokens.push(muestrear_de_probs(&probs));
         if tokens.len() >= self.config.block_size { break; }
     }
@@ -449,13 +365,6 @@ let resultado: Vec<f32> = (0..filas)
 
 
 def crear_llanuras_manchegas():
-    """Fondo de colinas manchegas (tres elipses semitransparentes).
-
-    Se coloca en z_index=-10 para que quede siempre detrás de todo.
-
-    Returns:
-        VGroup con las tres colinas.
-    """
     colina_fondo = Ellipse(width=18, height=6, fill_color=TIERRA_MANCHEGA, fill_opacity=0.06, stroke_width=0)
     colina_fondo.move_to(DOWN * 3.5 + LEFT * 3)
     
@@ -469,16 +378,6 @@ def crear_llanuras_manchegas():
     return llanuras
 
 def crear_molino():
-    """Molino de viento cervantino con aspas animables.
-
-    Las aspas se exponen como último elemento del VGroup,
-    por lo que puedes animarlas con::
-
-        molino[-1].add_updater(lambda m, dt: m.rotate(-dt * 0.8))
-
-    Returns:
-        VGroup(base, ladrillo, techo, puerta, ventana, aspas).
-    """
     base_molino = Polygon(
         [-0.45, -0.6, 0], [0.45, -0.6, 0], [0.3, 0.4, 0], [-0.3, 0.4, 0], 
         fill_color=LADRILLO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=3
@@ -520,11 +419,6 @@ def crear_molino():
     return VGroup(base_molino, lineas_ladrillo, techo, marco_puerta, puerta, ventana_marco, ventana, reja_v, reja_h, sistema_aspas)
 
 def crear_sol_cervantino():
-    """Sol decorativo con cara y 16 rayos alternos.
-
-    Returns:
-        VGroup(rayos, cuerpo, cara).
-    """
     centro_borde = Circle(radius=0.28, fill_color=TERRACOTA, stroke_width=0)
     centro = Circle(radius=0.25, fill_color=ORO_VIEJO, stroke_color=TERRACOTA, stroke_width=3)
     anillo_interior = Circle(radius=0.20, stroke_color=TERRACOTA, stroke_width=1, stroke_opacity=0.5)
@@ -548,15 +442,6 @@ def crear_sol_cervantino():
     return VGroup(rayos, centro_borde, centro, anillo_interior, cara)
 
 def crear_estrella():
-    """Estrella dorada de 4 puntas con brillo central.
-
-    Pensada para girar con un updater::
-
-        estrella.add_updater(lambda m, dt: m.rotate(dt * 0.5))
-
-    Returns:
-        VGroup(puntas, brillo).
-    """
     puntas = VGroup()
     for i in range(4):
         angle = i * (PI / 2)
@@ -568,11 +453,6 @@ def crear_estrella():
     return VGroup(puntas, centro_brillo)
 
 def crear_tintero_y_pluma():
-    """Tintero negro con pluma de ave y gotas de tinta.
-
-    Returns:
-        VGroup(tintero, pluma, cortes, tallo, punta, gotas).
-    """
     cuerpo = Polygon(
         [-0.25, -0.2, 0], [0.25, -0.2, 0], [0.2, 0.15, 0], [-0.2, 0.15, 0],
         fill_color=TINTA_NEGRA, fill_opacity=1, stroke_color=LATON, stroke_width=2
@@ -609,11 +489,6 @@ def crear_tintero_y_pluma():
     return VGroup(tintero, pluma_forma, cortes, tallo, punta_pluma, gotas)
 
 def crear_pila_libros():
-    """Pila de tres libros con marcapáginas dorado.
-
-    Returns:
-        VGroup(libro1, marcapaginas, libro2, libro3).
-    """
     def crear_libro(ancho, alto, color_cubierta, color_paginas, rotacion, desplazamiento):
         cubierta = RoundedRectangle(corner_radius=0.05, width=ancho, height=alto, fill_color=color_cubierta, fill_opacity=1, stroke_color=TINTA_NEGRA, stroke_width=2)
         brillo_cubierta = Line(cubierta.get_corner(UL) + RIGHT*0.05, cubierta.get_corner(UR) + LEFT*0.05, color=BLANCO, stroke_width=2, stroke_opacity=0.3)
@@ -633,11 +508,6 @@ def crear_pila_libros():
     return VGroup(libro1, marcapaginas, libro2, libro3)
 
 def crear_escudo_y_lanza():
-    """Escudo redondo con cruz roja y lanza de caballero.
-
-    Returns:
-        VGroup(astil, empunadura, punta, escudo).
-    """
     astil = Line(DOWN*1.2 + LEFT*0.6, UP*1.2 + RIGHT*0.6, color=MADERA_OSCURA, stroke_width=6)
     vector_dir = astil.get_unit_vector()
     angulo_astil = astil.get_angle()
@@ -693,11 +563,6 @@ def crear_escudo_y_lanza():
     return VGroup(astil, empunadura, punta, escudo)
 
 def crear_herradura():
-    """Herradura metálica con agujeros para clavos.
-
-    Returns:
-        VGroup(cuerpo, borde_interior, brillo, agujeros).
-    """
     cuerpo = AnnularSector(
         inner_radius=0.25, outer_radius=0.45, angle=PI*1.4, start_angle=-PI*0.2, 
         fill_color=HIERRO, fill_opacity=1, stroke_color=TINTA_NEGRA, stroke_width=2
@@ -724,11 +589,6 @@ def crear_herradura():
     return herradura
 
 def crear_rueda_carreta():
-    """Rueda de carreta con 12 radios y aro de hierro.
-
-    Returns:
-        VGroup(radios, aros, centro, eje).
-    """
     aro_hierro = Circle(radius=0.6, stroke_color=HIERRO, stroke_width=8)
     aro_madera = Circle(radius=0.54, stroke_color=MADERA_CLARA, stroke_width=12)
     aro_madera_interior = Circle(radius=0.48, stroke_color=MADERA_OSCURA, stroke_width=1, stroke_opacity=0.6)
@@ -746,11 +606,6 @@ def crear_rueda_carreta():
     return VGroup(radios, aro_madera, aro_madera_interior, aro_hierro, remaches, centro_madera, eje)
 
 def crear_pergamino():
-    """Pergamino enrollado con líneas de texto y sello de cera.
-
-    Returns:
-        VGroup(cuerpo, rollos, lineas, cintas, sello).
-    """
     cuerpo = Polygon(
         [-0.4, 0.6, 0], [0.4, 0.6, 0], [0.35, -0.6, 0], [-0.45, -0.6, 0],
         fill_color=PERGAMINO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2
@@ -776,11 +631,6 @@ def crear_pergamino():
     return VGroup(cuerpo, rollo_sup, rollo_sup_espiral, rollo_inf, rollo_inf_espiral, lineas, cinta1, cinta2, sello_cera, sello_detalle)
 
 def crear_yelmo_mambrino():
-    """Yelmo de Mambrino (la famosa bacía de barbero).
-
-    Returns:
-        VGroup(cuenco, borde, brillo, remaches, muesca).
-    """
     cuenco = Arc(
         radius=0.5, start_angle=0, angle=PI, 
         fill_color=LATON, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2
@@ -806,21 +656,11 @@ def crear_yelmo_mambrino():
     return VGroup(cuenco, borde, brillo, remaches_borde, muesca)
 
 def crear_rust_quijote():
-    """Carga la imagen assets/quijote_rust.png centrada en ORIGIN.
-
-    Returns:
-        ImageMobject escalado a 0.3.
-    """
     logo = ImageMobject(r"assets\quijote_rust.png").scale(0.3)
     
     return logo.move_to(ORIGIN)
 
 def crear_rust_sancho():
-    """Carga la imagen assets/sancho_rust.png centrada en ORIGIN.
-
-    Returns:
-        ImageMobject escalado a 0.3.
-    """
     imagen_sancho = ImageMobject(r"assets\sancho_rust.png").scale(0.3)
     
     return imagen_sancho.move_to(ORIGIN)
@@ -829,114 +669,100 @@ def crear_rust_sancho():
 class Presentacion(Slide):
 
     def construct(self):
-        """Punto de entrada de Manim. Define el orden de las diapositivas.
-
-        Las líneas comentadas están disponibles pero desactivadas.
-        Descomenta las que quieras incluir en la presentación.
-        """
         self.camera.background_color = WHITE
         
+        # self.slide_pronto_iniciamos()
+        # self.slide_introduction()
+        # self.slide_credits()
+        # self.slide_que_es_transformer()
+        # self.slide_por_que_rust()
+        # self.slide_molinete_ai()
 
-        self.slide_pronto_iniciamos()
-        self.slide_introduction()
-        self.slide_credits()
-        self.slide_que_es_transformer()
-        self.slide_molinete_ai()
-        self.slide_por_que_rust()
+        # self.slide_roadmap()
 
-        self.slide_roadmap()
+        # self.slide_que_es_un_tensor()
+        # self.mostrar_snippet("tensor.rs")
 
-        self.slide_que_es_un_tensor()
-        self.mostrar_snippet("tensor.rs")
-        
-        self.slide_strides()
-        
-        self.slide_matmul()
-        self.mostrar_snippet("matmul_base.rs")
+        # self.slide_strides()
 
-        self.slide_intro_matmul_optimizacion()
+        # self.slide_matmul()
+        # self.mostrar_snippet("matmul_base.rs")
 
-        self.slide_simd()
-        self.mostrar_snippet("simd_vectorization.rs")
+        # self.slide_intro_matmul_optimizacion()
 
-        self.slide_cache_blocking()
-        self.mostrar_snippet("cache_blocking.rs")
+        # self.slide_simd()
+        # self.mostrar_snippet("simd_vectorization.rs")
 
-        self.slide_parallel_rayon()
-        self.mostrar_snippet("parallel_rayon.rs")
+        # self.slide_cache_blocking()
+        # self.mostrar_snippet("cache_blocking.rs")
 
-        self.slide_batched_matmul()
-        self.mostrar_snippet("batched_matmul.rs")
+        # self.slide_parallel_rayon()
+        # self.mostrar_snippet("parallel_rayon.rs")
 
-        self.slide_softmax()
-        self.mostrar_snippet("softmax.rs")
+        # self.slide_batched_matmul()
+        # self.mostrar_snippet("batched_matmul.rs")
 
-        self.slide_forward_pass()
-        self.slide_problema_strawberry()
-        
-        self.slide_tokenizacion()
-        self.mostrar_snippet("BDPtokenizer.rs")
-        
-        self.slide_byte_pair_encoding()
-        self.mostrar_snippet("pair_counts.rs")
-        
-        self.slide_tamano_vocabulario()
-        
-        self.slide_embeddings()
+        # self.slide_softmax()
+        # self.mostrar_snippet("softmax.rs")
+
+        # self.slide_forward_pass()
+        # self.slide_problema_strawberry()
+
+        # self.slide_tokenizacion()
+        # self.mostrar_snippet("BDPtokenizer.rs")
+
+        # self.slide_byte_pair_encoding()
+        # self.mostrar_snippet("pair_counts.rs")
+
+        # self.slide_tamano_vocabulario()
+
+        # self.slide_embeddings()
         self.slide_position_embeddings()
-        self.mostrar_snippet("embedding.rs")
+        # self.mostrar_snippet("embedding.rs")
 
-        self.slide_layer_normalization()
-        self.mostrar_snippet("normalization.rs")
+        # self.slide_layer_normalization()
+        # self.mostrar_snippet("normalization.rs")
 
-        self.slide_mha_acto1_intuicion()
-        self.slide_mha_acto2_formula()
-        self.slide_mha_acto3_calculo()
-        self.slide_mha_acto4_multihead()
-        self.mostrar_snippet("attention.rs")
+        # self.slide_mha_acto1_intuicion()
+        # self.slide_mha_acto2_formula()
+        # self.slide_mha_acto3_calculo()
+        # self.slide_mha_acto4_multihead()
+        # self.mostrar_snippet("attention.rs")
 
-        self.slide_arquitectura_neurona()
-        self.mostrar_snippet("mlp_forward.rs")
-        
-        self.slide_zoom_neurona()
-        self.slide_activacion()
-        self.mostrar_snippet("gelu.rs")
-        
-        self.slide_capa_transformer()
+        # self.slide_arquitectura_neurona()
+        # self.mostrar_snippet("mlp_forward.rs")
 
-        self.slide_entrenamiento()
-        self.mostrar_snippet("compute_loss.rs")
-        
-        self.slide_descenso_gradiente()
-        self.mostrar_snippet("linear_backward.rs")
-        
-        self.slide_backpropagation()
-        
-        self.slide_residual()
-        self.mostrar_snippet("block_backward.rs")
-        
-        self.slide_adam()
-        self.mostrar_snippet("adamw_update.rs")
-        
-        self.slide_dropout()
-        self.mostrar_snippet("dropout.rs")
-        
-        self.slide_training_metrics()
-        
-        self.slide_temperature()
-        self.mostrar_snippet("temperature.rs")
-        
-        self.slide_model_in_action()
-        self.slide_final()
+        # self.slide_zoom_neurona()
+        # self.slide_activacion()
+        # self.mostrar_snippet("gelu.rs")
+
+        # self.slide_residual()
+        # self.mostrar_snippet("block_backward.rs")
+
+        # self.slide_entrenamiento()
+        # self.mostrar_snippet("compute_loss.rs")
+
+        # self.slide_descenso_gradiente()
+        # self.mostrar_snippet("linear_backward.rs")
+
+        # self.slide_backpropagation()
+
+        # self.slide_adam()
+        # self.mostrar_snippet("adamw_update.rs")
+
+        # self.slide_dropout()
+        # self.mostrar_snippet("dropout.rs")
+
+        # self.slide_training_metrics()
+
+        # self.slide_temperature()
+        # self.mostrar_snippet("temperature.rs")
+
+        # self.slide_model_in_action()
+        # self.slide_final()
         
         
     def mostrar_snippet(self, titulo_archivo):
-        """Muestra el fragmento de código Rust asociado a `titulo_archivo`
-        usando la diapositiva de código y limpia la pantalla al terminar.
-
-        Args:
-            titulo_archivo: Clave en RUST_SNIPPETS (ej. "attention.rs").
-        """
         self.diapo_codigo(
             codigo_fuente=RUST_SNIPPETS[titulo_archivo],
             titulo_archivo=titulo_archivo
@@ -944,37 +770,12 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def crear_titulo(self, texto, palabra_clave=None, color_clave=NARANJA_TERRACOTA, font_size=35):
-        """Crea un título con subrayado de color y resaltado opcional.
-
-        Args:
-            texto:         Texto completo del título.
-            palabra_clave: Palabra a resaltar con `color_clave`.
-            color_clave:   Color hex del resaltado (default: naranja).
-            font_size:     Tamaño de fuente (default: 35).
-
-        Returns:
-            Tuple[Text, Underline]
-        """
         t2c = {palabra_clave: color_clave} if palabra_clave else {}
         titulo = Text(texto, font=FUENTE, font_size=font_size, color=TINTA_NEGRA, t2c=t2c).to_edge(UP)
         linea = Underline(titulo, color=color_clave, stroke_width=4)
         return titulo, linea
 
     def crear_bloque(self, texto="", color_fondo=FONDO_CAJA, color_texto=TINTA_NEGRA, ancho=0.8, alto=0.8):
-        """Crea una celda rectangular redondeada con texto centrado.
-
-        Útil para representar tokens, celdas de matriz, etc.
-
-        Args:
-            texto:       Contenido de la celda.
-            color_fondo: Color de relleno del rectángulo.
-            color_texto: Color del texto.
-            ancho:       Ancho en unidades Manim.
-            alto:        Alto en unidades Manim.
-
-        Returns:
-            VGroup(rect, label).
-        """
         rect = RoundedRectangle(
             corner_radius=0.15, width=ancho, height=alto, 
             fill_color=color_fondo, fill_opacity=1, 
@@ -984,19 +785,6 @@ class Presentacion(Slide):
         return VGroup(rect, lbl)
     
     def crear_matriz_bloques(self, filas, columnas, color_fondo=FONDO_CAJA, color_texto=TINTA_NEGRA, valores=None, ancho=0.8, alto=0.8):
-        """Crea una cuadrícula de celdas (filas × columnas).
-
-        Args:
-            filas, columnas: Dimensiones de la matriz.
-            color_fondo:     Color de relleno de cada celda.
-            color_texto:     Color del texto de cada celda.
-            valores:         Lista plana de textos (fila por fila).
-                             Si es None, todas las celdas quedan vacías.
-            ancho, alto:     Tamaño de cada celda.
-
-        Returns:
-            VGroup de VGroups (una fila por subgrupo).
-        """
         if valores is None:
             valores = [""] * (filas * columnas)
             
@@ -1026,26 +814,29 @@ class Presentacion(Slide):
         return matriz
 
     def limpiar_pantalla(self):
-        """Desvanece todos los Mobjects visibles en pantalla.
-
-        Se llama al final de cada diapositiva para dejar la escena limpia
-        antes de comenzar la siguiente.
-        """
         if self.mobjects:
             self.play(*[FadeOut(mob) for mob in self.mobjects])
 
+    def _siguiente(self):
+        dot = Dot(radius=0.11, color=NARANJA_TERRACOTA, fill_opacity=1, z_index=100)
+        dot.to_corner(DR, buff=0.3)
+
+        ring = Circle(
+            radius=0.11, color=NARANJA_TERRACOTA,
+            stroke_width=2.2, fill_opacity=0, z_index=99
+        ).move_to(dot)
+
+        self.add(dot, ring)
+        self.play(
+            ring.animate.scale(2.8).set_stroke(opacity=0),
+            dot.animate.set_opacity(0.5),
+            run_time=0.4, rate_func=linear
+        )
+        self.play(dot.animate.set_opacity(1.0), run_time=0.2, rate_func=linear)
+        self.next_slide()
+        self.play(FadeOut(dot, ring), run_time=0.2)
+
     def _crear_adornos_esquinas(self, escala=0.6, buff=0.8):
-        """Crea el set estándar de cuatro adornos cervantinos en las esquinas.
-
-        Orden: DL=molino, UR=sol, DR=tintero, UL=escudo.
-
-        Args:
-            escala: Factor de escala uniforme para los cuatro adornos.
-            buff:   Distancia al borde de pantalla.
-
-        Returns:
-            VGroup(molino, sol, tintero, escudo).
-        """
         molino  = crear_molino().scale(escala).to_corner(DL, buff=buff)
         sol     = crear_sol_cervantino().scale(escala).to_corner(UR, buff=buff)
         tintero = crear_tintero_y_pluma().scale(escala).to_corner(DR, buff=buff)
@@ -1053,22 +844,6 @@ class Presentacion(Slide):
         return VGroup(molino, sol, tintero, escudo)
 
     def _animar_entrada_slide(self, titulo, linea, adornos=None, fondo=None):
-        """Anima la entrada estándar de una diapositiva.
-
-        Siempre sigue el mismo orden:
-            1. Título + línea subrayada (Write / GrowFromCenter).
-            2. Decoraciones de esquina, si se pasan (LaggedStart FadeIn).
-            3. Fondo temático, si se pasa (FadeIn simultáneo con el título).
-
-        Todo ocurre en un solo ``self.play()`` para mantener la consistencia
-        visual entre diapositivas.
-
-        Args:
-            titulo:  Mobject de texto del título.
-            linea:   Underline del título.
-            adornos: VGroup con los adornos de esquina (opcional).
-            fondo:   Mobject de fondo decorativo (opcional).
-        """
         animaciones = [Write(titulo), GrowFromCenter(linea)]
 
         if fondo is not None:
@@ -1085,18 +860,6 @@ class Presentacion(Slide):
         self.play(*animaciones)
 
     def _crear_burbuja_chat(self, texto, color_fondo, color_texto, es_usuario=True, t2c_dict=None):
-        """Crea una burbuja de chat con sombra y etiqueta de remitente.
-
-        Args:
-            texto:       Contenido de la burbuja.
-            color_fondo: Color de relleno del globo.
-            color_texto: Color del texto interior.
-            es_usuario:  True → alineada a la derecha con etiqueta "Tú".
-            t2c_dict:    Diccionario text-to-color opcional.
-
-        Returns:
-            VGroup(remitente, VGroup(sombra, fondo, txt)).
-        """
         txt = Text(texto, font=FUENTE, font_size=24, color=color_texto, t2c=t2c_dict)
         fondo = RoundedRectangle(
             width=txt.width + 0.8,
@@ -1122,11 +885,6 @@ class Presentacion(Slide):
         return VGroup(remitente, burbuja_base)
 
     def _crear_fresa(self):
-        """Dibuja una fresa decorativa para el slide del problema Strawberry.
-
-        Returns:
-            VGroup(cuerpo, hojas) escalado a 0.85.
-        """
         cuerpo = Polygon(
             [0, 0.3, 0], [-0.25, 0.1, 0], [-0.2, -0.2, 0],
             [0, -0.4, 0], [0.2, -0.2, 0], [0.25, 0.1, 0],
@@ -1142,17 +900,6 @@ class Presentacion(Slide):
         return VGroup(cuerpo, hojas).scale(0.85)
 
     def _crear_burbuja_transformer(self, texto, es_usuario=True):
-        """Crea una burbuja de chat simple para el slide ¿Qué es un Transformer?
-
-        Versión más ligera (sin sombra ni remitente) para uso en diálogos rápidos.
-
-        Args:
-            texto:      Contenido de la burbuja.
-            es_usuario: True → fondo CAJA_INFERIOR con borde MARRON; False → FONDO_CAJA/NARANJA.
-
-        Returns:
-            VGroup(burbuja, txt).
-        """
         color_fondo = CAJA_INFERIOR if es_usuario else FONDO_CAJA
         color_borde = MARRON_OSCURO if es_usuario else NARANJA_TERRACOTA
         txt = Text(texto, font=FUENTE, font_size=22, color=TINTA_NEGRA)
@@ -1164,18 +911,6 @@ class Presentacion(Slide):
         return VGroup(burbuja, txt)
 
     def _animar_pensamiento_transformer(self, texto_ganador, texto_perdedor, pct_ganador, pct_perdedor, obj_referencia):
-        """Anima el menú de probabilidades que muestra el razonamiento del modelo.
-
-        Muestra dos opciones junto al objeto de referencia, destaca la ganadora
-        y luego desvanece el menú.
-
-        Args:
-            texto_ganador:   Palabra/texto de la opción más probable.
-            texto_perdedor:  Palabra/texto de la opción menos probable.
-            pct_ganador:     Porcentaje de probabilidad de la opción ganadora (str).
-            pct_perdedor:    Porcentaje de probabilidad de la opción perdedora (str).
-            obj_referencia:  Mobject junto al cual se posiciona el menú.
-        """
         opcion_ganadora  = Text(f"{texto_ganador} ({pct_ganador})",  font=FUENTE, font_size=20, weight=BOLD, color=NARANJA_TERRACOTA)
         opcion_perdedora = Text(f"{texto_perdedor} ({pct_perdedor})", font=FUENTE, font_size=16, color=GRAY)
         textos_menu = VGroup(opcion_ganadora, opcion_perdedora).arrange(DOWN, buff=0.15)
@@ -1191,17 +926,6 @@ class Presentacion(Slide):
         self.play(FadeOut(menu_final))
 
     def _crear_item_utilidad(self, titulo_item, descripcion):
-        """Crea un ítem de lista con marcador vertical y dos líneas de texto.
-
-        Usado en la sección "¿Para qué sirven?" de slide_que_es_transformer.
-
-        Args:
-            titulo_item:  Texto de la primera línea (destacado en naranja).
-            descripcion:  Texto de la segunda línea (color tinta normal).
-
-        Returns:
-            VGroup(marcador, VGroup(t_titulo, t_desc)).
-        """
         t_titulo = Text(titulo_item, font=FUENTE, font_size=26, color=NARANJA_TERRACOTA, weight=BOLD)
         t_desc   = Text(descripcion,  font=FUENTE, font_size=22, color=TINTA_NEGRA)
         grupo_texto = VGroup(t_titulo, t_desc).arrange(DOWN, aligned_edge=LEFT, buff=0.1)
@@ -1209,17 +933,6 @@ class Presentacion(Slide):
         return VGroup(marcador, grupo_texto).arrange(RIGHT, buff=0.25)
 
     def _crear_panel_probabilidades(self, palabra_objetivo):
-        """Genera el panel de barras de probabilidad de la slide de introducción.
-
-        Muestra la palabra objetivo con alta probabilidad y dos palabras
-        cervantinas aleatorias con probabilidades menores.
-
-        Args:
-            palabra_objetivo: Palabra a destacar como la más probable.
-
-        Returns:
-            VGroup(bg, VGroup(textos, barras)) centrado en LEFT*0.5 + DOWN*0.4.
-        """
         dummies = ["hidalgo", "espada", "vino", "capa", "oro", "plaza", "mujer", "caballo"]
         random.shuffle(dummies)
         probs = [random.uniform(0.7, 0.9), random.uniform(0.05, 0.1), random.uniform(0.01, 0.03)]
@@ -1254,17 +967,6 @@ class Presentacion(Slide):
         return VGroup(bg, col).move_to(LEFT * 0.5 + DOWN * 0.4)
 
     def _crear_fila_vocabulario(self, vocab, total_tokens, compresion, es_final=False):
-        """Crea una fila de la tabla de vocabulario en slide_tamano_vocabulario.
-
-        Args:
-            vocab:        Texto de la columna Vocabulario.
-            total_tokens: Texto de la columna Total Tokens.
-            compresion:   Texto de la columna Compresión.
-            es_final:     Si True, resalta la compresión en naranja con BOLD.
-
-        Returns:
-            VGroup con tres Text, uno por columna.
-        """
         color_c = NARANJA_TERRACOTA if es_final else TINTA_NEGRA
         peso_c  = BOLD              if es_final else NORMAL
         return VGroup(
@@ -1274,15 +976,6 @@ class Presentacion(Slide):
         )
 
     def _crear_corazon(self, color, escala=1.0):
-        """Dibuja un corazón usando una función paramétrica continua.
-
-        Args:
-            color:  Color de trazo y relleno.
-            escala: Factor multiplicador del tamaño base.
-
-        Returns:
-            ParametricFunction con relleno semitransparente.
-        """
         corazon = ParametricFunction(
             lambda t: np.array([
                 16 * np.sin(t) ** 3,
@@ -1299,7 +992,6 @@ class Presentacion(Slide):
 
     def slide_pronto_iniciamos(self):
 
-        """Diapositiva: Slide Pronto Iniciamos."""
 
         gato_caballero = ImageMobject(r"assets\gato_armadura.png").scale(0.5)
         texto_inicio = Text("Pronto iniciamos", font=FUENTE, font_size=50, weight=BOLD, color=MARRON_OSCURO)
@@ -1311,11 +1003,10 @@ class Presentacion(Slide):
 
         self.play(FadeIn(pantalla_completa, shift=UP))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_introduction(self):
-        """Diapositiva: Slide Introduction."""
 
         titulo, linea = self.crear_titulo("Construyendo un Transformer con Rust", palabra_clave="Rust")
         subtitulo = Text("Jerónimo Hoyos Botero", font=FUENTE, font_size=25, color=MARRON_OSCURO)
@@ -1412,11 +1103,10 @@ class Presentacion(Slide):
         for estrella in estrellas:
             estrella.clear_updaters()
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_credits(self):
-        """Diapositiva final: Créditos y agradecimientos con corazones elegantes."""
 
         
         llanuras = crear_llanuras_manchegas()
@@ -1451,7 +1141,7 @@ class Presentacion(Slide):
             fondo=Group(imagen_creditos, molino, escudo, libros, tintero, estrellas)
         )
         
-        self.next_slide()
+        self._siguiente()
 
 
         num_corazones = 20
@@ -1486,7 +1176,7 @@ class Presentacion(Slide):
             run_time=6.0
         )
         
-        self.next_slide()
+        self._siguiente()
 
         elementos_en_pantalla = Group(*self.mobjects)
         self.play(FadeOut(elementos_en_pantalla, scale=0.9), run_time=1.5)
@@ -1494,16 +1184,14 @@ class Presentacion(Slide):
         self.limpiar_pantalla()
 
     def slide_que_es_transformer(self):
-        """Diapositiva: Slide Que Es Transformer."""
 
         titulo, linea = self.crear_titulo("¿Qué es un Transformer?", palabra_clave="Transformer", color_clave=NARANJA_TERRACOTA)
         adornos = self._crear_adornos_esquinas(escala=0.8)
 
         explicacion_1 = Text(
-            "TRANSFORMA la secuencia, observa todo el contexto\n"
-            "para predecir qué palabra tiene más sentido a continuación.",
-            font=FUENTE, font_size=26, color=TINTA_NEGRA, line_spacing=1.2,
-            t2c={"TRANSFORMA": NARANJA_TERRACOTA, "todo el contexto": MARRON_OSCURO, "tiene más sentido": NARANJA_TERRACOTA}
+            "Predice la siguiente palabra.",
+            font=FUENTE, font_size=28, color=TINTA_NEGRA,
+            t2c={"siguiente palabra": NARANJA_TERRACOTA}
         ).move_to(UP * 2.2)
 
         caja_maq = RoundedRectangle(corner_radius=0.2, width=2.5, height=1.5, fill_color=MARRON_OSCURO, fill_opacity=0.9, stroke_color=NARANJA_TERRACOTA, stroke_width=3)
@@ -1516,21 +1204,21 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
         self.play(FadeIn(explicacion_1, shift=UP * 0.2), FadeIn(maquina, shift=RIGHT * 0.5))
-        self.next_slide()
+        self._siguiente()
 
         msg1_usuario = self._crear_burbuja_transformer("¿Quién es?", es_usuario=True).move_to(chat_x_right + UP * 0.8).align_to(chat_x_right, RIGHT)
         self.play(FadeIn(msg1_usuario, shift=UP * 0.2))
         self._animar_pensamiento_transformer("Soy yo", "El cartero", "98.5%", "1.5%", caja_maq)
         msg2_ia = self._crear_burbuja_transformer("Soy yo", es_usuario=False).next_to(msg1_usuario, DOWN, buff=0.3).align_to(chat_x_left, LEFT)
         self.play(FadeIn(msg2_ia, shift=UP * 0.2))
-        self.next_slide()
+        self._siguiente()
 
         msg3_usuario = self._crear_burbuja_transformer("¿Qué vienes a buscar?", es_usuario=True).next_to(msg2_ia, DOWN, buff=0.3).align_to(chat_x_right, RIGHT)
         self.play(FadeIn(msg3_usuario, shift=UP * 0.2))
         self._animar_pensamiento_transformer("A ti", "Nada", "99.9%", "0.05%", caja_maq)
         msg_final_ia = self._crear_burbuja_transformer("A ti", es_usuario=False).next_to(msg3_usuario, DOWN, buff=0.3).align_to(chat_x_left, LEFT)
         self.play(FadeIn(msg_final_ia, shift=UP * 0.2))
-        self.next_slide()
+        self._siguiente()
 
         shift_up = UP * (msg1_usuario.get_center()[1] - msg3_usuario.get_center()[1])
         
@@ -1547,7 +1235,7 @@ class Presentacion(Slide):
         self._animar_pensamiento_transformer("¿Por qué?", "Vete", "95.0%", "5.0%", caja_maq)
         msg6_ia = self._crear_burbuja_transformer("¿Por qué?", es_usuario=False).next_to(msg5_usuario, DOWN, buff=0.3).align_to(chat_x_left, LEFT)
         self.play(FadeIn(msg6_ia, shift=UP * 0.2))
-        self.next_slide()
+        self._siguiente()
 
         shift_up_2 = UP * (msg3_usuario.get_center()[1] - msg5_usuario.get_center()[1])
         self.play(
@@ -1561,101 +1249,58 @@ class Presentacion(Slide):
         texto_despecho = "Porque ahora soy yo la que\nquiere estar sin ti"
         msg7_usuario = self._crear_burbuja_transformer(texto_despecho, es_usuario=True).next_to(msg6_ia, DOWN, buff=0.3).align_to(chat_x_right, RIGHT)
         self.play(FadeIn(msg7_usuario, shift=UP * 0.2))
-        self.next_slide()
-
-        titulo_utilidades = Text("¿Para qué sirven?", font=FUENTE, font_size=32, color=MARRON_OSCURO, weight=BOLD).move_to(UP * 1.5)
-        lista_utilidades = VGroup(
-            self._crear_item_utilidad("1. Chatbots Asistentes", "Conversación natural fluida"),
-            self._crear_item_utilidad("2. Agentes Autónomos", "Resolución de tareas complejas"),
-            self._crear_item_utilidad("3. Predicción Avanzada", "Código, traducción y análisis")
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.6).move_to(DOWN * 0.5)
+        self._siguiente()
 
         chat_visible_final = VGroup(msg5_usuario, msg6_ia, msg7_usuario)
         self.play(FadeOut(chat_visible_final), FadeOut(maquina), FadeOut(explicacion_1), run_time=1)
-        self.play(FadeIn(titulo_utilidades, shift=UP * 0.2))
-        self.play(AnimationGroup(*[FadeIn(item, shift=RIGHT * 0.3) for item in lista_utilidades], lag_ratio=0.3))
-        self.next_slide()
 
         self.limpiar_pantalla()
 
     def slide_molinete_ai(self):
-        """Diapositiva: Slide Molinete Ai."""
 
         titulo, linea = self.crear_titulo(
-            "Molinete AI", 
-            palabra_clave="Molinete", 
+            "Molinete AI",
+            palabra_clave="Molinete",
             color_clave=NARANJA_TERRACOTA
         )
 
         adornos = self._crear_adornos_esquinas(escala=0.8)
+        llanuras_fondo = crear_llanuras_manchegas()
+
+        imagen_molino = ImageMobject("assets/quijote_vs_molinos.png")
+        imagen_molino.height = 5.5
 
         subtitulo = Text(
-            "Origen del nombre “Molinete”", 
+            'Origen del nombre "Molinete"',
             font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD
         )
 
-        descripcion = Text(
-            "Modelo de lenguaje entrenado sobre\nel corpus de El Quijote.", 
-            font=FUENTE, font_size=24, color=MARRON_OSCURO
-        )
+        # Imagen grande a la derecha, subtítulo a la izquierda
+        imagen_molino.height = 5.2
+        imagen_molino.next_to(linea, DOWN, buff=0.4).shift(RIGHT * 2.2)
+        subtitulo.next_to(linea, DOWN, buff=1.2).to_edge(LEFT, buff=0.9)
 
-        punto1 = Text(
-            "• Inspirado en el boss de dark souls.",
-            font=FUENTE, font_size=22, color=TINTA_NEGRA, 
-            t2c={"imaginario cervantino": NARANJA_TERRACOTA}
-        )
-
-        punto2 = Text(
-            "• Nombre que evoca los molinos de viento\n  enfrentados por Don Quijote.",
-            font=FUENTE, font_size=22, color=TINTA_NEGRA,
-            t2c={"molinos de viento": NARANJA_TERRACOTA}
-        )
-
-        punto3 = Text(
-            "• Para darle identidad propia y un toque de humor\n  dentro del mundo de los LLMs.",
-            font=FUENTE, font_size=22, color=TINTA_NEGRA,
-            t2c={"modelo de lenguaje": MARRON_OSCURO}
-        )
-
-        grupo_puntos = VGroup(punto1, punto2, punto3).arrange(DOWN, aligned_edge=LEFT, buff=0.4) 
-        textos_molinete = VGroup(descripcion, subtitulo, grupo_puntos).arrange(DOWN, aligned_edge=LEFT, buff=0.5) 
-
-        imagen_molino = ImageMobject("assets/quijote_vs_molinos.png")
-        imagen_molino.height = 5.5 
-        contenido_principal = Group(textos_molinete, imagen_molino).arrange(RIGHT, buff=0.8)
-
-        contenido_principal.next_to(linea, DOWN, buff=0.5)
-
-        if contenido_principal.width > 12.5:
-            contenido_principal.width = 12.5
-            contenido_principal.next_to(linea, DOWN, buff=0.5) 
-
-        llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
-        self.play(FadeIn(descripcion, shift=UP * 0.2))
-        self.next_slide()
+
+        imagen_molino.save_state()
+        imagen_molino.scale(0.1).set_opacity(0)
+        self.play(imagen_molino.animate.restore(), run_time=1.2)
+        self.play(Rotate(imagen_molino, angle=TAU * 0.03, run_time=0.4, rate_func=linear))
+        self._siguiente()
+
+        self.play(FadeIn(subtitulo, shift=RIGHT * 0.3), run_time=0.7)
+        self._siguiente()
 
         self.play(
-            FadeIn(subtitulo, shift=RIGHT * 0.4),
-            FadeIn(imagen_molino, shift=LEFT * 0.4)
+            FadeOut(subtitulo, shift=UP * 0.3),
+            Rotate(imagen_molino, angle=TAU * 0.08, run_time=1.0, rate_func=linear),
+            FadeOut(imagen_molino, shift=RIGHT * 1.5, run_time=1.0),
+            run_time=1.5
         )
-        self.next_slide()
-        
-        self.play(
-            LaggedStart(
-                FadeIn(punto1, shift=UP * 0.2),
-                FadeIn(punto2, shift=UP * 0.2),
-                FadeIn(punto3, shift=UP * 0.2),
-                lag_ratio=0.8
-            ),
-            run_time=2.5
-        )
-        self.next_slide()
 
         self.limpiar_pantalla()
 
     def slide_problema_strawberry(self):
-        """Diapositiva: Slide Problema Strawberry."""
 
         titulo, linea = self.crear_titulo(
             "¿Por qué los LLM no saben 'leer'?",
@@ -1692,20 +1337,21 @@ class Presentacion(Slide):
         tokens_straw = VGroup(token1, token2, token3).arrange(RIGHT, buff=0.15)
 
         texto_explicacion = Text(
-            "Para el modelo, la palabra se divide en 'pedazos' (Tokens):",
-            font=FUENTE, font_size=24, color=TINTA_NEGRA
+            "strawberry  →  tokens:",
+            font=FUENTE, font_size=26, color=TINTA_NEGRA,
+            t2c={"tokens:": NARANJA_TERRACOTA}
         )
         grupo_visual = VGroup(texto_explicacion, tokens_straw).arrange(DOWN, buff=0.5)
         grupo_visual.next_to(grupo_chat, DOWN, buff=1.0)
 
         self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo))
-        self.next_slide()
+        self._siguiente()
 
         self.add(fresa_der, fresa_izq)
         self.play(FadeIn(burbuja_pregunta, shift=UP * 0.2, scale=0.9))
         self.wait(0.5)
         self.play(FadeIn(burbuja_respuesta, shift=UP * 0.2, scale=0.9))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(texto_explicacion, shift=UP * 0.2))
         self.play(LaggedStart(
@@ -1714,39 +1360,28 @@ class Presentacion(Slide):
             GrowFromCenter(token3),
             lag_ratio=0.2
         ))
-        self.next_slide()
+        self._siguiente()
 
         cruz = Cross(tokens_straw, stroke_color=NARANJA_TERRACOTA, stroke_width=6)
         self.play(Create(cruz))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_byte_pair_encoding(self):
-        """Diapositiva de BPE: Fusión dinámica iterativa sobre un trabalenguas (Animación fluida)."""
 
         llanuras_fondo = crear_llanuras_manchegas()
         adornos = self._crear_adornos_esquinas(escala=0.55, buff=0.5)
         
-        # ── FIX DEFINITIVO DEL MOLINO ─────────────────────────────────────────
-        # Para que solo giren las aspas, debemos apuntar a ese submobject exacto.
-        # Por lo general, si construiste el molino añadiendo primero la base y 
-        # luego las aspas, las aspas son el ÚLTIMO elemento (índice -1 o 1).
         
         molino = adornos[0]
         
-        # Si tienes dudas de qué es cada pieza, descomenta esta línea para ver la estructura:
-        # print(f"Submobjects del molino: {len(molino.submobjects)}")
         
         if len(molino) > 1:
-            # Asumimos que el índice [-1] (el último añadido) son las aspas.
             aspas = molino[-1] 
-            # El secreto: forzar about_point para que giren sobre su propio eje central
             centro_aspas = aspas.get_center()
             aspas.add_updater(lambda m, dt: m.rotate(-dt * 0.3, about_point=centro_aspas))
         else:
-            # Si cae aquí, tu método _crear_adornos_esquinas está devolviendo 
-            # el molino como un solo objeto (quizás un SVG acoplado).
             molino.add_updater(lambda m, dt: m.rotate(-dt * 0.3))
 
         titulo, linea = self.crear_titulo(
@@ -1757,13 +1392,12 @@ class Presentacion(Slide):
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
         subtitulo = Text(
-            "El algoritmo aprende a fusionar los pares más frecuentes",
+            "Fusiona los pares de caracteres más frecuentes",
             font=FUENTE, font_size=21, color=MARRON_OSCURO, slant=ITALIC
         ).next_to(linea, DOWN, buff=0.25)
         self.play(FadeIn(subtitulo, shift=DOWN * 0.2))
-        self.next_slide()
+        self._siguiente()
 
-        # ── Panel lateral derecho: vocabulario (REDUCIDO) ────────────────────
         panel_rect = RoundedRectangle(
             corner_radius=0.18, width=2.4, height=4.6,  
             fill_color=FONDO_CAJA, fill_opacity=0.97,
@@ -1786,7 +1420,6 @@ class Presentacion(Slide):
             Create(separador_panel)
         )
 
-        # ── Contador de iteraciones (Mejor posicionado) ──────────────────────
         iter_label_bg = RoundedRectangle(
             corner_radius=0.12, width=2.6, height=0.55,
             fill_color=MARRON_OSCURO, fill_opacity=0.9,
@@ -1799,7 +1432,6 @@ class Presentacion(Slide):
 
         self.play(FadeIn(iter_label_bg), Write(iter_label))
 
-        # ── Etiqueta de fusión activa (Alineada con el contador) ─────────────
         fusion_bg = RoundedRectangle(
             corner_radius=0.14, width=4.5, height=0.62,
             fill_color=MARRON_OSCURO, fill_opacity=0.0,
@@ -1811,7 +1443,6 @@ class Presentacion(Slide):
 
         self.add(fusion_bg, fusion_txt)
 
-        # ── Área principal: frases tokenizadas (Centradas) ───────────────────
         def calc_ancho(texto):
             return max(0.38, 0.28 + len(texto) * 0.18)
 
@@ -1878,7 +1509,6 @@ class Presentacion(Slide):
         self.play(FadeIn(grid_actual, shift=UP * 0.2), run_time=1.2)
         self.wait(0.3)
 
-        # ── Entradas del vocabulario lateral (Proporcionales) ────────────────
         vocab_entries = VGroup()
         vocab_anchor = separador_panel.get_bottom() + DOWN * 0.2
 
@@ -1966,7 +1596,7 @@ class Presentacion(Slide):
             self.wait(0.25)
 
         conclusion = Text(
-            "¡Vocabulario aprendido iterativamente!",
+            "Vocabulario aprendido",
             font=FUENTE, font_size=24, color=ORO_VIEJO, weight=BOLD
         ).to_edge(DOWN, buff=0.55)
 
@@ -1982,11 +1612,10 @@ class Presentacion(Slide):
                     )
 
         self.wait(0.8)
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
     
     def slide_tamano_vocabulario(self):
-        """Diapositiva: Tamaño del Vocabulario — por qué importa y cuál es el trade-off."""
 
         titulo, linea = self.crear_titulo(
             "El Tamaño del Vocabulario",
@@ -1996,21 +1625,18 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
 
-        # ── ACTO 1: ¿QUÉ ES EL VOCABULARIO? ─────────────────────────────────────
-        # Mostrar la palabra "embeddings" tokenizada de dos formas distintas
-        pregunta = Text("¿Cómo parte el modelo el texto en trozos?",
+        pregunta = Text("¿Cuánto cuesta el vocabulario?",
                         font=FUENTE, font_size=26, weight=BOLD, color=TINTA_NEGRA)
-        pregunta.move_to(UP * 2.4)
+        pregunta.move_to(UP * 2.5)
 
         palabra_raw = Text('"embeddings"', font="Monospace", font_size=34,
                            color=MARRON_OSCURO, weight=BOLD).move_to(UP * 1.3)
 
         self.play(Write(pregunta))
         self.play(FadeIn(palabra_raw, shift=DOWN * 0.2))
-        self.next_slide()
+        self._siguiente()
 
-        # Vocabulario pequeño → muchos trozos
-        lbl_chico = Text("Vocab pequeño (256)  →  muchos tokens",
+        lbl_chico = Text("256 tokens  →  secuencias largas",
                          font=FUENTE, font_size=21, color=PAPEL_TAN, weight=BOLD).move_to(UP * 0.3)
 
         def hacer_token_box(texto, color_fondo, color_borde=MARRON_OSCURO):
@@ -2025,8 +1651,7 @@ class Presentacion(Slide):
         fila_chica = VGroup(*[hacer_token_box(t, PAPEL_TAN) for t in tokens_chicos])
         fila_chica.arrange(RIGHT, buff=0.15).move_to(DOWN * 0.45)
 
-        # Vocabulario grande → pocos tokens
-        lbl_grande = Text("Vocab grande (20 534)  →  pocos tokens",
+        lbl_grande = Text("20 534 tokens  →  secuencias cortas",
                           font=FUENTE, font_size=21, color=NARANJA_TERRACOTA, weight=BOLD).move_to(DOWN * 1.4)
 
         tokens_grandes = ["embed", "dings"]
@@ -2035,11 +1660,11 @@ class Presentacion(Slide):
 
         self.play(Write(lbl_chico))
         self.play(LaggedStart(*[FadeIn(b, shift=RIGHT * 0.15) for b in fila_chica], lag_ratio=0.15))
-        self.next_slide()
+        self._siguiente()
 
         self.play(Write(lbl_grande))
         self.play(LaggedStart(*[FadeIn(b, shift=RIGHT * 0.15) for b in fila_grande], lag_ratio=0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(pregunta), FadeOut(palabra_raw),
@@ -2047,14 +1672,12 @@ class Presentacion(Slide):
             FadeOut(lbl_grande), FadeOut(fila_grande)
         )
 
-        # ── ACTO 2: EL COSTO EN MEMORIA ──────────────────────────────────────────
-        lbl_costo = Text("Cada palabra del vocabulario ocupa una fila en la matriz de embeddings",
+        lbl_costo = Text("Cada token = 1 fila en la tabla",
                          font=FUENTE, font_size=22, weight=BOLD, color=TINTA_NEGRA)
         lbl_costo.move_to(UP * 2.4)
 
-        # Diagrama: matriz vocab_size × d_model
         cols = 6
-        rows_small = 4   # representación visual pequeña
+        rows_small = 4
         cell_w, cell_h = 0.55, 0.38
 
         def hacer_matriz(num_filas, color_celda, color_borde, label_filas, label_cols, col_offset=0):
@@ -2084,7 +1707,6 @@ class Presentacion(Slide):
         lbl_mat_grande = Text("Vocab 20 534", font=FUENTE, font_size=20, weight=BOLD,
                               color=NARANJA_TERRACOTA).next_to(mat_grande, DOWN, buff=0.4)
 
-        # Tamaños en MB
         mb_chica  = Text("≈ 1.5 MB", font=FUENTE, font_size=19, color=VERDE_OLIVA).next_to(lbl_mat_chica, DOWN, buff=0.15)
         mb_grande = Text("≈ 120 MB", font=FUENTE, font_size=19, weight=BOLD, color=ROJO_TOMATE).next_to(lbl_mat_grande, DOWN, buff=0.15)
 
@@ -2092,12 +1714,10 @@ class Presentacion(Slide):
         self.play(FadeIn(mat_chica, shift=RIGHT * 0.2), Write(lbl_mat_chica))
         self.play(FadeIn(mat_grande, shift=LEFT * 0.2), Write(lbl_mat_grande))
         self.play(FadeIn(mb_chica), FadeIn(mb_grande))
-        self.next_slide()
 
         self.play(*[FadeOut(m) for m in [lbl_costo, mat_chica, mat_grande,
                                           lbl_mat_chica, lbl_mat_grande, mb_chica, mb_grande]])
 
-        # ── ACTO 3: TABLA DE COMPRESIÓN ──────────────────────────────────────────
         encabezados = VGroup(
             Text("Vocabulario", font=FUENTE, font_size=22, color=MARRON_OSCURO, weight=BOLD),
             Text("Total tokens", font=FUENTE, font_size=22, color=MARRON_OSCURO, weight=BOLD),
@@ -2136,44 +1756,37 @@ class Presentacion(Slide):
         )
         grupo_tabla = VGroup(fondo_tabla, tabla_interna).move_to(UP * 0.3)
 
-        lbl_tabla = Text("Mismo corpus — menos tokens con vocab más grande",
+        lbl_tabla = Text("Mismo corpus — vocab grande = menos tokens",
                          font=FUENTE, font_size=22, weight=BOLD, color=TINTA_NEGRA).next_to(grupo_tabla, UP, buff=0.4)
 
         self.play(Write(lbl_tabla))
         self.play(FadeIn(fondo_tabla), FadeIn(encabezados), Create(sep))
         self.play(LaggedStart(*[FadeIn(f, shift=UP * 0.2) for f in filas], lag_ratio=0.3))
-        self.next_slide()
+        self._siguiente()
 
-        # Resaltar la fila ganadora
         resalto = SurroundingRectangle(filas[2], color=NARANJA_TERRACOTA,
                                        stroke_width=3, buff=0.08, corner_radius=0.06)
         self.play(Create(resalto), Indicate(filas[2][2], color=NARANJA_TERRACOTA, scale_factor=1.15))
-        self.next_slide()
 
         self.play(FadeOut(lbl_tabla), FadeOut(grupo_tabla), FadeOut(resalto))
 
-        # ── ACTO 4: EL TRADE-OFF ─────────────────────────────────────────────────
-        titulo_tradeoff = Text("El trade-off: velocidad vs. memoria",
+        titulo_tradeoff = Text("Trade-off",
                                font=FUENTE, font_size=28, weight=BOLD, color=TINTA_NEGRA)
         titulo_tradeoff.move_to(UP * 2.6)
 
-        # Lado PROS (vocab grande)
         lado_pro = VGroup(
-            Text("Vocab GRANDE", font=FUENTE, font_size=22, weight=BOLD, color=VERDE_OLIVA),
-            Text("✔  Secuencias más cortas", font=FUENTE, font_size=20, color=TINTA_NEGRA),
-            Text("✔  Inferencia más rápida", font=FUENTE, font_size=20, color=TINTA_NEGRA),
-            Text("✔  Menos pasos de atención", font=FUENTE, font_size=20, color=TINTA_NEGRA),
-            Text("✘  Más VRAM para la matriz", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.28).move_to(LEFT * 2.8 + DOWN * 0.2)
+            Text("Vocab GRANDE", font=FUENTE, font_size=24, weight=BOLD, color=VERDE_OLIVA),
+            Text("✔  Secuencias cortas", font=FUENTE, font_size=21, color=TINTA_NEGRA),
+            Text("✔  Inferencia rápida", font=FUENTE, font_size=21, color=TINTA_NEGRA),
+            Text("✘  Más VRAM", font=FUENTE, font_size=21, color=NARANJA_TERRACOTA),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.32).move_to(LEFT * 2.8 + DOWN * 0.2)
 
-        # Lado CONS (vocab pequeño)
         lado_con = VGroup(
-            Text("Vocab PEQUEÑO", font=FUENTE, font_size=22, weight=BOLD, color=ROJO_TOMATE),
-            Text("✔  Matriz de embeddings ligera", font=FUENTE, font_size=20, color=TINTA_NEGRA),
-            Text("✘  Secuencias muy largas", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA),
-            Text("✘  Más lento en inferencia", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA),
-            Text("✘  Peor manejo de palabras raras", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.28).move_to(RIGHT * 2.8 + DOWN * 0.2)
+            Text("Vocab PEQUEÑO", font=FUENTE, font_size=24, weight=BOLD, color=ROJO_TOMATE),
+            Text("✔  Matriz ligera", font=FUENTE, font_size=21, color=TINTA_NEGRA),
+            Text("✘  Secuencias largas", font=FUENTE, font_size=21, color=NARANJA_TERRACOTA),
+            Text("✘  Inferencia lenta", font=FUENTE, font_size=21, color=NARANJA_TERRACOTA),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.32).move_to(RIGHT * 2.8 + DOWN * 0.2)
 
         divisor = DashedLine(UP * 1.5, DOWN * 2.0, color=MARRON_OSCURO,
                              dash_length=0.15, dashed_ratio=0.5).move_to(ORIGIN + DOWN * 0.2)
@@ -2185,22 +1798,20 @@ class Presentacion(Slide):
             FadeIn(lado_con, shift=LEFT * 0.2),
             lag_ratio=0.2
         ))
-        self.next_slide()
+        self._siguiente()
 
-        # Conclusión práctica: GPT-2 usa 50 257
         conclusion = Text(
-            "GPT-2 eligió 50 257  →  balance empírico entre los dos extremos",
+            "GPT-2: 50 257 tokens  →  balance óptimo",
             font=FUENTE, font_size=21, weight=BOLD, color=NARANJA_TERRACOTA
         ).next_to(lado_pro, DOWN, buff=0.5).set_x(0)
 
         self.play(Write(conclusion))
         self.play(Indicate(conclusion, color=ORO_VIEJO, scale_factor=1.05))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_que_es_un_tensor(self):
-        """Diapositiva: Slide Que Es Un Tensor."""
 
         titulo, linea = self.crear_titulo("¿Qué es un Tensor?", palabra_clave="Tensor?", color_clave=NARANJA_TERRACOTA)
         
@@ -2212,42 +1823,35 @@ class Presentacion(Slide):
         self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
         
         def_tensor = Text(
-            "Un Tensor es un contenedor matemático\npara almacenar datos en múltiples dimensiones.", 
-            font=FUENTE, font_size=32, 
-            color=MARRON_OSCURO,
-            t2c={"múltiples dimensiones.": NARANJA_TERRACOTA}
+            "Contenedor N-dimensional de datos",
+            font=FUENTE, font_size=30, color=MARRON_OSCURO
         ).next_to(linea, DOWN, buff=0.4)
-        
         self.play(Write(def_tensor))
-        self.next_slide()
         
-        txt_0d = Text("Escalar (0D) - Un solo valor", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
+        txt_0d = Text("0D — Escalar", font=FUENTE, font_size=26, color=MARRON_OSCURO, weight=BOLD).next_to(def_tensor, DOWN, buff=0.8)
         escalar = self.crear_bloque("7", ancho=0.8, alto=0.8).next_to(txt_0d, DOWN, buff=0.5)
         
         self.play(Write(txt_0d))
         self.play(GrowFromCenter(escalar))
-        self.next_slide()
         self.play(FadeOut(txt_0d), FadeOut(escalar))
         
-        txt_1d = Text("Vector (1D) - Lista de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
+        txt_1d = Text("1D — Vector", font=FUENTE, font_size=26, color=MARRON_OSCURO, weight=BOLD).next_to(def_tensor, DOWN, buff=0.8)
         vector = self.crear_matriz_bloques(1, 4, valores=["1", "5", "9", "2"]).next_to(txt_1d, DOWN, buff=0.5)
         
         self.play(Write(txt_1d))
         self.play(LaggedStart(*[FadeIn(b, shift=UP*0.2) for b in vector[0]], lag_ratio=0.1))
-        self.next_slide()
         self.play(FadeOut(txt_1d), FadeOut(vector))
         
-        txt_2d = Text("Matriz (2D) - Tabla de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.8)
+        txt_2d = Text("2D — Matriz", font=FUENTE, font_size=26, color=MARRON_OSCURO, weight=BOLD).next_to(def_tensor, DOWN, buff=0.8)
         valores_matriz = ["3","1","4","2", "5","9","2","6", "5","3","5","8"]
         matriz = self.crear_matriz_bloques(3, 4, valores=valores_matriz).next_to(txt_2d, DOWN, buff=0.5)
         
         self.play(Write(txt_2d))
         bloques_anim = [FadeIn(b, shift=UP*0.2) for fila in matriz for b in fila]
         self.play(LaggedStart(*bloques_anim, lag_ratio=0.05))
-        self.next_slide()
         self.play(FadeOut(txt_2d), FadeOut(matriz))
         
-        txt_3d = Text("Tensor (3D+) - Cubo de valores", font=FUENTE, font_size=28, color=MARRON_OSCURO).next_to(def_tensor, DOWN, buff=0.5)
+        txt_3d = Text("3D+ — Tensor", font=FUENTE, font_size=26, color=MARRON_OSCURO, weight=BOLD).next_to(def_tensor, DOWN, buff=0.5)
         
         matriz_base_3d = self.crear_matriz_bloques(3, 3, valores=["1","2","3","4","5","6","7","8","9"])
         for b in matriz_base_3d.submobjects:
@@ -2267,16 +1871,15 @@ class Presentacion(Slide):
         self.play(FadeIn(matriz_base_3d, shift=UP*0.3))
         self.play(FadeIn(matriz_medio_3d, shift=UP*0.3))
         self.play(FadeIn(matriz_top_3d, shift=UP*0.3))
-        self.next_slide()
         
         self.play(FadeOut(txt_3d), FadeOut(tensor_3d), FadeOut(def_tensor))
 
-        nota_ram = Text("Pero en memoria RAM, todos terminan siendo un arreglo plano...", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA).next_to(linea, DOWN, buff=0.5)
+        nota_ram = Text("En RAM: arreglo plano 1D", font=FUENTE, font_size=26, color=NARANJA_TERRACOTA, weight=BOLD).next_to(linea, DOWN, buff=0.5)
         self.play(Write(nota_ram))
         
         matriz_ram = self.crear_matriz_bloques(3, 4, valores=valores_matriz).next_to(nota_ram, DOWN, buff=0.8)
         self.play(FadeIn(matriz_ram))
-        self.next_slide()
+        self._siguiente()
 
         bloques_individuales = [bloque for fila in matriz_ram for bloque in fila]
         grupo_plano = VGroup(*bloques_individuales)
@@ -2286,13 +1889,12 @@ class Presentacion(Slide):
             run_time=2
         )
         self.play(Indicate(grupo_plano, color=PAPEL_TAN))
-        self.next_slide()
+        self._siguiente()
 
         adornos[1].clear_updaters()
         self.limpiar_pantalla()
 
     def slide_softmax(self):
-        """Diapositiva: Slide Softmax."""
 
         titulo, linea = self.crear_titulo(
             "Softmax", 
@@ -2308,12 +1910,12 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(Write(formula))
-        self.next_slide()
+        self._siguiente()
 
         ancho_caja = 1.1
             
         col1 = VGroup(
-            Text("1. Logits", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
+            Text("Logits", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
             VGroup(*[self.crear_bloque(v, ancho=ancho_caja) for v in ["2.0", "1.0", "0.1"]]).arrange(DOWN, buff=0.1)
         ).arrange(DOWN, buff=0.2)
 
@@ -2322,7 +1924,7 @@ class Presentacion(Slide):
         conector1 = VGroup(flecha1, txt_op1)
 
         col2 = VGroup(
-            Text("2. Exp", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
+            Text("exp(x)", font=FUENTE, font_size=18, color=MARRON_OSCURO, weight=BOLD),
             VGroup(*[self.crear_bloque(v, color_fondo=PAPEL_TAN, ancho=ancho_caja) for v in ["7.39", "2.72", "1.10"]]).arrange(DOWN, buff=0.1)
         ).arrange(DOWN, buff=0.2)
 
@@ -2331,7 +1933,7 @@ class Presentacion(Slide):
         conector2 = VGroup(flecha2, txt_op2)
 
         col3 = VGroup(
-            Text("3. Prob", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD),
+            Text("Prob", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD),
             VGroup(*[self.crear_bloque(v, color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=ancho_caja) for v in ["66%", "24%", "10%"]]).arrange(DOWN, buff=0.1)
         ).arrange(DOWN, buff=0.2)
 
@@ -2340,11 +1942,10 @@ class Presentacion(Slide):
         self.play(FadeIn(col1, shift=UP*0.2))
         self.play(Write(conector1), ReplacementTransform(col1[1].copy(), col2[1]), FadeIn(col2[0]))
         self.play(Write(conector2), ReplacementTransform(col2[1].copy(), col3[1]), FadeIn(col3[0]))
-        self.next_slide()
 
         self.play(FadeOut(acto1_horiz), FadeOut(formula))
 
-        titulo_error = Text("Problema: Un valor arruina el vector", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo)
+        titulo_error = Text("Problema: overflow", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo)
         self.play(ReplacementTransform(titulo, titulo_error))
 
         col_err_1 = VGroup(
@@ -2377,13 +1978,12 @@ class Presentacion(Slide):
         self.play(ReplacementTransform(col_err_1[1].copy(), col_err_2[1]), FadeIn(col_err_2[0]))
         self.play(Wiggle(col_err_2[1][0])) 
             
-        nota_error = Text("Si intentamos dividir por 'inf', todo el vector se vuelve NaN.", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(flujo_error, DOWN, buff=0.6)
+        nota_error = Text("÷ inf = NaN  💥", font=FUENTE, font_size=22, color=NARANJA_TERRACOTA, weight=BOLD).next_to(flujo_error, DOWN, buff=0.5)
         self.play(Write(nota_error))
-        self.next_slide()
 
         self.play(FadeOut(flujo_error), FadeOut(nota_error))
             
-        titulo_fix = Text("Solución: Restar el Máximo (Shift)", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo_error)
+        titulo_fix = Text("Fix: restar el máximo", font=FUENTE, font_size=32, color=NARANJA_TERRACOTA).move_to(titulo_error)
         self.play(ReplacementTransform(titulo_error, titulo_fix))
 
         col_fix_1 = VGroup(
@@ -2430,17 +2030,15 @@ class Presentacion(Slide):
         self.play(ReplacementTransform(col_fix_2[1].copy(), col_fix_3[1]), FadeIn(col_fix_3[0]))
             
         nota_fix = Text(
-            "Los valores gigantes se vuelven 0.0 y los demás se acercan a 0.\n¡El vector es matemáticamente idéntico pero 100% estable!", 
-            font=FUENTE, font_size=18, color=TINTA_NEGRA
+            "Valores gigantes → 0.0  •  Resultado idéntico, sin overflow",
+            font=FUENTE, font_size=19, color=VERDE_OLIVA, weight=BOLD
         ).next_to(flujo_fix, DOWN, buff=0.5)
-            
         self.play(FadeIn(nota_fix, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_broadcasting(self):
-        """Diapositiva: Slide Broadcasting."""
 
         titulo, linea = self.crear_titulo(
             "Broadcasting: Expansión Virtual", 
@@ -2468,7 +2066,7 @@ class Presentacion(Slide):
             Write(signo_mas), 
             FadeIn(vector_real, shift=LEFT*0.2)
         )
-        self.next_slide()
+        self._siguiente()
 
         vector_fantasma = vector_real.copy()
         
@@ -2486,10 +2084,10 @@ class Presentacion(Slide):
         )
         caja_virtual = DashedVMobject(rectangulo_base, num_dashes=35)
         
-        texto_virtual = Text("Matriz Virtual", font=FUENTE, font_size=16, color=MARRON_OSCURO).next_to(caja_virtual, DOWN, buff=0.15)
+        texto_virtual = Text("virtual", font=FUENTE, font_size=15, color=MARRON_OSCURO).next_to(caja_virtual, DOWN, buff=0.1)
 
         self.play(Create(caja_virtual), Write(texto_virtual))
-        self.next_slide()
+        self._siguiente()
 
         flecha_res = Arrow(LEFT, RIGHT, color=TINTA_NEGRA).next_to(caja_virtual, RIGHT, buff=0.5)
 
@@ -2501,20 +2099,12 @@ class Presentacion(Slide):
             ReplacementTransform(matriz_base.copy(), matriz_res),
             ReplacementTransform(VGroup(vector_real.copy(), vector_fantasma.copy()), matriz_res),
         )
-        self.next_slide()
+        self._siguiente()
         
-        def_broad = Text(
-            "Se duplica el vector pequeño 'virtualmente' para coincidir\ncon la matriz grande, ahorrando muchísima memoria.", 
-            font=FUENTE, font_size=24, color=TINTA_NEGRA, 
-            t2c={"virtualmente": PAPEL_TAN, "ahorrando muchísima memoria": NARANJA_TERRACOTA}
-        ).to_edge(DOWN, buff=1.0)
-        
-        self.play(FadeIn(def_broad, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_strides(self):
-        """Diapositiva: Slide Strides."""
 
         titulo, linea = self.crear_titulo(
             "Strides: Saltando en Memoria 1D", 
@@ -2538,16 +2128,16 @@ class Presentacion(Slide):
         arr_1d = VGroup(*[self.crear_bloque(str(i)) for i in range(6)])
         arr_1d.arrange(RIGHT, buff=0.1).shift(UP * 1.5)
         
-        lbl_1d = Text("Memoria RAM (Física, 1D)", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(arr_1d, UP, buff=0.3)
+        lbl_1d = Text("RAM — 1D", font=FUENTE, font_size=20, color=MARRON_OSCURO, weight=BOLD).next_to(arr_1d, UP, buff=0.3)
 
         self.play(FadeIn(arr_1d, shift=UP*0.2), FadeIn(lbl_1d, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
 
         fila1 = VGroup(*[arr_1d[i].copy() for i in range(3)]).arrange(RIGHT, buff=0.1)
         fila2 = VGroup(*[arr_1d[i].copy() for i in range(3, 6)]).arrange(RIGHT, buff=0.1)
         
         mat_shape = VGroup(fila1, fila2).arrange(DOWN, buff=0.1).shift(DOWN * 0.2)
-        lbl_2d = Text("Shape Lógica (2x3)", font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(mat_shape, DOWN, buff=0.3)
+        lbl_2d = Text("Shape lógica (2×3)", font=FUENTE, font_size=20, color=MARRON_OSCURO, weight=BOLD).next_to(mat_shape, DOWN, buff=0.3)
 
         self.play(
             TransformFromCopy(VGroup(*arr_1d[0:3]), fila1),
@@ -2555,7 +2145,7 @@ class Presentacion(Slide):
             FadeIn(lbl_2d, shift=DOWN*0.2),
             run_time=1.5
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             arr_1d[0][0].animate.set_fill(PAPEL_TAN, opacity=0.8),
@@ -2565,7 +2155,7 @@ class Presentacion(Slide):
         )
 
         arco_1d = CurvedArrow(arr_1d[0].get_top(), arr_1d[3].get_top(), angle=-PI/2, color=NARANJA_TERRACOTA)
-        txt_stride_1d = Text("Stride = 3 pasos", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA).next_to(arco_1d, UP, buff=0.1)
+        txt_stride_1d = Text("stride = 3", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD).next_to(arco_1d, UP, buff=0.1)
         
         arco_2d = CurvedArrow(mat_shape[0][0].get_left(), mat_shape[1][0].get_left(), angle=PI/2, color=NARANJA_TERRACOTA).shift(LEFT*0.1)
         txt_stride_2d = Text("+1 Fila", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(arco_2d, LEFT, buff=0.1)
@@ -2574,22 +2164,14 @@ class Presentacion(Slide):
             Create(arco_1d), Write(txt_stride_1d),
             Create(arco_2d), Write(txt_stride_2d)
         )
-        self.next_slide()
+        self._siguiente()
         
-        def_stride = Text(
-            "Como todo es 1D en RAM, los 'strides' dictan\ncuántos casilleros avanzar para encontrar la siguiente fila.", 
-            font=FUENTE, font_size=24, color=TINTA_NEGRA, 
-            t2c={"1D en RAM": MARRON_OSCURO, "'strides'": NARANJA_TERRACOTA}
-        ).to_edge(DOWN, buff=0.6) 
-        
-        self.play(FadeIn(def_stride, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
         
         adornos[1].clear_updaters()
         self.limpiar_pantalla()
 
     def slide_masked_fill(self):
-        """Diapositiva: Slide Masked Fill."""
 
         titulo, linea = self.crear_titulo(
             "Masked Fill: Causalidad", 
@@ -2611,7 +2193,7 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(FadeIn(matriz_mask, shift=UP*0.2), FadeIn(lbl_matriz, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
 
         animaciones_mask = []
         animaciones_keep = []
@@ -2636,7 +2218,7 @@ class Presentacion(Slide):
             ReplacementTransform(lbl_matriz, lbl_mask),
             run_time=2
         )
-        self.next_slide()
+        self._siguiente()
 
         def_mask = Text(
             "Se tapan los valores del 'futuro' con menos infinito (-∞).\nAl pasar por Softmax, esto se convierte en 0% de probabilidad.", 
@@ -2645,12 +2227,11 @@ class Presentacion(Slide):
         ).to_edge(DOWN, buff=1.0)
         
         self.play(FadeIn(def_mask, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
         
         self.limpiar_pantalla()
 
     def slide_reshape_transpose(self):
-        """Diapositiva: Slide Reshape Transpose."""
 
         titulo, linea = self.crear_titulo(
             "Reshaping vs Transposing", 
@@ -2665,7 +2246,7 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(Create(linea_central))
-        self.next_slide()
+        self._siguiente()
 
         txt_reshape = Text("Reshape", font=FUENTE, font_size=28, color=MARRON_OSCURO).move_to(LEFT * 3.5 + UP * 2.2)
         sub_reshape = Text("(Misma memoria)", font=FUENTE, font_size=16, color=TINTA_NEGRA).next_to(txt_reshape, DOWN, buff=0.1)
@@ -2688,7 +2269,7 @@ class Presentacion(Slide):
             TransformFromCopy(mat_r_orig[1][2], mat_r_final[2][1]),
             run_time=2
         )
-        self.next_slide()
+        self._siguiente()
 
         txt_transpose = Text("Transpose", font=FUENTE, font_size=28, color=NARANJA_TERRACOTA).move_to(RIGHT * 3.5 + UP * 2.2)
         sub_transpose = Text("(Reorganización física)", font=FUENTE, font_size=16, color=TINTA_NEGRA).next_to(txt_transpose, DOWN, buff=0.1)
@@ -2711,21 +2292,20 @@ class Presentacion(Slide):
             TransformFromCopy(mat_t_orig[1][2], mat_t_final[2][1]),                 
             run_time=2.5
         )
-        self.next_slide()
+        self._siguiente()
 
         def_res_trans = Text(
-            "Reshape solo cambia cómo leemos la lista.\nTranspose requiere copiar y cambiar el orden físico.", 
+            "Reshape: reinterpreta · Transpose: reorganiza", 
             font=FUENTE, font_size=22, color=TINTA_NEGRA, 
             t2c={"Reshape": MARRON_OSCURO, "Transpose": NARANJA_TERRACOTA}
         ).to_edge(DOWN, buff=0.5)
         
         self.play(FadeIn(def_res_trans, shift=UP*0.2))
-        self.next_slide()
+        self._siguiente()
         
         self.limpiar_pantalla()
 
     def slide_forward_pass(self):
-        """Diapositiva: Slide Forward Pass."""
 
         titulo, linea = self.crear_titulo("Arquitectura: El Forward Pass", color_clave=NARANJA_TERRACOTA)
         
@@ -2745,7 +2325,7 @@ class Presentacion(Slide):
         posicion_destino_mancha = frase_completa[1].get_center()
         
         self.play(Write(frase_base))
-        self.next_slide()
+        self._siguiente()
 
         def crear_caja_nodo(label_sup, valor_array, label_inf, funcion_adorno=None, is_stack=False, highlight_last=False):
             grupo = VGroup()
@@ -2822,7 +2402,7 @@ class Presentacion(Slide):
             FadeIn(flechas, shift=UP*0.2),
             run_time=2.5
         )
-        self.next_slide()
+        self._siguiente()
 
         tokens_viajeros = frase_base.copy()
         centro_primera_caja = pipeline[0].caja_principal.get_center()
@@ -2887,7 +2467,7 @@ class Presentacion(Slide):
                 run_time=0.5
             )
 
-        self.next_slide()
+        self._siguiente()
 
         prediccion_txt = Text('      Mancha"', font=FUENTE, font_size=42, color=NARANJA_TERRACOTA)
         prediccion_txt.move_to(pipeline[-1].caja_principal.get_center())
@@ -2899,7 +2479,7 @@ class Presentacion(Slide):
             FadeOut(texto_estado, shift=DOWN*0.2),
             run_time=0.8
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             prediccion_txt.animate.move_to(posicion_destino_mancha),
@@ -2911,11 +2491,10 @@ class Presentacion(Slide):
         self.play(Flash(prediccion_txt, color=NARANJA_TERRACOTA, line_length=0.4, flash_radius=1.5, run_time=1))
         self.play(Circumscribe(frase_final, color=NARANJA_TERRACOTA, time_width=2, stroke_width=4))
         
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_embeddings(self):
-        """Diapositiva: Slide Embeddings — Por qué vectores, analogía geométrica, lookup."""
 
         llanuras_fondo = crear_llanuras_manchegas()
         adornos = self._crear_adornos_esquinas(escala=0.55, buff=0.5)
@@ -2929,15 +2508,12 @@ class Presentacion(Slide):
 
         self._animar_entrada_slide(titulo_completo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ══════════════════════════════════════════════════════════════════
-        # ACTO 1 — El problema: los IDs no tienen significado
-        # ══════════════════════════════════════════════════════════════════
         pregunta = Text(
-            "¿Por qué no usar el ID del token directamente?",
+            "¿Por qué no usar el ID directamente?",
             font=FUENTE, font_size=28, color=MARRON_OSCURO, weight=BOLD
         ).next_to(linea, DOWN, buff=0.5)
         self.play(Write(pregunta))
-        self.next_slide()
+        self._siguiente()
 
         tokens = ['"rey"', '"reina"', '"hombre"', '"mujer"']
         ids    = ['4726', '9034', '512', '8801']
@@ -2957,7 +2533,6 @@ class Presentacion(Slide):
 
         tok_group.arrange(DOWN, buff=0.3)
 
-        # Caja de problema: las distancias numéricas son arbitrarias
         problema_bg = RoundedRectangle(
             corner_radius=0.15, width=5.2, height=2.6,
             fill_color=SALMON_CLARO, fill_opacity=0.92,
@@ -2967,39 +2542,33 @@ class Presentacion(Slide):
         prob_titulo = Text("El problema", font=FUENTE, font_size=20,
                            color=LADRILLO_VIVO, weight=BOLD)
         prob_items = VGroup(
-            Text("• |4726 - 9034| = 4308 <- distancia rey-reina?", font=FUENTE, font_size=16, color=TINTA_NEGRA),
-            Text("• |512 - 8801| = 8289 <- distancia hombre-mujer?", font=FUENTE, font_size=16, color=TINTA_NEGRA),
-            Text("• Los IDs son arbitrarios: no codifican", font=FUENTE, font_size=16, color=TINTA_NEGRA),
-            Text("  ninguna relación semántica.", font=FUENTE, font_size=16, color=TINTA_NEGRA),
+            Text("|4726 - 9034| = 4308", font=FUENTE, font_size=16, color=TINTA_NEGRA),
+            Text("  |512 - 8801| = 8289", font=FUENTE, font_size=16, color=TINTA_NEGRA),
+            Text("IDs arbitrarios — sin semántica", font=FUENTE, font_size=16, color=TINTA_NEGRA),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.18)
 
         prob_contenido = VGroup(prob_titulo, prob_items).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
         grupo_problema = VGroup(problema_bg, prob_contenido)
         prob_contenido.move_to(problema_bg)
 
-        # Distribuir lado a lado balanceadamente debajo de la pregunta
         acto1_layout = VGroup(tok_group, grupo_problema).arrange(RIGHT, buff=1.0).next_to(pregunta, DOWN, buff=0.7)
 
         self.play(LaggedStart(*[FadeIn(f, shift=RIGHT * 0.3) for f in tok_group], lag_ratio=0.15))
         self.play(FadeIn(problema_bg, shift=LEFT * 0.3), Write(prob_contenido), run_time=1.2)
-        self.next_slide()
 
         self.play(FadeOut(tok_group, pregunta, grupo_problema))
 
-        # ══════════════════════════════════════════════════════════════════
-        # ACTO 2 — La solución: vectores en espacio de alta dimensión
-        # ══════════════════════════════════════════════════════════════════
         solucion_titulo = Text(
-            "La solución: representar cada token como un vector",
+            "Vectores en el espacio",
             font=FUENTE, font_size=26, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.5)
         self.play(Write(solucion_titulo))
 
         ventajas = [
-            ("Cercanía = similitud semántica",   VERDE_OLIVA,        "rey aprox. reina en el espacio"),
-            ("Aritmética de conceptos",          NARANJA_TERRACOTA,  "rey − hombre + mujer ≈ reina"),
-            ("Parámetros entrenables",           OCRE_CERVANTINO,    "El modelo aprende los pesos"),
-            ("Información densa",                LADRILLO_VIVO,      "768 floats vs. un entero"),
+            ("Similitud semántica",   VERDE_OLIVA,        "rey ≈ reina en el espacio"),
+            ("Aritmética de conceptos",  NARANJA_TERRACOTA,  "rey − hombre + mujer ≈ reina"),
+            ("Pesos entrenables",       OCRE_CERVANTINO,    "Aprendidos durante training"),
+            ("Representación densa",    LADRILLO_VIVO,      "768 floats vs. 1 entero"),
         ]
 
         cards_list = []
@@ -3015,20 +2584,14 @@ class Presentacion(Slide):
             textos = VGroup(t1, t2).arrange(DOWN, aligned_edge=LEFT, buff=0.06)
             textos.next_to(dot, RIGHT, buff=0.2)
             
-            # CORRECCIÓN: usar .append() en lugar de .add()
             cards_list.append(VGroup(card_bg, dot, textos)) 
 
-        # Cuadrícula 2x2 para no desbordar por debajo y verse más limpio
         cards = VGroup(*cards_list).arrange_in_grid(rows=2, cols=2, buff=(0.5, 0.4)).next_to(solucion_titulo, DOWN, buff=0.8)
 
         self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.2) for c in cards], lag_ratio=0.2), run_time=1.4)
-        self.next_slide()
 
         self.play(FadeOut(solucion_titulo, cards))
 
-        # ══════════════════════════════════════════════════════════════════
-        # ACTO 3 — Analogía geométrica: aritmética vectorial cervantina
-        # ══════════════════════════════════════════════════════════════════
         geo_label = Text(
             "Geometría del significado", font=FUENTE, font_size=24,
             color=MARRON_OSCURO, weight=BOLD, slant=ITALIC
@@ -3040,7 +2603,7 @@ class Presentacion(Slide):
             x_length=7.0, y_length=4.5,
             axis_config={"color": MARRON_OSCURO, "stroke_width": 1.5,
                          "include_ticks": False, "stroke_opacity": 0.5}
-        ).next_to(geo_label, DOWN, buff=0.4) # Anclado dinámicamente
+        ).next_to(geo_label, DOWN, buff=0.4)
 
         etiq_x = Text("género →", font=FUENTE, font_size=16, color=MARRON_OSCURO, slant=ITALIC)
         etiq_x.next_to(ejes.x_axis.get_right(), DOWN, buff=0.15)
@@ -3086,7 +2649,7 @@ class Presentacion(Slide):
         lbl_gen.move_to(ejes.c2p(0, 2.2))
 
         self.play(Create(flecha_gen1), Create(flecha_gen2), Write(lbl_gen))
-        self.next_slide()
+        self._siguiente()
 
         formula = MathTex(
             r"\vec{\text{Rey}} - \vec{\text{Hombre}} + \vec{\text{Mujer}}",
@@ -3100,28 +2663,22 @@ class Presentacion(Slide):
             Indicate(v_reina, color=ORO_VIEJO, scale_factor=1.12),
             Flash(ejes.c2p(*puntos["Reina"][0]), color=ORO_VIEJO, line_length=0.4, num_lines=10),
         )
-        self.next_slide()
 
         self.play(FadeOut(ejes, etiq_x, etiq_y, v_rey, v_hombre, v_reina, v_mujer,
                           flecha_gen1, flecha_gen2, lbl_gen, formula, geo_label))
 
-        # ══════════════════════════════════════════════════════════════════
-        # ACTO 4 — Mecanismo real: lookup en la matriz de embeddings
-        # ══════════════════════════════════════════════════════════════════
         mec_label = Text(
-            "¿Cómo funciona en la práctica?",
+            "En la práctica",
             font=FUENTE, font_size=26, color=MARRON_OSCURO, weight=BOLD
         ).next_to(linea, DOWN, buff=0.4)
         self.play(Write(mec_label))
 
-        # Componentes a crear
         input_word = Text('"quijote"', font=FUENTE, font_size=34, color=NARANJA_TERRACOTA, weight=BOLD)
         bg_id = RoundedRectangle(corner_radius=0.18, width=2.4, height=0.72,
                                   fill_color=MARRON_OSCURO, fill_opacity=1, stroke_width=0)
         id_txt = Text("ID: 1605", font="Monospace", font_size=22, color=PAPEL_CREMA, weight=BOLD).move_to(bg_id)
         grupo_id = VGroup(bg_id, id_txt)
 
-        # Matriz
         filas_m, cols_m = 9, 11
         fila_sel_idx = 4
         matriz_v = VGroup()
@@ -3142,14 +2699,12 @@ class Presentacion(Slide):
         lbl_dim = Text("(vocab × 768)", font=FUENTE, font_size=15, color=MARRON_OSCURO)
         grupo_matriz = VGroup(lbl_matriz, lbl_dim, matriz_v).arrange(DOWN, buff=0.15)
 
-        # Disposición horizontal dinámica para Palabra/ID y Matriz
         acto4_top_layout = VGroup(input_word, grupo_matriz).arrange(RIGHT, buff=1.8).next_to(mec_label, DOWN, buff=0.5)
         
-        # Mover grupo ID exactamente a donde está el input word
         grupo_id.move_to(input_word)
 
         self.play(FadeIn(input_word, shift=RIGHT * 0.3))
-        self.next_slide()
+        self._siguiente()
         self.play(ReplacementTransform(input_word, grupo_id))
 
         flecha_a_matriz = Arrow(grupo_id.get_right(), matriz_v.get_left(), buff=0.2,
@@ -3158,10 +2713,10 @@ class Presentacion(Slide):
         lbl_lookup.next_to(flecha_a_matriz, UP, buff=0.1)
 
         self.play(GrowArrow(flecha_a_matriz), Write(lbl_lookup))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(grupo_matriz, shift=LEFT * 0.2))
-        self.next_slide()
+        self._siguiente()
 
         fila_highlight = SurroundingRectangle(
             matriz_v[fila_sel_idx], color=NARANJA_TERRACOTA,
@@ -3171,9 +2726,8 @@ class Presentacion(Slide):
             Create(fila_highlight),
             matriz_v[fila_sel_idx].animate.set_fill(NARANJA_TERRACOTA, opacity=0.85),
         )
-        self.next_slide()
+        self._siguiente()
 
-        # Vector resultante
         valores_ejemplo = ["0.12", "-0.4", "0.83", "-0.2", "0.51", "0.07", "-0.9", "0.34", "···", "0.71"]
         vector_visual = VGroup()
         for val in valores_ejemplo:
@@ -3192,7 +2746,6 @@ class Presentacion(Slide):
         lbl_dim2 = Text("(768 dimensiones, aprox.)", font=FUENTE, font_size=15, color=PAPEL_TAN)
         grupo_vector = VGroup(lbl_vec, lbl_dim2, vector_visual).arrange(DOWN, buff=0.15)
         
-        # Centramos el vector justo debajo de la matriz (o centrado global)
         grupo_vector.next_to(grupo_matriz, DOWN, buff=0.6).align_to(mec_label, DOWN).to_edge(DOWN, buff=0.3)
 
         self.play(
@@ -3205,11 +2758,10 @@ class Presentacion(Slide):
             rate_func=there_and_back, run_time=0.7
         )
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_position_embeddings(self):
-        # TÍTULO PRINCIPAL (Fijado arriba)
         titulo_p1 = Text("Embeddings de ", font=FUENTE, font_size=42, weight=BOLD, color=TINTA_NEGRA)
         titulo_p2 = Text("Posición", font=FUENTE, font_size=42, weight=BOLD, color=NARANJA_TERRACOTA)
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1).to_edge(UP, buff=0.5)
@@ -3218,8 +2770,7 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo_completo, linea, fondo=llanuras_fondo)
 
-        # --- ESCENA 1: EL PROBLEMA ---
-        label_problema = Text("El problema: los Transformers no ven el orden", 
+        label_problema = Text("Sin posición el orden es invisible", 
                               font=FUENTE, font_size=26, weight=BOLD, color=NARANJA_TERRACOTA)
         label_problema.move_to(UP * 1.5)
 
@@ -3251,7 +2802,7 @@ class Presentacion(Slide):
         self.play(Write(label_problema))
         self.play(FadeIn(grupo_a, shift=RIGHT*0.3))
         self.play(FadeIn(grupo_b, shift=RIGHT*0.3))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             fila_a[1][0].animate.set_fill(ROJO_TOMATE, opacity=0.85),
@@ -3265,29 +2816,21 @@ class Presentacion(Slide):
         )
 
         nota_orden = Text(
-            "Mismas palabras · distinto orden → significado opuesto\n"
-            "Sin posición, el modelo las vería IGUAL",
+            "Mismo bolsillo de tokens → sin orden",
             font=FUENTE, font_size=21, color=NARANJA_TERRACOTA
         ).next_to(bloque_frases, DOWN, buff=1.0)
         
         self.play(Write(nota_orden))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(label_problema), FadeOut(grupo_a), FadeOut(grupo_b), FadeOut(nota_orden)
         )
 
-        # --- ESCENA 2: LA ATENCIÓN ---
-        label_atencion = Text("¿Por qué? La atención no depende del orden", 
+        label_atencion = Text("La atención no tiene concepto de orden", 
                               font=FUENTE, font_size=26, weight=BOLD, color=NARANJA_TERRACOTA)
         label_atencion.move_to(UP * 1.5)
 
-        explicacion = Text(
-            "En Attention, cada token mira a TODOS los demás a la vez.\n"
-            "No hay concepto de 'izquierda' ni 'derecha'.\n"
-            "Es como un conjunto desordenado, no una secuencia.",
-            font=FUENTE, font_size=22, color=TINTA_NEGRA, line_spacing=1.4
-        ).next_to(label_atencion, DOWN, buff=0.5)
 
         nodo_pos = [LEFT*2.2 + UP*0.6, LEFT*0.8 + DOWN*0.6, RIGHT*0.8 + DOWN*0.6, RIGHT*2.2 + UP*0.6]
         nodo_palabras = ["perro", "muerde", "al", "hombre"]
@@ -3306,24 +2849,19 @@ class Presentacion(Slide):
                           stroke_width=1.5, stroke_color=MARRON_OSCURO, stroke_opacity=0.4)
                 lineas_attn.add(ln)
 
-        red_atencion = VGroup(lineas_attn, nodos).next_to(explicacion, DOWN, buff=0.5)
+        red_atencion = VGroup(lineas_attn, nodos).move_to(DOWN * 0.5)
 
-        self.play(Write(label_atencion), Write(explicacion))
-        self.next_slide()
+        self.play(Write(label_atencion))
+        self.play(FadeIn(red_atencion, shift=UP * 0.2))
 
-        self.play(FadeOut(explicacion))
-        self.play(red_atencion.animate.move_to(DOWN * 0.5))
-
-        nota_sin_orden = Text("Todos conectados con todos · sin orden implícito",
+        nota_sin_orden = Text("Todos ↔ todos · sin orden",
                               font=FUENTE, font_size=20, color=MARRON_OSCURO).next_to(red_atencion, DOWN, buff=0.7)
         
         self.play(FadeIn(nota_sin_orden, shift=UP*0.2))
-        self.next_slide()
 
         self.play(FadeOut(label_atencion), FadeOut(red_atencion), FadeOut(nota_sin_orden))
 
-        # --- ESCENA 3: LA SOLUCIÓN ---
-        label_solucion = Text("La solución: inyectar la posición en cada token", 
+        label_solucion = Text("Posición inyectada en el vector", 
                               font=FUENTE, font_size=26, weight=BOLD, color=VERDE_OLIVA)
         label_solucion.move_to(UP * 1.5)
 
@@ -3369,7 +2907,7 @@ class Presentacion(Slide):
         self.play(GrowArrow(flecha_tok), FadeIn(vec_tok), Write(lbl_tok))
         self.play(GrowArrow(flecha_pos_arr), FadeIn(vec_pos_emb), Write(lbl_pos_emb))
         self.play(Write(mas))
-        self.next_slide()
+        self._siguiente()
 
         sep_line = Line(vec_pos_emb.get_left() + LEFT*0.2, vec_pos_emb.get_right() + RIGHT*0.2, color=MARRON_OSCURO, stroke_width=2)
         sep_line.next_to(vec_pos_emb, DOWN, buff=0.3)
@@ -3383,14 +2921,12 @@ class Presentacion(Slide):
             Write(lbl_comb)
         )
         self.play(Indicate(vec_comb, color=NARANJA_TERRACOTA, scale_factor=1.05))
-        self.next_slide()
 
         self.play(*[FadeOut(m) for m in [
             label_solucion, token_label_group, flecha_tok, flecha_pos_arr,
             vec_tok, lbl_tok, vec_pos_emb, lbl_pos_emb, mas, sep_line, vec_comb, lbl_comb
         ]])
 
-        # --- ESCENA 4: CONTEXT WINDOW ---
         titulo_tabla = Text("Una fila por posición → la tabla es el Context Window",
                             font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.5)
 
@@ -3419,7 +2955,7 @@ class Presentacion(Slide):
         grupo_tabla_completa = VGroup(lbl_llave, llave, tabla)
         
         nota_limite = Text(
-            "¡No puede haber una fila 1 024!\n→ El modelo no puede\nprocesar textos más largos.\nEso es el Context Window.",
+            "Sin fila 1024 → fuera del contexto",
             font=FUENTE, font_size=21, weight=BOLD, color=NARANJA_TERRACOTA, line_spacing=1.3
         )
 
@@ -3430,17 +2966,16 @@ class Presentacion(Slide):
         self.play(Write(titulo_tabla))
         self.play(FadeIn(tabla, shift=UP*0.3))
         self.play(GrowFromCenter(llave), Write(lbl_llave))
-        self.next_slide()
+        self._siguiente()
 
         self.play(Create(caja_fn))
         self.play(Write(nota_limite))
         self.play(Indicate(caja_fn, color=NARANJA_TERRACOTA, scale_factor=1.05))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_layer_normalization(self):
-        """Diapositiva: Slide Layer Normalization."""
 
         def crear_cajita(texto, bg_color, borde_color=MARRON_OSCURO, w=2.6, h=0.7, tam_fuente=20):
             caja = RoundedRectangle(corner_radius=0.1, width=w, height=h, 
@@ -3465,9 +3000,8 @@ class Presentacion(Slide):
         
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo_completo, linea, fondo=llanuras_fondo)
-        self.next_slide()
 
-        nota_caos = Text("Sin normalización: Los valores explotan o desaparecen", font_size=24, color=NARANJA_TERRACOTA).move_to(UP * 1.5)
+        nota_caos = Text("Sin norm: valores explosivos", font_size=24, color=NARANJA_TERRACOTA).move_to(UP * 1.5)
 
         valores_inestables = ["8459.1", "-7302.4", "0.00001", "5120.9", "-9999.9", "..."]
         vec_inestable = crear_vector_visual(valores_inestables, bg_color=SALMON_CLARO, borde_color=NARANJA_TERRACOTA)
@@ -3476,9 +3010,9 @@ class Presentacion(Slide):
         self.play(Write(nota_caos))
         self.play(FadeIn(vec_inestable, shift=UP))
         self.play(Indicate(vec_inestable, color=NARANJA_TERRACOTA, scale_factor=1.1))
-        self.next_slide()
+        self._siguiente()
 
-        nota_estable = Text("Con LayerNorm: Se fuerza una Media=0 y Varianza=1", font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
+        nota_estable = Text("Con LayerNorm: μ=0, σ²=1", font_size=24, color=MARRON_OSCURO).move_to(UP * 1.5)
         
         valores_estables = ["1.34", "-1.15", "0.00", "0.89", "-1.52", "..."]
         vec_estable = crear_vector_visual(valores_estables, bg_color=CREMA_CALIDA, borde_color=MARRON_OSCURO)
@@ -3488,7 +3022,6 @@ class Presentacion(Slide):
             ReplacementTransform(nota_caos, nota_estable),
             ReplacementTransform(vec_inestable, vec_estable)
         )
-        self.next_slide()
 
         self.play(FadeOut(nota_estable), FadeOut(vec_estable))
         
@@ -3498,34 +3031,33 @@ class Presentacion(Slide):
             color=TINTA_NEGRA
         ).scale(1.2).move_to(UP * 0.5)
 
-        lbl_formula = Text("La Fórmula (por cada token):", font_size=20, weight=BOLD, color=MARRON_OSCURO).next_to(formula, UP, buff=0.5)
+        lbl_formula = Text("Por cada token:", font_size=20, weight=BOLD, color=MARRON_OSCURO).next_to(formula, UP, buff=0.5)
 
         self.play(Write(lbl_formula), FadeIn(formula))
-        self.next_slide()
+        self._siguiente()
 
         parte_eps = formula.get_part_by_tex(r"\epsilon")
         caja_eps = SurroundingRectangle(parte_eps, color=NARANJA_TERRACOTA, buff=0.05)
-        nota_eps = Text("eps: Evita dividir por cero (ej. 0.00001)", font_size=18, color=NARANJA_TERRACOTA).next_to(caja_eps, DOWN, buff=0.5)
+        nota_eps = Text("ε previene división por cero", font_size=18, color=NARANJA_TERRACOTA).next_to(caja_eps, DOWN, buff=0.5)
         
         self.play(Create(caja_eps), FadeIn(nota_eps, shift=UP))
-        self.next_slide()
 
         self.play(FadeOut(caja_eps), FadeOut(nota_eps))
         
         parte_params = formula.get_part_by_tex(r"\times \gamma + \beta")
         caja_params = SurroundingRectangle(parte_params, color=MARRON_OSCURO, buff=0.1)
-        nota_params = Text("gamma / beta: Parámetros aprendidos\n¡Le dan flexibilidad al modelo!", font_size=18, color=MARRON_OSCURO).next_to(caja_params, DOWN, buff=0.5)
+        nota_params = Text("γ, β: parámetros aprendibles", font_size=18, color=MARRON_OSCURO).next_to(caja_params, DOWN, buff=0.5)
 
         self.play(Create(caja_params), FadeIn(nota_params, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             *[FadeOut(m) for m in [lbl_formula, formula, caja_params, nota_params]]
         )
 
-        nota_final = Text("Se aplica 2 veces por capa:", font_size=28, weight=BOLD, color=TINTA_NEGRA)
-        paso_1 = Text("1. Antes de Attention", font_size=24, color=MARRON_OSCURO)
-        paso_2 = Text("2. Antes de MLP", font_size=24, color=MARRON_OSCURO)
+        nota_final = Text("2 veces por capa", font_size=28, weight=BOLD, color=TINTA_NEGRA)
+        paso_1 = Text("Antes de Attention", font_size=24, color=MARRON_OSCURO)
+        paso_2 = Text("Antes de MLP", font_size=24, color=MARRON_OSCURO)
         
         textos_izq = VGroup(nota_final, paso_1, paso_2).arrange(DOWN, aligned_edge=LEFT, buff=0.4).to_edge(LEFT, buff=1).shift(UP * 0.5)
 
@@ -3548,7 +3080,7 @@ class Presentacion(Slide):
         diagrama_simplificado.scale(0.75).to_edge(RIGHT, buff=3.5).shift(DOWN * 0.2)
 
         self.play(Write(nota_final), FadeIn(diagrama_simplificado, shift=LEFT))
-        self.next_slide()
+        self._siguiente()
 
         resalto_1 = SurroundingRectangle(b_ln1, color=NARANJA_TERRACOTA, stroke_width=4, buff=0.05)
         self.play(
@@ -3556,7 +3088,7 @@ class Presentacion(Slide):
             Create(resalto_1), 
             b_ln1[0].animate.set_fill(LADRILLO_VIVO) 
         )
-        self.next_slide()
+        self._siguiente()
 
         resalto_2 = SurroundingRectangle(b_ln2, color=NARANJA_TERRACOTA, stroke_width=4, buff=0.05)
         self.play(
@@ -3564,13 +3096,12 @@ class Presentacion(Slide):
             Create(resalto_2), 
             b_ln2[0].animate.set_fill(LADRILLO_VIVO) 
         )
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_mha_acto1_intuicion(self):
 
-        """Diapositiva: Slide Mha Acto1 Intuicion."""
 
         titulo, linea = self.crear_titulo(
             "Multi-Head Self-Attention",
@@ -3586,7 +3117,7 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(FadeIn(subtitulo, shift=DOWN))
-        self.next_slide()
+        self._siguiente()
 
         nota_qkv = Text(
             "Para entender su contexto, cada palabra genera tres vectores:",
@@ -3620,7 +3151,7 @@ class Presentacion(Slide):
         ).arrange(RIGHT, buff=0.6).next_to(nota_qkv, DOWN, buff=0.8)
 
         self.play(LaggedStart(*[FadeIn(t, shift=UP) for t in tarjetas_qkv], lag_ratio=0.2), run_time=1.5)
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(nota_qkv),
@@ -3640,7 +3171,7 @@ class Presentacion(Slide):
         ).next_to(linea, DOWN, buff=0.8)
 
         self.play(Write(nota_ejemplo), FadeIn(oracion, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         idx_query = 6
         idx_key_fuerte = 4
@@ -3651,7 +3182,7 @@ class Presentacion(Slide):
         label_q = Text("Query (busca antecedente)", font=FUENTE, font_size=16, color=NARANJA_TERRACOTA).next_to(caja_query, DOWN, buff=0.2)
 
         self.play(Create(caja_query), Write(label_q), oracion[idx_query].animate.set_color(NARANJA_TERRACOTA))
-        self.next_slide()
+        self._siguiente()
 
         punto_inicio = oracion[idx_query].get_center() + UP * 0.4
         punto_fin_fuerte = oracion[idx_key_fuerte].get_center() + UP * 0.4
@@ -3695,7 +3226,7 @@ class Presentacion(Slide):
             FadeIn(peso_fuerte, shift=DOWN*0.1),
             run_time=0.8
         )
-        self.next_slide()
+        self._siguiente()
 
         nota_final = Text(
             "Value: 'este' absorbe el significado de 'gigante'",
@@ -3719,7 +3250,7 @@ class Presentacion(Slide):
             FadeOut(particulas, shift=DOWN*0.2), 
             oracion[idx_query].animate.scale(1/1.15)
         )
-        self.next_slide()
+        self._siguiente()
 
         elementos_escena = VGroup(
             oracion, caja_query, label_q, flecha_fuerte, flecha_debil,
@@ -3728,7 +3259,6 @@ class Presentacion(Slide):
         self.play(FadeOut(elementos_escena))
         
     def slide_mha_acto2_formula(self):
-        """Diapositiva: Slide Mha Acto2 Formula."""
 
         titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
         subtitulo = Text("La Ecuación de Atención", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
@@ -3736,7 +3266,7 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(FadeIn(subtitulo, shift=DOWN))
-        self.next_slide()
+        self._siguiente()
         
         formula = MathTex(
             r"\text{Attention}(Q, K, V) = ",
@@ -3751,7 +3281,7 @@ class Presentacion(Slide):
         ).move_to(UP * 0.5)
 
         self.play(FadeIn(formula, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         partes_explicacion = [
             (3, "Similitud: Medimos qué tanto se relacionan los tokens.", NARANJA_TERRACOTA),
@@ -3775,18 +3305,16 @@ class Presentacion(Slide):
                 self.play(Create(nueva_caja), FadeIn(nuevo_txt, shift=UP))
             
             caja_enfoque, txt_enfoque = nueva_caja, nuevo_txt
-            self.next_slide()
+            self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_mha_acto3_calculo(self):
 
-        """Diapositiva: Slide Mha Acto3 Calculo."""
 
         titulo, linea = self.crear_titulo("Flujo Cálculo Self-Attention", palabra_clave="Flujo", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
-        self.next_slide()
 
         def crear_caja(texto, bg_color, ancho=1.6, alto=1.2, font_size=24, es_vertical=False):
             w = ancho if not es_vertical else alto
@@ -3875,10 +3403,10 @@ class Presentacion(Slide):
             stroke_color=TINTA_NEGRA, stroke_width=2
         ).move_to(zona_texto)
 
-        txt_1 = Text("1. Proyección: La entrada X se divide en matrices Query, Key y Value.", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
-        txt_2 = Text("2. Similitud: Se multiplican Q y K para ver qué tokens importan más.", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
-        txt_3 = Text("3. Estabilización: Se escala y aplica Softmax para obtener porcentajes (0 a 1).", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
-        txt_4 = Text("4. Contexto Final: Se filtran los Values (V) según esos porcentajes.", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
+        txt_1 = Text("1. X  →  Q, K, V  (proyección)", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
+        txt_2 = Text("2. Q·Kᵀ  →  puntajes de similitud", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
+        txt_3 = Text("Softmax → porcentajes de atención", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
+        txt_4 = Text("4. pesos · V  →  contexto final", font_size=22, color=TINTA_NEGRA).move_to(panel_fondo.get_center())
 
         self.play(FadeIn(panel_fondo, shift=UP), Write(txt_1)) 
         self.play(Write(X), Create(linea_x), FadeIn(nodo_x))
@@ -3890,33 +3418,32 @@ class Presentacion(Slide):
             AnimationGroup(Create(a_wq), Create(a_wk), Create(a_wv), lag_ratio=0.1),
             AnimationGroup(FadeIn(Q, shift=RIGHT), FadeIn(K, shift=RIGHT), FadeIn(V, shift=RIGHT), lag_ratio=0.1)
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(txt_1, txt_2))
         self.play(Create(a_q_mm), Create(a_k_mm))
         self.play(GrowFromCenter(matmul_1))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(txt_2, txt_3))
         self.play(Create(a_mm_sc))
         self.play(GrowFromCenter(scale_box))
         self.play(Create(a_sc_sm))
         self.play(GrowFromCenter(softmax_box))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(txt_3, txt_4))
         self.play(Create(a_sm_mm2), Create(a_v_mm2)) 
         self.play(GrowFromCenter(matmul_2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(Create(a_mm2_y))
         self.play(FadeIn(Y, shift=RIGHT), Flash(Y, color=NARANJA_TERRACOTA, line_length=0.3))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_mha_acto4_multihead(self):
-        """Diapositiva: Slide Mha Acto4 Multihead."""
 
         titulo, linea = self.crear_titulo("Multi-Head Self-Attention", palabra_clave="Attention", color_clave=NARANJA_TERRACOTA)
         subtitulo = Text("¿Por qué 'Multi-Head'?", font=FUENTE, font_size=24, color=MARRON_OSCURO).next_to(linea, DOWN)
@@ -3924,13 +3451,13 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
         self.play(FadeIn(subtitulo, shift=DOWN))
-        self.next_slide()
+        self._siguiente()
 
         vector_completo = Rectangle(width=10, height=0.8, fill_color=FONDO_CAJA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2)
         txt_dim = Text("Vector de Embedding de 768 dimensiones", font=FUENTE, font_size=20, color=TINTA_NEGRA).move_to(vector_completo)
         
         self.play(FadeIn(vector_completo), FadeIn(txt_dim))
-        self.next_slide()
+        self._siguiente()
 
         colores_h = [NARANJA_TERRACOTA, MARRON_OSCURO, PAPEL_TAN, CAJA_INFERIOR] * 3 
         
@@ -3949,17 +3476,16 @@ class Presentacion(Slide):
         )
         
         self.play(LaggedStart(*[Indicate(c, scale_factor=1.1, color=PAPEL_CREMA) for c in cabezas], lag_ratio=0.1))
-        self.next_slide()
+        self._siguiente()
 
-        final_msg = Text("Cada cabeza hace su propia multiplicación de matrices Q, K, V", 
+        final_msg = Text("Cada cabeza: Q, K, V independientes", 
                          font=FUENTE, font_size=20, color=TINTA_NEGRA).next_to(txt_mh, DOWN, buff=0.5)
         self.play(Write(final_msg))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_causal_masking(self):
-        """Diapositiva: Slide Causal Masking."""
 
         titulo, linea = self.crear_titulo("Causal Masking", palabra_clave="Masking", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -3976,7 +3502,6 @@ class Presentacion(Slide):
         grupo_intro = VGroup(subtitulo, frase_display).arrange(DOWN, buff=0.5).next_to(linea, DOWN, buff=0.6)
 
         self.play(FadeIn(grupo_intro, shift=UP))
-        self.next_slide()
         self.play(FadeOut(grupo_intro))
 
         texto_explicativo = Text("Sin máscara: 'El' ya sabe que la frase termina en 'cobarde'", 
@@ -4001,7 +3526,7 @@ class Presentacion(Slide):
         grupo_atencion = VGroup(mat_scores, etiquetas_filas, etiquetas_cols).scale(0.85).move_to(DOWN * 0.6)
         
         self.play(FadeIn(grupo_atencion, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         animaciones_trampa = []
         for i in range(6):
@@ -4012,9 +3537,9 @@ class Presentacion(Slide):
                     animaciones_trampa.append(bloque[0].animate.set_stroke(NARANJA_TERRACOTA, width=2))
 
         self.play(*animaciones_trampa, run_time=1.2)
-        self.next_slide()
+        self._siguiente()
 
-        texto_infinito = Text("Solución: Forzar el valor -Infinito en el triángulo superior", 
+        texto_infinito = Text("Poner -∞ en el triángulo superior", 
                               font=FUENTE, font_size=20, weight=BOLD, color=MARRON_OSCURO).move_to(texto_explicativo)
         self.play(Transform(texto_explicativo, texto_infinito))
 
@@ -4033,7 +3558,7 @@ class Presentacion(Slide):
                     bloque_score[1] = inf_text
 
         self.play(*[FadeOut(t) for t in textos_a_reemplazar], *animaciones_infinito, run_time=1.5)
-        self.next_slide()
+        self._siguiente()
 
         texto_softmax = Text("Resultado: Probabilidad 0 de 'mirar' hacia adelante", 
                              font=FUENTE, font_size=20, weight=BOLD, color=TINTA_NEGRA).move_to(texto_explicativo)
@@ -4055,16 +3580,15 @@ class Presentacion(Slide):
 
         self.play(*[FadeOut(t) for t in textos_viejos], *animaciones_finales, run_time=1.5)
         
-        nota_final = Text("Para predecir 'cobarde', el modelo solo puede usar 'El amor nunca hizo ningún'.", 
+        nota_final = Text("Solo usa el contexto pasado", 
                           font=FUENTE, font_size=18, color=TINTA_NEGRA).to_edge(DOWN, buff=0.6)
         
         self.play(FadeIn(nota_final, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_arquitectura_neurona(self):
-        """Diapositiva: Slide Arquitectura Neurona."""
 
         titulo, linea = self.crear_titulo("La Capa MLP: Una Función Matemática", palabra_clave="Función", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -4108,7 +3632,7 @@ class Presentacion(Slide):
 
 
         self.play(FadeIn(capa_in), GrowFromCenter(brace_in), Write(lbl_in))
-        self.next_slide() 
+        self._siguiente() 
 
         self.play(LaggedStartMap(Create, conexiones_in_h1, lag_ratio=0.01), run_time=0.8)
         self.play(FadeIn(hid_1, shift=LEFT*0.2), Write(flecha_1))
@@ -4120,16 +3644,15 @@ class Presentacion(Slide):
         self.play(FadeIn(hid_3, shift=LEFT*0.2), Write(flecha_3))
         
         self.play(GrowFromCenter(brace_hid), Write(lbl_hid), Write(eq_composicion))
-        self.next_slide() 
+        self._siguiente() 
 
         self.play(LaggedStartMap(Create, conexiones_h3_out, lag_ratio=0.01), run_time=0.8)
         self.play(FadeIn(capa_out, shift=LEFT*0.2), GrowFromCenter(brace_out), Write(lbl_out))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_zoom_neurona(self):
-        """Diapositiva: Slide Zoom Neurona."""
 
         titulo, linea = self.crear_titulo("La Capa MLP: Dentro de una Neurona", palabra_clave="Neurona", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -4150,7 +3673,7 @@ class Presentacion(Slide):
         neurona_objetivo = columna_hid[2]
         resaltador = Circle(radius=r_mini * 2, color=MARRON_OSCURO, stroke_width=3).move_to(neurona_objetivo)
         self.play(Create(resaltador))
-        self.next_slide()
+        self._siguiente()
 
         posicion_neurona = RIGHT * 2.2 + UP * 0.4
         neurona_gigante = Circle(radius=1.6, fill_color=NARANJA_TERRACOTA, fill_opacity=0.1, stroke_color=NARANJA_TERRACOTA, stroke_width=4).move_to(posicion_neurona)
@@ -4169,7 +3692,6 @@ class Presentacion(Slide):
         
         self.play(Create(lineas_zoom), FadeIn(neurona_gigante))
         self.play(Write(sumatoria), Create(separador), FadeIn(grupo_activacion))
-        self.next_slide()
 
         self.play(FadeOut(lineas_zoom))
 
@@ -4204,7 +3726,7 @@ class Presentacion(Slide):
         self.play(FadeIn(pesos_text, shift=UP))
         self.play(FadeIn(bias_text, shift=DOWN), GrowArrow(flecha_bias))
         self.play(GrowArrow(flecha_out), Write(salida_text))
-        self.next_slide()
+        self._siguiente()
 
         eq_final = MathTex(r"\phi(x)", r"=", r"\sigma", r"(", r"\sum x_i \cdot w_i", r"+ b", r")", color=TINTA_NEGRA, font_size=46).move_to(DOWN * 1.8)
         
@@ -4221,12 +3743,11 @@ class Presentacion(Slide):
         self.play(Write(eq_final))
         self.play(FadeIn(nota_w), GrowArrow(flecha_w))
         self.play(FadeIn(nota_act), GrowArrow(flecha_act))
-        self.next_slide() 
+        self._siguiente() 
 
         self.limpiar_pantalla()
 
     def slide_activacion(self):
-        """Diapositiva: Slide Activacion."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -4284,7 +3805,7 @@ class Presentacion(Slide):
 
         self.play(Create(ejes), Write(lbl_relu))
         self.play(Create(curva_relu))
-        self.next_slide()
+        self._siguiente()
 
         nodo = Circle(radius=0.7, fill_color=PAPEL_CREMA, fill_opacity=1, stroke_color=GRAY_C, stroke_width=4)
         lbl_nodo = Text("ReLU", font=FUENTE, font_size=20, color=GRAY_C).move_to(nodo)
@@ -4312,7 +3833,7 @@ class Presentacion(Slide):
         
         self.play(GrowArrow(flecha_out), FadeIn(val_out, shift=RIGHT))
         self.play(Create(cruz_muerte))
-        self.next_slide()
+        self._siguiente()
 
         lbl_nodo_gelu = Text("GELU", font=FUENTE, font_size=20, color=NARANJA_TERRACOTA).move_to(nodo)
         
@@ -4337,12 +3858,11 @@ class Presentacion(Slide):
         )
         
         self.play(FadeIn(lbl_suavizado, shift=UP), GrowArrow(flecha_suav))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_capa_transformer(self):
-        """Diapositiva: Slide Capa Transformer."""
 
         escala = 0.65 
 
@@ -4430,7 +3950,7 @@ class Presentacion(Slide):
         self.play(FadeIn(txt_res_2))
         
         self.play(Create(flecha_out), FadeIn(nodo_output, shift=UP * escala))
-        self.next_slide()
+        self._siguiente()
         
         def crear_bloque_texto(titulo, items):
             head = Text(titulo, font=FUENTE, font_size=28, color=NARANJA_TERRACOTA, weight=BOLD)
@@ -4447,7 +3967,6 @@ class Presentacion(Slide):
         ])
 
         self.play(Create(caja1), FadeIn(texto1, shift=LEFT))
-        self.next_slide()
         self.play(FadeOut(caja1), FadeOut(texto1))
 
         caja2 = VGroup(
@@ -4461,7 +3980,6 @@ class Presentacion(Slide):
         ])
 
         self.play(Create(caja2), FadeIn(texto2, shift=LEFT))
-        self.next_slide()
         self.play(FadeOut(caja2), FadeOut(texto2))
 
         caja3 = VGroup(
@@ -4474,14 +3992,12 @@ class Presentacion(Slide):
         ])
 
         self.play(Create(caja3), FadeIn(texto3, shift=LEFT))
-        self.next_slide()
         self.play(FadeOut(caja3), FadeOut(texto3))
 
         self.limpiar_pantalla()
 
     def slide_entrenamiento(self):
 
-        """Diapositiva: Slide Entrenamiento."""
 
         titulo, linea = self.crear_titulo(
             "Entrenamiento: Ajustando Perillas", 
@@ -4503,7 +4019,6 @@ class Presentacion(Slide):
             return VGroup(caja, txt)
 
         def crear_perilla(angulo):
-            """Crea la representación visual de un parámetro ajustable."""
             base = Circle(radius=0.25, fill_color=FONDO_CAJA, fill_opacity=1, stroke_color=MARRON_OSCURO, stroke_width=2)
             indicador = Line(base.get_center(), base.get_center() + UP*0.25, color=NARANJA_TERRACOTA, stroke_width=4)
             indicador.rotate(angulo, about_point=base.get_center())
@@ -4516,7 +4031,7 @@ class Presentacion(Slide):
         EJE_Y = DOWN * 0.2
 
         self.play(
-            estado_ui[1].animate.set_text("FASE 1: Forward Pass (Predicción inicial)"), 
+            estado_ui[1].animate.set_text("→ Forward Pass"), 
             estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=2)
         )
 
@@ -4548,10 +4063,10 @@ class Presentacion(Slide):
         self.play(FadeIn(grupo_modelo, scale=0.9))
         self.play(GrowFromCenter(tubo_out))
         self.play(FadeIn(grupo_salida, shift=LEFT))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
-            estado_ui[1].animate.set_text("FASE 2: Función de Pérdida (Loss)"), 
+            estado_ui[1].animate.set_text("→ Loss"), 
             estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=2)
         )
 
@@ -4564,9 +4079,9 @@ class Presentacion(Slide):
         medidor_fill = RoundedRectangle(width=1.3, height=0.2, corner_radius=0.1, stroke_width=0, fill_color=NARANJA_TERRACOTA, fill_opacity=1).align_to(medidor_bg, LEFT)
         
         caja_error = VGroup(
-            Text("Error cuantificado:", font=FUENTE, font_size=14, color=TINTA_NEGRA),
+            Text("Error:", font=FUENTE, font_size=14, color=TINTA_NEGRA),
             VGroup(medidor_bg, medidor_fill),
-            Text("¡Pérdida muy alta!", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
+            Text("¡Alta!", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
         ).arrange(DOWN, buff=0.1)
 
         panel_loss = VGroup(nodo_loss, caja_error).arrange(RIGHT, buff=0.4).move_to(DOWN * 2.7)
@@ -4580,10 +4095,10 @@ class Presentacion(Slide):
         
         self.play(FadeIn(panel_loss, shift=UP))
         self.play(Flash(medidor_fill, color=NARANJA_TERRACOTA, line_length=0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
-            estado_ui[1].animate.set_text("FASE 3: Backpropagation (Ajuste)"), 
+            estado_ui[1].animate.set_text("→ Backprop"), 
             estado_ui[0].animate.set_stroke(NARANJA_TERRACOTA, width=3)
         )
 
@@ -4608,7 +4123,7 @@ class Presentacion(Slide):
             modelo_bg.animate.set_stroke(MARRON_OSCURO, width=2),
             FadeOut(tubo_back, lbl_grad)
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             estado_ui[1].animate.set_text("FASE 4: Nuevo Forward Pass (Éxito)"), 
@@ -4635,12 +4150,11 @@ class Presentacion(Slide):
         )
         
         self.play(Wiggle(prob_incorrecta, scale_value=1.05))
-        self.next_slide()
+        self._siguiente()
         
         self.limpiar_pantalla()
 
     def slide_descenso_gradiente(self):
-        """Diapositiva: Descenso del Gradiente — intuición, mecánica y conexión al entrenamiento."""
 
         titulo, linea = self.crear_titulo(
             "Descenso del Gradiente: Bajando la Colina",
@@ -4650,13 +4164,11 @@ class Presentacion(Slide):
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
 
-        # ── ACTO 1: EL PROBLEMA — ¿QUÉ QUEREMOS MINIMIZAR? ──────────────────────
-        # Mostrar primero la idea antes de los ejes
-        pregunta = Text("El modelo tiene millones de parámetros.\n¿Cómo sabe hacia dónde ajustarlos?",
+        pregunta = Text("¿Hacia dónde ajustar?",
                         font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA,
                         line_spacing=1.4).move_to(UP * 1.5)
         self.play(Write(pregunta))
-        self.next_slide()
+        self._siguiente()
 
         analogia = Text(
             "Imagina que estás en una montaña con los ojos vendados.\n"
@@ -4665,11 +4177,9 @@ class Presentacion(Slide):
             font=FUENTE, font_size=21, color=MARRON_OSCURO, line_spacing=1.4
         ).next_to(pregunta, DOWN, buff=0.5)
         self.play(FadeIn(analogia, shift=UP * 0.2))
-        self.next_slide()
 
         self.play(FadeOut(pregunta), FadeOut(analogia))
 
-        # ── ACTO 2: LA MECÁNICA — DESCENSO PASO A PASO ───────────────────────────
         def func_costo(x):
             return np.sin(x) + 0.3 * (x ** 2) + 2
 
@@ -4696,7 +4206,6 @@ class Presentacion(Slide):
         curva = ejes.plot(func_costo, color=NARANJA_TERRACOTA, stroke_width=4)
         area  = ejes.get_area(curva, opacity=0.08, color=NARANJA_TERRACOTA)
 
-        # Mínimo y stickman meta
         x_minimo  = -0.89
         p_minimo  = ejes.c2p(x_minimo, func_costo(x_minimo))
 
@@ -4741,7 +4250,6 @@ class Presentacion(Slide):
         self.play(Create(curva), FadeIn(area))
         self.play(FadeIn(stickman, shift=UP * 0.3), Write(lbl_meta))
 
-        # Panel lateral — ecuación y leyenda compacta
         lr = 0.8
         eq_update = MathTex(
             r"w \leftarrow w - \underbrace{\eta}_{\text{lr}} \cdot \underbrace{\nabla L}_{\text{pendiente}}",
@@ -4756,7 +4264,6 @@ class Presentacion(Slide):
         lbl_grad = Text("∇L = pendiente en w", font=FUENTE,
                         font_size=16, color=NARANJA_TERRACOTA)
 
-        # Indicadores dinámicos
         txt_pos  = Text("w = 4.00", font="Monospace", font_size=16, color=MARRON_OSCURO)
         txt_grad_val = Text("∇L = —", font="Monospace", font_size=16, color=NARANJA_TERRACOTA)
         txt_loss = Text("L = —", font="Monospace", font_size=16, color=ROJO_TOMATE)
@@ -4767,9 +4274,8 @@ class Presentacion(Slide):
                        ).next_to(ejes, RIGHT, buff=0.55).align_to(ejes, UP).shift(DOWN * 0.3)
 
         self.play(FadeIn(panel, shift=LEFT * 0.2))
-        self.next_slide()
+        self._siguiente()
 
-        # Punto inicial y animación de descenso
         x_val = 4.0
         punto  = Dot(ejes.c2p(x_val, func_costo(x_val)),
                      color=TINTA_NEGRA, radius=0.13)
@@ -4780,12 +4286,11 @@ class Presentacion(Slide):
         for i in range(7):
             grad_actual = gradiente_costo(x_val)
             x_next      = x_val - lr * grad_actual
-            x_next      = max(-2.8, min(4.8, x_next))  # no salir de los ejes
+            x_next      = max(-2.8, min(4.8, x_next))
 
             p_actual = ejes.c2p(x_val,  func_costo(x_val))
             p_next   = ejes.c2p(x_next, func_costo(x_next))
 
-            # Actualizar panel
             nuevo_pos  = Text(f"w = {x_val:.2f}",
                               font="Monospace", font_size=16, color=MARRON_OSCURO
                               ).move_to(txt_pos, aligned_edge=LEFT)
@@ -4804,7 +4309,6 @@ class Presentacion(Slide):
                 run_time=0.35
             )
 
-            # Tangente
             dx      = 0.55
             t_start = ejes.c2p(x_val - dx, func_costo(x_val) - grad_actual * dx)
             t_end   = ejes.c2p(x_val + dx, func_costo(x_val) + grad_actual * dx)
@@ -4812,13 +4316,11 @@ class Presentacion(Slide):
                             stroke_width=2.5).set_opacity(0.55)
             self.play(Create(tangente), run_time=0.25)
 
-            # Flecha de salto
             angulo_salto = -TAU / 6 if grad_actual > 0 else TAU / 6
             flecha_salto = CurvedArrow(p_actual, p_next, angle=angulo_salto,
                                        color=NARANJA_TERRACOTA, stroke_width=2.8)
             self.play(Create(flecha_salto), run_time=0.35)
 
-            # Rastro de posiciones anteriores
             rastro = Dot(p_actual, color=MARRON_OSCURO, radius=0.055).set_opacity(0.35)
             rastros.add(rastro)
             self.add(rastro)
@@ -4831,16 +4333,14 @@ class Presentacion(Slide):
             )
             x_val = x_next
 
-        # Llegó al mínimo
         self.play(
             Wiggle(stickman, scale_value=1.18, rotation_angle=0.04 * TAU),
             Flash(punto, color=NARANJA_TERRACOTA, line_length=0.45, flash_radius=0.32,
                   num_lines=12),
             run_time=1.0
         )
-        self.next_slide()
+        self._siguiente()
 
-        # ── ACTO 3: CONEXIÓN AL ENTRENAMIENTO REAL ───────────────────────────────
         self.play(
             FadeOut(ejes), FadeOut(lbl_x), FadeOut(lbl_y),
             FadeOut(curva), FadeOut(area),
@@ -4886,32 +4386,27 @@ class Presentacion(Slide):
                       max_tip_length_to_length_ratio=0.25, stroke_width=3)
             flechas_flujo.add(f)
 
-        # ─── AQUÍ ESTÁ LA SOLUCIÓN ──────────────────────────────────────────────
         animaciones_lagged = []
         for i in range(len(cajas)):
             anims_del_grupo = [FadeIn(cajas[i], shift=UP * 0.2)]
             
-            # Solo agregamos Create(flecha) si el índice es válido
             if i < len(flechas_flujo):
                 anims_del_grupo.append(Create(flechas_flujo[i]))
                 
             animaciones_lagged.append(AnimationGroup(*anims_del_grupo))
 
-        # Evitar fallos si la lista llegara a estar vacía
         if animaciones_lagged:
             self.play(LaggedStart(*animaciones_lagged, lag_ratio=0.25))
-        # ────────────────────────────────────────────────────────────────────────
 
-        self.next_slide()
+        self._siguiente()
 
-        # Nota final: el ciclo se repite miles de veces
         nota_final = Text(
             "Este ciclo se repite miles de veces hasta que el Loss converge.",
             font=FUENTE, font_size=20, weight=BOLD, color=NARANJA_TERRACOTA
         ).next_to(cajas, DOWN, buff=0.5)
         self.play(Write(nota_final))
         self.play(Indicate(nota_final, color=ORO_VIEJO, scale_factor=1.06))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
@@ -4925,13 +4420,12 @@ class Presentacion(Slide):
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
 
         pregunta = Text(
-            "El Loss sabe que el modelo se equivocó.\n"
-            "Pero… ¿qué parámetro tuvo la culpa?",
+            "¿Qué parámetro tuvo la culpa?",
             font=FUENTE, font_size=24, weight=BOLD,
             color=TINTA_NEGRA, line_spacing=1.4
         ).move_to(UP * 1.8)
         self.play(Write(pregunta))
-        self.next_slide()
+        self._siguiente()
 
         cadena_palabras = ["L", "GELU", "suma", "mul", "w₀"]
         cadena_nodos = VGroup()
@@ -4953,7 +4447,7 @@ class Presentacion(Slide):
             for i in range(len(cadena_nodos) - 1)
         ])
 
-        lbl_cadena = Text("¿Cuánto contribuyó cada uno al error?",
+        lbl_cadena = Text("¿Cuánto contribuyó cada uno?",
                           font=FUENTE, font_size=19, color=MARRON_OSCURO
                           ).next_to(cadena_nodos, DOWN, buff=0.35)
 
@@ -4968,23 +4462,21 @@ class Presentacion(Slide):
             self.play(LaggedStart(*animaciones_lagged, lag_ratio=0.2))
 
         self.play(Write(lbl_cadena))
-        self.next_slide()
 
         self.play(FadeOut(pregunta), FadeOut(cadena_nodos),
                   FadeOut(flechas_cadena), FadeOut(lbl_cadena))
 
-        lbl_herramienta = Text("La herramienta: Regla de la Cadena",
+        lbl_herramienta = Text("Regla de la Cadena",
                                font=FUENTE, font_size=26, weight=BOLD,
                                color=TINTA_NEGRA).move_to(UP * 2.6)
         self.play(Write(lbl_herramienta))
 
         analogia_lbl = Text(
-            "Si f depende de g, y g depende de x,\n"
-            "el efecto total de x sobre f se obtiene multiplicando las pendientes intermedias:",
+            "Multiplica las pendientes del camino:",
             font=FUENTE, font_size=20, color=MARRON_OSCURO, line_spacing=1.4
         ).next_to(lbl_herramienta, DOWN, buff=0.4)
         self.play(FadeIn(analogia_lbl, shift=UP * 0.2))
-        self.next_slide()
+        self._siguiente()
 
         eq_cadena = MathTex(
             r"\frac{\partial L}{\partial w} = "
@@ -4996,23 +4488,21 @@ class Presentacion(Slide):
         ).next_to(analogia_lbl, DOWN, buff=0.5)
 
         self.play(Write(eq_cadena), run_time=2.0)
-        self.next_slide()
+        self._siguiente()
 
         caja_eq = SurroundingRectangle(eq_cadena, color=NARANJA_TERRACOTA,
                                        buff=0.2, corner_radius=0.1, stroke_width=2.5)
         nota_local = Text(
-            "Cada nodo solo necesita conocer su gradiente local.\n"
-            "Backprop los encadena de derecha a izquierda.",
+            "Gradientes locales · de derecha a izquierda",
             font=FUENTE, font_size=19, color=NARANJA_TERRACOTA, line_spacing=1.3
         ).next_to(eq_cadena, DOWN, buff=0.4)
         self.play(Create(caja_eq))
         self.play(Write(nota_local))
-        self.next_slide()
 
         self.play(FadeOut(lbl_herramienta), FadeOut(analogia_lbl),
                   FadeOut(eq_cadena), FadeOut(caja_eq), FadeOut(nota_local))
 
-        lbl_grafo = Text("Grafo computacional: forward → backward",
+        lbl_grafo = Text("forward → backward",
                          font=FUENTE, font_size=24, weight=BOLD,
                          color=TINTA_NEGRA).move_to(UP * 2.7)
         self.play(Write(lbl_grafo))
@@ -5079,7 +4569,7 @@ class Presentacion(Slide):
             AnimationGroup(Create(f_out), Write(ty)),
             lag_ratio=0.25, run_time=2.5
         ))
-        self.next_slide()
+        self._siguiente()
 
         lbl_bwd = Text("② Backward pass  (gradientes de derecha a izquierda)",
                        font=FUENTE, font_size=18, weight=BOLD,
@@ -5117,7 +4607,6 @@ class Presentacion(Slide):
             Indicate(lbl_upd_w, color=ORO_VIEJO, scale_factor=1.2),
             Indicate(lbl_upd_b, color=ORO_VIEJO, scale_factor=1.2),
         )
-        self.next_slide()
 
         self.play(FadeOut(grafo_fwd), FadeOut(lbl_bwd),
                   FadeOut(caja_w0), FadeOut(caja_b),
@@ -5171,7 +4660,7 @@ class Presentacion(Slide):
                                color=ROJO_TOMATE).next_to(nodos_red[-1], RIGHT, buff=0.5)
         self.play(Write(txt_loss_red),
                   Indicate(nodos_red[-1], color=ROJO_TOMATE, scale_factor=1.12))
-        self.next_slide()
+        self._siguiente()
 
         lbl_bwd_red = Text("Gradientes fluyendo hacia atrás →",
                            font=FUENTE, font_size=19, weight=BOLD,
@@ -5188,18 +4677,17 @@ class Presentacion(Slide):
             )
 
         conclusion = Text(
-            "GPT-2 tiene 124 millones de parámetros.\nBackprop calcula el gradiente de todos en un solo paso.",
+            "124M params · un solo paso",
             font=FUENTE, font_size=20, weight=BOLD,
             color=NARANJA_TERRACOTA, line_spacing=1.3
         ).next_to(nodos_red, DOWN, buff=0.55).set_x(0)
         self.play(Write(conclusion))
         self.play(Indicate(conclusion, color=ORO_VIEJO, scale_factor=1.05))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_adam(self):
-        """Diapositiva: Slide Adam."""
 
         titulo_intro, linea_intro = self.crear_titulo(
             "Optimizador Adam", 
@@ -5216,7 +4704,7 @@ class Presentacion(Slide):
         ).shift(UP * 2)
 
         self.play(Write(formula_adam))
-        self.next_slide()
+        self._siguiente()
 
         ejes_m = Axes(x_range=[0, 4], y_range=[0, 2], x_length=4, y_length=2).shift(LEFT*3.2 + DOWN*1.5)
         
@@ -5249,7 +4737,7 @@ class Presentacion(Slide):
         
         bola_gd.clear_updaters()
         bola_adam.clear_updaters()
-        self.next_slide()
+        self._siguiente()
 
         ejes_v = Axes(x_range=[0, 4], y_range=[0, 4], x_length=4, y_length=2).shift(RIGHT*3.2 + DOWN*1.5)
         func_v = lambda x: 0.8 * (x - 2.5)**2 + 0.5
@@ -5273,7 +4761,7 @@ class Presentacion(Slide):
             end=ejes_v.c2p(x_sobreimpulso, func_v(x_sobreimpulso)),
             color=MARRON_OSCURO, buff=0.1
         )
-        lbl_mala = Text("Gradiente puro: Paso gigante", font_size=16, color=MARRON_OSCURO).next_to(flecha_mala, UP)
+        lbl_mala = Text("Gradiente puro: paso gigante", font_size=16, color=MARRON_OSCURO).next_to(flecha_mala, UP)
         
         self.play(GrowArrow(flecha_mala), Write(lbl_mala))
         self.wait(0.5)
@@ -5284,7 +4772,7 @@ class Presentacion(Slide):
             end=ejes_v.c2p(x_ideal, func_v(x_ideal)),
             color=NARANJA_TERRACOTA, buff=0.1
         )
-        lbl_buena = Text("ADAM adapta el paso: Frena en bajadas fuertes", font_size=16, color=NARANJA_TERRACOTA).next_to(flecha_buena, DOWN)
+        lbl_buena = Text("Adam: paso adaptativo", font_size=16, color=NARANJA_TERRACOTA).next_to(flecha_buena, DOWN)
 
         self.play(
             ReplacementTransform(flecha_mala, flecha_buena),
@@ -5305,7 +4793,6 @@ class Presentacion(Slide):
             rate_func=smooth
         )
         punto_v.clear_updaters()
-        self.next_slide()
 
         self.play(FadeOut(VGroup(
             ejes_m, terreno_m, lbl_m, bola_gd, bola_adam, 
@@ -5384,7 +4871,7 @@ class Presentacion(Slide):
             Flash(punto_adam, color=NARANJA_TERRACOTA)
         )
 
-        self.next_slide()
+        self._siguiente()
         
         panel_textos = VGroup(
             Text("¿Por qué ganó ADAM?", font_size=26, color=TINTA_NEGRA, weight=BOLD),
@@ -5399,11 +4886,10 @@ class Presentacion(Slide):
         panel_final = VGroup(fondo_panel, panel_textos).to_edge(DOWN, buff=0.2)
 
         self.play(FadeIn(panel_final, shift=UP))
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_residual_connections(self):
-        """Diapositiva: Slide Residual Connections."""
 
         titulo, linea = self.crear_titulo("Conexiones Residuales: La Autopista", palabra_clave="Conexiones Residuales:", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -5420,7 +4906,7 @@ class Presentacion(Slide):
         bloque1_completo = VGroup(caja_forward, grupo_forward).next_to(linea, DOWN, buff=0.3)
 
         self.play(FadeIn(bloque1_completo, shift=DOWN))
-        self.next_slide()
+        self._siguiente()
 
         lbl_backward = Text("2. Backward Pass (Acumulación)", font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD)
         
@@ -5449,15 +4935,15 @@ class Presentacion(Slide):
 
         self.play(Create(caja_backward), FadeIn(lbl_backward, shift=UP))
         self.play(Write(eq_back_izq), Write(eq_back_plus))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(eq_back_skip, shift=DOWN))
         self.play(GrowArrow(flecha_skip), FadeIn(txt_skip))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(eq_back_capa, shift=DOWN))
         self.play(GrowArrow(flecha_capa), FadeIn(txt_capa))
-        self.next_slide()
+        self._siguiente()
 
         lbl_impacto = Text("Sin esta suma directa, el gradiente desaparecería en redes profundas.", font=FUENTE, font_size=16, color=TINTA_NEGRA, weight=BOLD)
         caja_impacto = SurroundingRectangle(lbl_impacto, color=NARANJA_TERRACOTA, fill_color=CAJA_INFERIOR, fill_opacity=0.5, corner_radius=0.1, buff=0.2)
@@ -5466,11 +4952,10 @@ class Presentacion(Slide):
         self.play(FadeIn(bloque3_completo, shift=UP))
         self.play(Indicate(bloque3_completo, color=NARANJA_TERRACOTA))
         
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
     
     def slide_training_techniques(self):
-        """Diapositiva: Slide Training Techniques."""
 
         titulo, linea = self.crear_titulo("Estabilizadores y Optimización", palabra_clave="Estabilizadores", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -5482,7 +4967,7 @@ class Presentacion(Slide):
         eq_clip_der = MathTex(r"\min\left(1, \frac{\text{max\_norm}}{||g||_2}\right)", font_size=42, color=NARANJA_TERRACOTA)
         grupo_eq_clip = VGroup(eq_clip_izq, eq_clip_der).arrange(RIGHT, buff=0.2)
         
-        nota_clip = Text("Si el gradiente es muy grande, reducimos su magnitud preservando su dirección.", font=FUENTE, font_size=14, color=MARRON_OSCURO)
+        nota_clip = Text("Recorta magnitud, preserva dirección", font=FUENTE, font_size=14, color=MARRON_OSCURO)
         
         grupo_clip_total = VGroup(lbl_clip, grupo_eq_clip, nota_clip).arrange(DOWN, buff=0.6)
         caja_clip = SurroundingRectangle(grupo_clip_total, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.4)
@@ -5491,7 +4976,6 @@ class Presentacion(Slide):
         self.play(FadeIn(caja_clip), FadeIn(lbl_clip, shift=DOWN))
         self.play(Write(eq_clip_izq), Write(eq_clip_der))
         self.play(FadeIn(nota_clip, shift=UP))
-        self.next_slide()
         
         self.play(FadeOut(bloque_clip, shift=UP))
 
@@ -5501,7 +4985,7 @@ class Presentacion(Slide):
         eq_bernoulli = MathTex(r"M \sim \text{Bernoulli}(1 - p)", font_size=32, color=NARANJA_TERRACOTA)
         grupo_eq_drop = VGroup(eq_drop, eq_bernoulli).arrange(DOWN, buff=0.3)
         
-        nota_drop = Text("Apaga aleatoriamente el 10% de las neuronas (p=0.1) para forzar redundancia.", font=FUENTE, font_size=14, color=MARRON_OSCURO)
+        nota_drop = Text("Apaga el 10% → fuerza redundancia", font=FUENTE, font_size=14, color=MARRON_OSCURO)
 
         grupo_drop_total = VGroup(lbl_drop, grupo_eq_drop, nota_drop).arrange(DOWN, buff=0.6)
         caja_drop = SurroundingRectangle(grupo_drop_total, color=PAPEL_TAN, fill_color=FONDO_CAJA, fill_opacity=1, corner_radius=0.2, buff=0.4)
@@ -5511,7 +4995,6 @@ class Presentacion(Slide):
         self.play(Write(eq_drop))
         self.play(FadeIn(eq_bernoulli, shift=UP))
         self.play(FadeIn(nota_drop, shift=UP))
-        self.next_slide()
         
         self.play(FadeOut(bloque_drop, shift=UP))
 
@@ -5531,7 +5014,7 @@ class Presentacion(Slide):
 
         grupo_eqs_adam = VGroup(grupo_wd, grupo_mv, grupo_update).arrange(DOWN, buff=0.4)
         
-        nota_adamw = Text("A diferencia de Adam normal, la regularización NO se mezcla con el momentum.", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
+        nota_adamw = Text("Decay desacoplado del momentum", font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD)
 
         grupo_adamw_total = VGroup(lbl_adamw, grupo_eqs_adam, nota_adamw).arrange(DOWN, buff=0.5)
         caja_adamw = SurroundingRectangle(grupo_adamw_total, color=MARRON_OSCURO, fill_color=PAPEL_CREMA, fill_opacity=1, corner_radius=0.2, buff=0.4)
@@ -5540,21 +5023,19 @@ class Presentacion(Slide):
         self.play(FadeIn(caja_adamw), FadeIn(lbl_adamw, shift=DOWN))
         
         self.play(FadeIn(txt_wd), Write(eq_wd))
-        self.next_slide()
         
         self.play(FadeIn(txt_mv), Write(eq_mv))
-        self.next_slide()
+        self._siguiente()
         
         self.play(FadeIn(txt_update), Write(eq_update))
         self.play(FadeIn(nota_adamw, shift=UP))
         
         self.play(Indicate(grupo_wd, color=NARANJA_TERRACOTA))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_training_metrics(self):
-        """Diapositiva: Training Metrics — Loss y PPL explicados con intuición y evolución visual."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -5567,28 +5048,24 @@ class Presentacion(Slide):
         )
         self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo, herradura_fondo))
 
-        # ── ACTO 1: QUÉ MIDE EL LOSS ─────────────────────────────────────────────
-        # Intuición: el modelo predice la siguiente palabra → Loss mide qué tan equivocado está
-        pregunta = Text("¿Cómo sabe el modelo si está aprendiendo?",
+        pregunta = Text("¿Cómo mide el aprendizaje?",
                         font=FUENTE, font_size=26, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.6)
         self.play(Write(pregunta))
-        self.next_slide()
+        self._siguiente()
 
-        # Mostrar una predicción concreta con probabilidades
         contexto_txt = Text('"Esta que llaman por ahí Fortuna es una mujer..."',
                             font=FUENTE, font_size=22, color=MARRON_OSCURO).move_to(UP * 0.6)
-        pregunta_sig = Text("¿Cuál es la siguiente palabra?",
+        pregunta_sig = Text("¿Cuál sigue?",
                             font=FUENTE, font_size=20, color=PAPEL_TAN).next_to(contexto_txt, DOWN, buff=0.2)
         self.play(FadeIn(contexto_txt), Write(pregunta_sig))
-        self.next_slide()
+        self._siguiente()
 
-        # Distribución de probabilidades del modelo (mal vs bien entrenado)
         palabras_pred = ["borracha", "bella", "rica", "alta", "noble"]
-        probs_mal  = [0.05, 0.10, 0.08, 0.12, 0.05]   # disperso → caos
-        probs_bien = [0.72, 0.10, 0.07, 0.06, 0.05]   # concentrado → aprendido
+        probs_mal  = [0.05, 0.10, 0.08, 0.12, 0.05]
+        probs_bien = [0.72, 0.10, 0.07, 0.06, 0.05]
 
         bar_w, bar_max_h = 0.55, 1.8
-        base_y = DOWN * 1.3  # Bajamos la base de las barras para que no choquen con el texto
+        base_y = DOWN * 1.3
 
         def hacer_barras(probs, color_correcto, color_resto):
             grupo = VGroup()
@@ -5604,7 +5081,6 @@ class Presentacion(Slide):
                              color=TINTA_NEGRA).next_to(rect, DOWN, buff=0.1)
                 barra = VGroup(rect, lbl_p, lbl_w)
                 barra.move_to(RIGHT * (i - 2) * 1.1 + base_y)
-                # alinear base
                 barra.shift(DOWN * (bar_max_h - h) / 2)
                 grupo.add(barra)
             return grupo
@@ -5612,29 +5088,26 @@ class Presentacion(Slide):
         barras_mal  = hacer_barras(probs_mal,  ROJO_TOMATE,     PAPEL_TAN)
         barras_bien = hacer_barras(probs_bien, VERDE_OLIVA, PAPEL_TAN)
 
-        lbl_mal  = Text("Modelo sin entrenar — Loss ≈ 8",
+        lbl_mal  = Text("Sin entrenar · Loss ≈ 8",
                         font=FUENTE, font_size=19, weight=BOLD, color=ROJO_TOMATE).next_to(barras_mal, DOWN, buff=0.5)
-        lbl_bien = Text("Modelo entrenado — Loss ≈ 2.8",
+        lbl_bien = Text("Entrenado · Loss ≈ 2.8",
                         font=FUENTE, font_size=19, weight=BOLD, color=VERDE_OLIVA).next_to(barras_bien, DOWN, buff=0.5)
 
         self.play(FadeOut(pregunta_sig))
         self.play(LaggedStart(*[FadeIn(b, shift=UP*0.2) for b in barras_mal], lag_ratio=0.1))
         self.play(Write(lbl_mal))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             ReplacementTransform(barras_mal, barras_bien),
             ReplacementTransform(lbl_mal, lbl_bien)
         )
-        self.next_slide()
 
         self.play(FadeOut(pregunta), FadeOut(contexto_txt), FadeOut(barras_bien), FadeOut(lbl_bien))
 
-        # ── ACTO 2: LAS DOS MÉTRICAS LADO A LADO ─────────────────────────────────
         lbl_metricas = Text("Dos caras de la misma moneda",
                             font=FUENTE, font_size=26, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.6)
 
-        # Loss — lado izquierdo
         caja_loss = RoundedRectangle(corner_radius=0.15, width=4.8, height=3.2,
                                      fill_color=FONDO_CAJA, fill_opacity=1,
                                      stroke_color=MARRON_OSCURO, stroke_width=2).move_to(LEFT * 2.8 + DOWN * 0.4)
@@ -5643,14 +5116,13 @@ class Presentacion(Slide):
         eq_loss = MathTex(r"L = -\frac{1}{N}\sum_{i=1}^{N} \ln P(x_i)",
                           color=TINTA_NEGRA).scale(0.85).next_to(tit_loss, DOWN, buff=0.3)
         desc_loss = Text(
-            "Probabilidad de asignar la palabra correcta",
+            "P(palabra correcta)",
             font=FUENTE, font_size=17, color=MARRON_OSCURO, line_spacing=1.3
         ).next_to(eq_loss, DOWN, buff=0.3)
-        escala_loss = Text("0 = perfecto  ·  8+ = caos", font=FUENTE, font_size=16,
+        escala_loss = Text("0 perfecto · 8+ caos", font=FUENTE, font_size=16,
                            color=NARANJA_TERRACOTA, weight=BOLD).next_to(desc_loss, DOWN, buff=0.25)
         grupo_loss = VGroup(caja_loss, tit_loss, eq_loss, desc_loss, escala_loss)
 
-        # PPL — lado derecho
         caja_ppl = RoundedRectangle(corner_radius=0.15, width=4.8, height=3.2,
                                     fill_color=FONDO_CAJA, fill_opacity=1,
                                     stroke_color=NARANJA_TERRACOTA, stroke_width=2).move_to(RIGHT * 2.8 + DOWN * 0.4)
@@ -5659,31 +5131,27 @@ class Presentacion(Slide):
         eq_ppl = MathTex(r"PPL = e^{\,L}",
                          color=NARANJA_TERRACOTA).scale(1.1).next_to(tit_ppl, DOWN, buff=0.3)
         desc_ppl = Text(
-            "¿Entre cuántas palabras\nduda el modelo?\n(branching factor)",
+            "Opciones en duda",
             font=FUENTE, font_size=17, color=MARRON_OSCURO, line_spacing=1.3
         ).next_to(eq_ppl, DOWN, buff=0.3)
-        escala_ppl = Text("1 = perfecto  ·  3000+ = caos", font=FUENTE, font_size=16,
+        escala_ppl = Text("1 perfecto · 3000+ caos", font=FUENTE, font_size=16,
                           color=NARANJA_TERRACOTA, weight=BOLD).next_to(desc_ppl, DOWN, buff=0.25)
         grupo_ppl = VGroup(caja_ppl, tit_ppl, eq_ppl, desc_ppl, escala_ppl)
 
         self.play(Write(lbl_metricas))
         self.play(FadeIn(grupo_loss, shift=RIGHT * 0.3))
-        self.next_slide()
         self.play(FadeIn(grupo_ppl, shift=LEFT * 0.3))
-        self.next_slide()
+        self._siguiente()
 
-        # Resaltar la relación entre ambas
         flecha_rel = CurvedArrow(caja_loss.get_right(), caja_ppl.get_left(),
                                  color=ORO_VIEJO, angle=-PI/4, stroke_width=3)
         lbl_rel = Text("e^L", font="Monospace", font_size=20,
                        color=ORO_VIEJO, weight=BOLD).move_to(flecha_rel.get_center() + UP * 0.3)
         self.play(Create(flecha_rel), Write(lbl_rel))
-        self.next_slide()
 
         self.play(FadeOut(lbl_metricas), FadeOut(grupo_loss), FadeOut(grupo_ppl),
                   FadeOut(flecha_rel), FadeOut(lbl_rel))
 
-        # ── ACTO 3: CURVA DE LOSS EN EL TIEMPO ───────────────────────────────────
         lbl_curva = Text("Así cae el Loss durante el entrenamiento",
                          font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.8)
 
@@ -5693,20 +5161,18 @@ class Presentacion(Slide):
             x_length=7.5,
             y_length=3.8,
             axis_config={"include_tip": False, "color": MARRON_OSCURO},
-        ).move_to(DOWN * 0.4)  # Centrado un poco más abajo para no chocar con el título
+        ).move_to(DOWN * 0.4)
 
         x_label = Text("Pasos de entrenamiento", font=FUENTE, font_size=15,
                        color=MARRON_OSCURO).next_to(ax, DOWN, buff=0.2)
         y_label = Text("Loss", font=FUENTE, font_size=15,
                        color=MARRON_OSCURO).next_to(ax, LEFT, buff=0.2)
 
-        # Curva de decaimiento realista: caída rápida al inicio, luego suaviza
         def curva_loss(t):
             return 2.85 + 5.27 * np.exp(-t / 4200)
 
         curva = ax.plot(curva_loss, x_range=[0, 16000], color=NARANJA_TERRACOTA, stroke_width=4)
 
-        # Puntos clave con sus valores
         puntos_datos = [(0, 8.12, "3 360"), (4000, 4.45, "85"), (16000, 2.85, "17")]
         dots = VGroup()
         anotaciones = VGroup()
@@ -5728,12 +5194,10 @@ class Presentacion(Slide):
             *[AnimationGroup(FadeIn(dots[i]), Write(anotaciones[i])) for i in range(3)],
             lag_ratio=0.4
         ))
-        self.next_slide()
 
         self.play(FadeOut(lbl_curva), FadeOut(ax), FadeOut(x_label), FadeOut(y_label),
                   FadeOut(curva), FadeOut(dots), FadeOut(anotaciones))
 
-        # ── ACTO 4: LA EVOLUCIÓN EN EL TEXTO GENERADO ────────────────────────────
         lbl_evol = Text("Lo que ve el Loss, tú lo puedes leer",
                         font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.5)
         self.play(Write(lbl_evol))
@@ -5772,17 +5236,16 @@ class Presentacion(Slide):
 
         actual = burbujas[0]
         self.play(FadeIn(actual, scale=0.92))
-        self.next_slide()
+        self._siguiente()
 
         for sig in burbujas[1:]:
             self.play(FadeTransform(actual, sig), run_time=1.4)
             actual = sig
-            self.next_slide()
+            self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_model_in_action(self):
-        """Diapositiva: Slide Model In Action."""
 
         titulo, linea = self.crear_titulo("Molinete AI: Demostración en Vivo", palabra_clave="Vivo", color_clave=NARANJA_TERRACOTA)
         llanuras_fondo = crear_llanuras_manchegas()
@@ -5833,7 +5296,7 @@ class Presentacion(Slide):
         self.play(AddTextLetterByLetter(prompt_model), run_time=3.5)
         
         self.wait(1)
-        self.next_slide()
+        self._siguiente()
 
         transicion_lbl = Text("Cambiando al Demo", font_size=24, color=NARANJA_TERRACOTA, weight=BOLD)
         caja_transicion = SurroundingRectangle(transicion_lbl, color=MARRON_OSCURO, fill_color=FONDO_CAJA, fill_opacity=1, buff=0.4)
@@ -5843,15 +5306,11 @@ class Presentacion(Slide):
         
         self.play(contenido_terminal.animate.set_opacity(0.1), FadeIn(grupo_transicion, scale=0.8))
         
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_final(self):
-        """Diapositiva Final — sin sol, layout mejorado y elementos inferiores más abajo."""
 
-        # ==========================================
-        # 1. FUNCIONES AUXILIARES DE CONSTRUCCIÓN
-        # ==========================================
         def estrella_deco(pos, outer_r=0.22, inner_r=0.10):
             return Star(n=5, outer_radius=outer_r, inner_radius=inner_r,
                         color=ORO_VIEJO, fill_opacity=1, stroke_width=0).move_to(pos)
@@ -5889,7 +5348,6 @@ class Presentacion(Slide):
             return gracias, linea, sub, estrellas_tit
 
         def construir_molino():
-            # Cuerpo
             base = Polygon([-0.85, -1.5, 0], [0.85, -1.5, 0], [0.52, 1.0, 0], [-0.52, 1.0, 0],
                            color=LADRILLO, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2)
             puerta = RoundedRectangle(corner_radius=0.18, width=0.55, height=0.75,
@@ -5900,7 +5358,6 @@ class Presentacion(Slide):
                             color=TEJA, fill_opacity=1, stroke_color=MADERA_OSCURA, stroke_width=2)
             cuerpo = VGroup(base, puerta, ventana, techo)
 
-            # Aspas
             def crear_aspa():
                 palo = Line(ORIGIN, UP*2.5, color=MADERA_OSCURA, stroke_width=5)
                 vela = Polygon([0.08, 0.35, 0], [0.75, 0.35, 0], [0.75, 2.25, 0], [0.08, 2.25, 0],
@@ -5913,7 +5370,6 @@ class Presentacion(Slide):
             aspas.move_to(centro_aspas_pos)
             eje = Dot(centro_aspas_pos, color=HIERRO, radius=0.14)
 
-            # Bajamos el molino a DOWN * 1.8 (arrastrará a los personajes con él)
             molino = VGroup(cuerpo, aspas, eje).scale(0.7).to_edge(LEFT, buff=0.8).shift(DOWN * 1.8)
             return cuerpo, aspas, eje, aspas.get_center()
 
@@ -5924,7 +5380,6 @@ class Presentacion(Slide):
             estr_l = estrella_deco(fondo_qr.get_corner(UL) + RIGHT*0.28 + DOWN*0.28)
             estr_r = estrella_deco(fondo_qr.get_corner(UR) + LEFT*0.28  + DOWN*0.28)
             
-            # También bajé el QR a 1.2 para equilibrar visualmente
             grupo_qr = Group(fondo_qr, qr_real, estr_l, estr_r).to_edge(RIGHT, buff=1.0).shift(DOWN * 1.2)
 
             lbl_qr = Text("Repositorio del proyecto", font=FUENTE, font_size=17, weight=BOLD, color=MARRON_OSCURO).next_to(grupo_qr, UP, buff=0.28)
@@ -5940,39 +5395,27 @@ class Presentacion(Slide):
             ).arrange(DOWN, buff=0.2).move_to(UP * 0.2)
 
 
-        # ==========================================
-        # 2. INSTANCIACIÓN DE OBJETOS
-        # ==========================================
         marco_ext, marco_int, estrellas_esq = construir_marco_y_estrellas()
         gracias, linea_deco, sub, estrellas_tit = construir_textos()
         cuerpo_molino, aspas, eje, centro_giro_aspas = construir_molino()
         fondo_qr, qr_img, estr_qr_l, estr_qr_r, lbl_qr, url_lbl = construir_qr()
         creditos = construir_creditos()
         
-        # Personajes anclados. Al bajar el molino, ellos bajan.
         quijote = crear_rust_quijote().scale(0.85).next_to(cuerpo_molino, RIGHT, buff=0.6, aligned_edge=DOWN)
         sancho = crear_rust_sancho().scale(0.85).next_to(quijote, RIGHT, buff=0.4, aligned_edge=DOWN)
 
 
-        # ==========================================
-        # 3. LÍNEA DE TIEMPO (ANIMACIONES)
-        # ==========================================
-        
         self.add(crear_llanuras_manchegas())
 
-        # Marco
         self.play(Create(marco_ext), Create(marco_int), run_time=1.0)
         self.play(LaggedStart(*[GrowFromCenter(e) for e in estrellas_esq], lag_ratio=0.2), run_time=0.8)
 
-        # Textos de agradecimiento
         self.play(Write(gracias), run_time=1.0)
         self.play(Create(linea_deco), FadeIn(sub, shift=UP*0.2))
         self.play(LaggedStart(*[GrowFromCenter(s) for s in estrellas_tit], lag_ratio=0.1), run_time=0.9)
 
-        # Créditos 
         self.play(LaggedStart(*[FadeIn(c, shift=UP*0.15) for c in creditos], lag_ratio=0.25), run_time=1.0)
 
-        # Aparición simultánea: Molino + Quijote + Sancho
         self.play(
             FadeIn(cuerpo_molino, shift=DOWN*0.5),
             GrowFromCenter(aspas),
@@ -5982,7 +5425,6 @@ class Presentacion(Slide):
             run_time=1.2
         )
 
-        # Aparición QR
         self.play(
             DrawBorderThenFill(fondo_qr), FadeIn(qr_img),
             GrowFromCenter(estr_qr_l), GrowFromCenter(estr_qr_r),
@@ -5990,223 +5432,436 @@ class Presentacion(Slide):
             run_time=1.4
         )
 
-        # Bucle final
         self.play(Rotate(aspas, angle=2*PI*4, about_point=centro_giro_aspas, run_time=10, rate_func=linear))
 
     def slide_por_que_rust(self):
-        """Diapositiva: Slide Por Que Rust."""
-
-        titulo, linea = self.crear_titulo("¿Por qué Rust?", palabra_clave="Rust", color_clave=NARANJA_TERRACOTA)
-        adornos = self._crear_adornos_esquinas()
-
-        logo_py = ImageMobject("assets/logo_python.png").set_height(2)
-        py_txt1 = Text("Fácil prototipado", font=FUENTE, font_size=24, color=MARRON_OSCURO)
-        py_txt2 = Text("✗ Pausas por GC", font=FUENTE, font_size=24, color=ROJO_CONTRA)
-        py_txt3 = Text("✗ Lento en inferencia", font=FUENTE, font_size=24, color=ROJO_CONTRA)
-        py_grupo = VGroup(py_txt1, py_txt2, py_txt3).arrange(DOWN, buff=0.3)
-        bloque_py = Group(logo_py, py_grupo).arrange(DOWN, buff=0.5)
-
-        logo_cpp = ImageMobject("assets/logo_cpp.png").set_height(2)
-        cpp_txt1 = Text("Máximo rendimiento", font=FUENTE, font_size=24, color=MARRON_OSCURO)
-        cpp_txt2 = Text("✗ Ya muy visto en AI", font=FUENTE, font_size=24, color=ROJO_CONTRA)
-        cpp_txt3 = Text("✗ Riesgo en memoria", font=FUENTE, font_size=24, color=ROJO_CONTRA)
-        cpp_grupo = VGroup(cpp_txt1, cpp_txt2, cpp_txt3).arrange(DOWN, buff=0.3)
-        bloque_cpp = Group(logo_cpp, cpp_grupo).arrange(DOWN, buff=0.5)
-
-        logo_rust = ImageMobject("assets/logo_rust.png").set_height(2.5)
-        rust_txt1 = Text("✓ Rendimiento C++", font=FUENTE, font_size=26, color=TINTA_NEGRA)
-        rust_txt2 = Text("✓ Memoria segura", font=FUENTE, font_size=26, color=TINTA_NEGRA)
-        rust_txt3 = Text("✓ No tan visto en AI", font=FUENTE, font_size=26, color=TINTA_NEGRA)
-        rust_grupo = VGroup(rust_txt1, rust_txt2, rust_txt3).arrange(DOWN, buff=0.3)
-        bloque_rust = Group(logo_rust, rust_grupo).arrange(DOWN, buff=0.5)
-
-        contenido_principal = Group(bloque_py, bloque_cpp, bloque_rust).arrange(RIGHT, buff=1.0)
-        contenido_principal.next_to(linea, DOWN, buff=0.5)
-
-        if contenido_principal.width > 12.0:
-            contenido_principal.width = 12.0
-            contenido_principal.next_to(linea, DOWN, buff=0.5)
 
         llanuras_fondo = crear_llanuras_manchegas()
-        self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
-        self.next_slide()
+        adornos = self._crear_adornos_esquinas()
 
-        self.play(FadeIn(logo_py, shift=DOWN * 0.5))
-        self.play(FadeIn(py_txt1, shift=UP * 0.2))
-        self.next_slide()
-        self.play(FadeIn(py_txt2), FadeIn(py_txt3))
-        self.play(Wiggle(py_txt2), Wiggle(py_txt3))
-        self.next_slide()
-        
-        self.play(logo_py.animate.set_opacity(0.2), py_grupo.animate.set_opacity(0.2))
-
-        self.play(FadeIn(logo_cpp, shift=DOWN * 0.5))
-        self.play(FadeIn(cpp_txt1, shift=UP * 0.2))
-        self.next_slide()
-        self.play(FadeIn(cpp_txt2), FadeIn(cpp_txt3))
-        self.play(Wiggle(cpp_txt2), Wiggle(cpp_txt3))
-        self.next_slide()
-
-        self.play(logo_cpp.animate.set_opacity(0.2), cpp_grupo.animate.set_opacity(0.2))
-
-        logo_rust.generate_target()
-        logo_rust.rotate(-math.pi / 2).scale(0.5)
-        self.play(
-            FadeIn(logo_rust),
-            MoveToTarget(logo_rust),
-            run_time=1.2
+        titulo_py, linea_py = self.crear_titulo(
+            "¿Por qué no Python?",
+            palabra_clave="Python",
+            color_clave=MARRON_OSCURO
         )
-        self.next_slide()
+        self._animar_entrada_slide(titulo_py, linea_py, adornos=adornos, fondo=llanuras_fondo)
+
+        logo_py = ImageMobject("assets/logo_python.png").set_height(2.8)
+
+        py_pro = Text("✓ Fácil prototipado", font=FUENTE, font_size=26, color=VERDE_OLIVA)
+        py_con1 = Text("✗ El GIL: un solo hilo real", font=FUENTE, font_size=26, color=ROJO_CONTRA,
+                       t2c={"GIL": NARANJA_TERRACOTA})
+        py_con2 = Text("✗ Lento en inferencia", font=FUENTE, font_size=26, color=ROJO_CONTRA)
+        py_con3 = Text("✗ No apto para alto rendimiento", font=FUENTE, font_size=26, color=ROJO_CONTRA)
+
+        py_grupo = VGroup(py_pro, py_con1, py_con2, py_con3).arrange(DOWN, aligned_edge=LEFT, buff=0.35)
+        bloque_py = Group(logo_py, py_grupo).arrange(RIGHT, buff=0.9)
+        bloque_py.next_to(linea_py, DOWN, buff=0.6).shift(LEFT * 0.3)
+
+        self.play(FadeIn(logo_py, shift=DOWN * 0.4), run_time=0.8)
+        self.play(FadeIn(py_pro, shift=RIGHT * 0.3), run_time=0.6)
+        self._siguiente()
 
         self.play(
             LaggedStart(
-                FadeIn(rust_txt1, shift=RIGHT * 0.3),
-                FadeIn(rust_txt2, shift=RIGHT * 0.3),
-                FadeIn(rust_txt3, shift=RIGHT * 0.3),
-                lag_ratio=0.3
+                FadeIn(py_con1, shift=RIGHT * 0.3),
+                FadeIn(py_con2, shift=RIGHT * 0.3),
+                FadeIn(py_con3, shift=RIGHT * 0.3),
+                lag_ratio=0.4
             ),
-            run_time=1.5
+            run_time=1.2
         )
-        self.next_slide()
+        self.play(Wiggle(py_con1), Wiggle(py_con2), run_time=1.0)
+        self._siguiente()
+        self.limpiar_pantalla()
+
+        titulo_cpp, linea_cpp = self.crear_titulo(
+            "¿Por qué no C++?",
+            palabra_clave="C++",
+            color_clave=MARRON_OSCURO
+        )
+        self._animar_entrada_slide(titulo_cpp, linea_cpp, adornos=adornos, fondo=llanuras_fondo)
+
+        logo_cpp = ImageMobject("assets/logo_cpp.png").set_height(2.8)
+
+        cpp_pro = Text("✓ Máximo rendimiento", font=FUENTE, font_size=26, color=VERDE_OLIVA)
+        cpp_con1 = Text("✗ Ya muy visto en AI", font=FUENTE, font_size=26, color=ROJO_CONTRA)
+        cpp_con2 = Text("✗ Gestión manual de memoria", font=FUENTE, font_size=26, color=ROJO_CONTRA)
+        cpp_con3 = Text("✗ Bugs silenciosos difíciles de depurar", font=FUENTE, font_size=26, color=ROJO_CONTRA)
+
+        cpp_grupo = VGroup(cpp_pro, cpp_con1, cpp_con2, cpp_con3).arrange(DOWN, aligned_edge=LEFT, buff=0.35)
+        bloque_cpp = Group(logo_cpp, cpp_grupo).arrange(RIGHT, buff=0.9)
+        bloque_cpp.next_to(linea_cpp, DOWN, buff=0.6).shift(LEFT * 0.3)
+
+        self.play(FadeIn(logo_cpp, shift=DOWN * 0.4), run_time=0.8)
+        self.play(FadeIn(cpp_pro, shift=RIGHT * 0.3), run_time=0.6)
+        self._siguiente()
+
+        self.play(
+            LaggedStart(
+                FadeIn(cpp_con1, shift=RIGHT * 0.3),
+                FadeIn(cpp_con2, shift=RIGHT * 0.3),
+                FadeIn(cpp_con3, shift=RIGHT * 0.3),
+                lag_ratio=0.4
+            ),
+            run_time=1.2
+        )
+        self.play(Wiggle(cpp_con2), Wiggle(cpp_con3), run_time=1.0)
+        self._siguiente()
+
+        self.limpiar_pantalla()
+
+        titulo_rust, linea_rust = self.crear_titulo(
+            "Rust al rescate",
+            palabra_clave="Rust",
+            color_clave=NARANJA_TERRACOTA
+        )
+        self._animar_entrada_slide(titulo_rust, linea_rust, adornos=adornos, fondo=llanuras_fondo)
+
+        ferris     = ImageMobject("assets/logo_rust.png").set_height(2.2)
+        quijote    = ImageMobject(r"assets\quijote_rust.png").set_height(2.2)
+        sancho     = ImageMobject(r"assets\sancho_rust.png").set_height(2.2)
+
+        cangrejos = Group(quijote, ferris, sancho).arrange(RIGHT, buff=0.6)
+        cangrejos.next_to(linea_rust, DOWN, buff=0.4).to_edge(RIGHT, buff=0.4)
+
+        texto_ferris = Text(
+            'La mascota de Rust se llama Ferris,\nun cangrejo sin género oficial.',
+            font=FUENTE, font_size=24, color=TINTA_NEGRA
+        )
+        texto_ferris.next_to(linea_rust, DOWN, buff=0.5).to_edge(LEFT, buff=0.7)
+
+        self.play(
+            LaggedStart(
+                FadeIn(quijote, shift=UP * 0.4),
+                FadeIn(ferris,  shift=UP * 0.6),
+                FadeIn(sancho,  shift=UP * 0.4),
+                lag_ratio=0.35
+            ),
+            run_time=1.2
+        )
+        self._siguiente()
+
+        rust_v1 = Text("✓ Rendimiento comparable a C++", font=FUENTE, font_size=24, color=TINTA_NEGRA)
+        rust_v2 = Text("✓ Memoria segura sin GC ni GIL", font=FUENTE, font_size=24, color=TINTA_NEGRA,
+                       t2c={"GC": NARANJA_TERRACOTA, "GIL": NARANJA_TERRACOTA})
+        rust_v3 = Text("✓ Diferenciador: casi nadie lo usa en AI", font=FUENTE, font_size=24, color=TINTA_NEGRA)
+
+        ventajas = VGroup(rust_v1, rust_v2, rust_v3).arrange(DOWN, aligned_edge=LEFT, buff=0.4)
+        ventajas.next_to(linea_rust, DOWN, buff=0.5).to_edge(LEFT, buff=0.7)
+
+        self.play(
+            LaggedStart(
+                FadeIn(rust_v1, shift=RIGHT * 0.3),
+                FadeIn(rust_v2, shift=RIGHT * 0.3),
+                FadeIn(rust_v3, shift=RIGHT * 0.3),
+                lag_ratio=0.4
+            ),
+            run_time=1.4
+        )
+        self._siguiente()
 
         caja_rust = RoundedRectangle(
             corner_radius=0.2,
-            width=bloque_rust.width + 0.8,
-            height=bloque_rust.height + 0.8,
+            width=ventajas.width + 0.8,
+            height=ventajas.height + 0.6,
             stroke_color=NARANJA_TERRACOTA,
             stroke_width=4,
             fill_color=FONDO_CAJA,
             fill_opacity=0.3
-        ).move_to(bloque_rust)
+        ).move_to(ventajas)
 
-        self.play(Create(caja_rust))
         self.play(
-            rust_txt1.animate.set_color(NARANJA_TERRACOTA),
-            rust_txt2.animate.set_color(NARANJA_TERRACOTA),
-            rust_txt3.animate.set_color(NARANJA_TERRACOTA),
-            Indicate(logo_rust, color=NARANJA_TERRACOTA, scale_factor=1.1)
+            Create(caja_rust),
+            rust_v1.animate.set_color(NARANJA_TERRACOTA),
+            rust_v2.animate.set_color(NARANJA_TERRACOTA),
+            rust_v3.animate.set_color(NARANJA_TERRACOTA),
         )
-        self.next_slide()
+        self.play(
+            Indicate(ferris,  color=NARANJA_TERRACOTA, scale_factor=1.15),
+            Indicate(quijote, color=NARANJA_TERRACOTA, scale_factor=1.10),
+            Indicate(sancho,  color=NARANJA_TERRACOTA, scale_factor=1.10),
+            run_time=1.0
+        )
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def diapo_codigo(self, codigo_fuente: str, titulo_archivo: str = "codigo.rs"):
-        """Muestra un bloque de código Rust en un editor estilizado tipo macOS."""
         from pygments.style import Style
         from pygments.token import Keyword, Name, String, Number, Operator, Punctuation, Token, Comment
+
+        # Cada entrada: lista de (indices_lineas, mensaje_explicativo)
+        LINEAS_CLAVE = {
+            "tensor.rs": [
+                ([1], "datos: arreglo plano de floats en memoria lineal"),
+                ([2], "forma: las dimensiones del tensor, ej. [lote, secuencia, embedding]"),
+                ([3], "saltos: cuántos elementos saltar en memoria para avanzar en cada dimensión"),
+            ],
+            "matmul_base.rs": [
+                ([4, 5], "bucle k: producto punto fila × columna, acumulado en suma"),
+                ([7],    "resultado[i,j] = suma del producto punto de la fila i con la columna j"),
+                ([10],   "retorna un nuevo Tensor con la forma [m, n] del resultado"),
+            ],
+            "simd_vectorization.rs": [
+                ([0, 1], "iter_mut().zip() elimina comprobaciones de límites en tiempo de ejecución"),
+                ([2, 3], "LLVM auto-vectoriza este bucle a instrucciones AVX2/NEON: 4-8 ops por ciclo"),
+            ],
+            "cache_blocking.rs": [
+                ([0],    "TAM_BLOQUE = 8: un bloque 8×8 cabe en la caché L1 (32-64 KB)"),
+                ([1, 2], "par_chunks_mut divide el resultado en franjas; cada hilo recibe TAM_BLOQUE filas"),
+                ([10, 11], "val_a se fija una vez; matmul_interno_simd procesa la fila con instrucciones vectoriales"),
+            ],
+            "parallel_rayon.rs": [
+                ([1],    "par_chunks_mut: divide el buffer de salida en franjas sin solapamiento"),
+                ([3, 4, 5], "for_each: cada hilo escribe solo en su franja exclusiva, sin locks ni mutex"),
+            ],
+            "batched_matmul.rs": [
+                ([1],    "un slab por par (lote, cabeza): cada hilo opera sobre una matmul 2D independiente"),
+                ([4, 5], "b = índice de lote, h = índice de cabeza de atención"),
+                ([12],   "bloque[i*sec2+j] = suma: escritura directa en la porción exclusiva del hilo"),
+            ],
+            "softmax.rs": [
+                ([4, 5], "restamos el máximo antes de exp() para evitar overflow numérico"),
+                ([6],    "exp(x - max): ahora todos los valores son ≤ 0, exp es seguro"),
+                ([7, 8], "dividimos por la suma para que la fila sume exactamente 1.0"),
+            ],
+            "BDPtokenizer.rs": [
+                ([1], "vocabulario: HashMap que mapea cada token (string) a su ID entero"),
+                ([2], "fusiones: reglas aprendidas que se aplican en orden para codificar texto"),
+            ],
+            "pair_counts.rs": [
+                ([1],         "par_chunks: divide el corpus entre los hilos disponibles de Rayon"),
+                ([3, 4, 5, 6], "fold: cada hilo acumula sus conteos locales sin Mutex (lock-free)"),
+                ([10, 11, 12], "reduce: fusiona todos los HashMaps locales en uno global (MapReduce)"),
+            ],
+            "embedding.rs": [
+                ([1],    "embedding_tokens: lookup table que convierte cada ID de token en un vector"),
+                ([2, 3], "embedding_posicion: genera vectores para las posiciones 0, 1, 2… de la secuencia"),
+                ([7],    "suma token + posición: el vector resultante codifica qué palabra Y en qué lugar"),
+            ],
+            "normalization.rs": [
+                ([1, 2, 3], "calculamos media y desviación estándar a lo largo de la última dimensión"),
+                ([4, 5],    "normalizamos: (x - media) / desv_est → media 0, varianza 1"),
+                ([6],       "gamma y beta son parámetros aprendibles que reescalan la salida normalizada"),
+            ],
+            "attention.rs": [
+                ([1, 2, 3], "tres proyecciones lineales independientes producen Q, K y V"),
+                ([4, 5],    "puntuaciones = Q @ Kᵀ / √d_k: mide similitud entre cada par de tokens"),
+                ([6],       "masked_fill con -1e9: las posiciones futuras quedan a cero tras el softmax"),
+                ([7, 8],    "softmax convierte puntuaciones en pesos de atención que ponderan V"),
+            ],
+            "mlp_forward.rs": [
+                ([1], "fc1 expande de n_embd a 4·n_embd: más espacio para representaciones intermedias"),
+                ([2], "GELU: activación suave que permite gradientes incluso para valores negativos"),
+                ([3], "fc2 comprime de vuelta a n_embd: el modelo sintetiza lo que aprendió"),
+            ],
+            "gelu.rs": [
+                ([3], "par_iter(): Rayon paraleliza la función elemento a elemento entre núcleos"),
+                ([5], "GELU(x) ≈ 0.5·x·(1 + tanh(√(2/π)·(x + 0.044715·x³))): activación suave"),
+            ],
+            "compute_loss.rs": [
+                ([4, 5], "logit_max y suma_exp: truco de estabilidad para evitar overflow en exp()"),
+                ([6],    "log_prob = logit_correcto - max - log(Σexp): log-probabilidad del token objetivo"),
+                ([7],    "perdida_total -= log_prob: acumulamos la pérdida negativa por cada token"),
+                ([9],    "dividimos por el número de tokens: pérdida promedio por token de la secuencia"),
+            ],
+            "linear_backward.rs": [
+                ([1],          "grad_peso = xᵀ @ grad_salida: cuánto cambia la pérdida por cada peso"),
+                ([2, 3, 4, 5, 6, 7], "grad_sesgo: suma de grad_salida sobre todas las posiciones de la secuencia"),
+                ([8],          "grad_x = grad_salida @ Wᵀ: propaga el gradiente hacia la capa anterior"),
+            ],
+            "block_backward.rs": [
+                ([1],    "clonamos grad_salida: la conexión residual bifurca el gradiente en dos caminos"),
+                ([4, 5], "acumulamos gradiente del MLP al camino directo (skip connection)"),
+                ([10, 11], "acumulamos gradiente de Atención: skip + camino de atención se suman"),
+            ],
+            "adamw_update.rs": [
+                ([1, 2], "correcc1/correcc2: corrigen el sesgo inicial de los momentos en los primeros pasos"),
+                ([7],    "weight decay desacoplado: penaliza pesos grandes antes de aplicar el gradiente"),
+                ([8],    "primer momento m: promedio móvil exponencial del gradiente (momentum)"),
+                ([9],    "segundo momento v: promedio móvil del gradiente al cuadrado (varianza adaptativa)"),
+                ([12],   "actualización: param -= lr · m̂ / (√v̂ + ε) — paso adaptativo de AdamW"),
+            ],
+            "dropout.rs": [
+                ([1, 2], "durante inferencia o tasa=0 devolvemos los datos intactos sin máscara"),
+                ([4],    "escala = 1/(1-tasa): inverted dropout mantiene la misma esperanza matemática"),
+                ([8],    "random > tasa: cada neurona sobrevive con probabilidad (1 - tasa)"),
+                ([10],   "la neurona superviviente se multiplica por escala para compensar las apagadas"),
+            ],
+            "temperature.rs": [
+                ([2, 3],   "bucle autoregresivo: cada token nuevo se añade y vuelve a entrar al modelo"),
+                ([5],      "ultimos_logits: solo la última posición de la secuencia predice el siguiente token"),
+                ([6],      "dividir por temperatura: T<1 → más conservador, T>1 → más creativo"),
+                ([10, 11], "softmax + muestreo estocástico: el token se elige según la distribución de probabilidad"),
+            ],
+        }
 
         class EstiloCervantino(Style):
             background_color = FONDO_CAJA
             styles = {
-                Token: TINTA_NEGRA,             
-                Keyword: f'bold {NARANJA_TERRACOTA}',
-                Keyword.Type: f'bold {MARRON_OSCURO}', 
-                String: MARRON_OSCURO,            
-                Number: PAPEL_TAN,            
-                Name.Function: NARANJA_TERRACOTA,     
-                Operator: TINTA_NEGRA,          
-                Punctuation: TINTA_NEGRA,   
-                Comment: f'italic {CAJA_INFERIOR}',  
+                Token:           TINTA_NEGRA,
+                Keyword:         f'bold {NARANJA_TERRACOTA}',
+                Keyword.Type:    f'bold {MARRON_OSCURO}',
+                String:          MARRON_OSCURO,
+                Number:          PAPEL_TAN,
+                Name.Function:   NARANJA_TERRACOTA,
+                Operator:        TINTA_NEGRA,
+                Punctuation:     TINTA_NEGRA,
+                Comment:         f'italic {CAJA_INFERIOR}',
             }
+
+        # ── Panel de explicación inferior ──────────────────────────────────────
+        ALTO_PANEL   = 0.82
+        ALTO_EDITOR  = 5.8    # altura máxima del editor para dejar espacio al panel
+        MAX_ANCHO    = 12.0
 
         bloque_codigo = Code(
             code_string=codigo_fuente,
             language="rust",
-            formatter_style=EstiloCervantino, 
+            formatter_style=EstiloCervantino,
             background="rectangle"
         ).scale(0.8)
 
-        max_alto = 6.0 
-        max_ancho = 12.0
-        
-        if bloque_codigo.height > max_alto:
-            bloque_codigo.scale_to_fit_height(max_alto)
-        if bloque_codigo.width > max_ancho:
-            bloque_codigo.scale_to_fit_width(max_ancho)
+        if bloque_codigo.height > ALTO_EDITOR:
+            bloque_codigo.scale_to_fit_height(ALTO_EDITOR)
+        if bloque_codigo.width > MAX_ANCHO:
+            bloque_codigo.scale_to_fit_width(MAX_ANCHO)
 
         if len(bloque_codigo) > 0:
             bloque_codigo[0].set_opacity(0)
-            
         if len(bloque_codigo) > 1:
             bloque_codigo[1].set_color(PAPEL_TAN)
 
         alto_header = 0.6
-        padding_x = 1.2
-        padding_y = 1.0
+        padding_x   = 1.2
+        padding_y   = 0.8
 
         ancho_caja = max(bloque_codigo.width + padding_x, 6.0)
-        alto_caja = bloque_codigo.height + padding_y + alto_header
+        alto_caja  = bloque_codigo.height + padding_y + alto_header
 
         sombra = RoundedRectangle(
             corner_radius=0.1,
             width=ancho_caja, height=alto_caja,
-            color=BLACK,
-            fill_color=BLACK,
-            fill_opacity=0.25,
-            stroke_width=0
+            color=BLACK, fill_color=BLACK, fill_opacity=0.25, stroke_width=0
         ).shift(DOWN * 0.15 + RIGHT * 0.15)
 
         editor_bg = RoundedRectangle(
-            corner_radius=0.1, 
+            corner_radius=0.1,
             width=ancho_caja, height=alto_caja,
-            color=MARRON_OSCURO,
-            stroke_width=3,
-            fill_color=FONDO_CAJA,
-            fill_opacity=1,
+            color=MARRON_OSCURO, stroke_width=3,
+            fill_color=FONDO_CAJA, fill_opacity=1,
         )
 
         editor_header = Rectangle(
             width=ancho_caja, height=alto_header,
-            color=MARRON_OSCURO,
-            stroke_width=3,
-            fill_color=MARRON_OSCURO,
-            fill_opacity=1,
+            color=MARRON_OSCURO, stroke_width=3,
+            fill_color=MARRON_OSCURO, fill_opacity=1,
         ).align_to(editor_bg, UP)
 
-        dot_1 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
-        dot_2 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
-        dot_3 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=CAJA_INFERIOR, fill_opacity=1, stroke_width=1.5)
-        
+        dot_1 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=ROJO_MAC,    fill_opacity=1, stroke_width=1.5)
+        dot_2 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=AMARILLO_MAC, fill_opacity=1, stroke_width=1.5)
+        dot_3 = Circle(radius=0.08, color=TINTA_NEGRA, fill_color=VERDE_MAC,   fill_opacity=1, stroke_width=1.5)
+
         botones = VGroup(dot_1, dot_2, dot_3).arrange(RIGHT, buff=0.2)
         botones.move_to(editor_header.get_left() + RIGHT * 0.5)
 
         file_title = Text(
-            titulo_archivo, font="Times New Roman", font_size=20, color=PAPEL_CREMA, weight=BOLD
+            titulo_archivo, font="Times New Roman", font_size=20,
+            color=PAPEL_CREMA, weight=BOLD
         ).move_to(editor_header)
 
         editor_ui = VGroup(sombra, editor_bg, editor_header, botones, file_title)
-        editor_ui.move_to(ORIGIN)
-        
+
+        # El editor se posiciona en la mitad superior para dejar espacio al panel
+        editor_ui.move_to(UP * (ALTO_PANEL / 2))
         area_util = editor_bg.get_center() + DOWN * (alto_header / 2)
         bloque_codigo.move_to(area_util)
+
+        # Panel explicativo — empieza vacío
+        panel_bg = RoundedRectangle(
+            corner_radius=0.12,
+            width=ancho_caja, height=ALTO_PANEL,
+            fill_color=MARRON_OSCURO, fill_opacity=0.9,
+            stroke_color=NARANJA_TERRACOTA, stroke_width=2
+        ).next_to(editor_bg, DOWN, buff=0.18)
+
+        txt_panel = Text(
+            "", font=FUENTE, font_size=21,
+            color=PAPEL_CREMA
+        ).move_to(panel_bg.get_center())
 
         self.play(
             FadeIn(sombra, shift=UP * 0.1),
             DrawBorderThenFill(editor_bg),
             run_time=0.8
         )
-
         self.play(
             FadeIn(editor_header, shift=DOWN * 0.2),
             FadeIn(botones, shift=RIGHT * 0.1),
             Write(file_title),
             run_time=0.6
         )
+        self.play(FadeIn(panel_bg), run_time=0.4)
         self.next_slide()
 
-        animaciones_lineas = []
-        for numero, linea in zip(bloque_codigo[1], bloque_codigo[2]):
-            animaciones_lineas.append(FadeIn(VGroup(numero, linea), shift=UP * 0.15, scale=0.95))
+        lineas_codigo  = list(bloque_codigo[2]) if len(bloque_codigo) > 2 else []
+        numeros_codigo = list(bloque_codigo[1]) if len(bloque_codigo) > 1 else []
 
+        animaciones_lineas = [
+            FadeIn(VGroup(num, lin), shift=UP * 0.15, scale=0.95)
+            for num, lin in zip(numeros_codigo, lineas_codigo)
+        ]
         tiempo_animacion_codigo = max(1.5, len(animaciones_lineas) * 0.08)
         self.play(LaggedStart(*animaciones_lineas, lag_ratio=0.1), run_time=tiempo_animacion_codigo)
-        
+
         self.next_slide()
 
-        self.play(FadeOut(VGroup(editor_ui, bloque_codigo), shift=DOWN * 0.3), run_time=0.8)
+        grupos_clave = LINEAS_CLAVE.get(titulo_archivo, [])
+
+        for indices, mensaje in grupos_clave:
+            lineas_validas = [lineas_codigo[i] for i in indices if i < len(lineas_codigo)]
+            if not lineas_validas:
+                continue
+
+            grupo_mob = VGroup(*lineas_validas)
+            resalte = SurroundingRectangle(
+                grupo_mob,
+                color=NARANJA_TERRACOTA,
+                fill_color=NARANJA_TERRACOTA,
+                fill_opacity=0.14,
+                stroke_width=2.5,
+                buff=0.06,
+                corner_radius=0.05
+            )
+
+            nuevo_txt = Text(
+                mensaje, font=FUENTE, font_size=20,
+                color=PAPEL_CREMA
+            ).move_to(panel_bg.get_center())
+
+            self.play(
+                Create(resalte),
+                grupo_mob.animate.set_color(NARANJA_TERRACOTA),
+                ReplacementTransform(txt_panel, nuevo_txt),
+                run_time=0.5
+            )
+            txt_panel = nuevo_txt
+
+            self.next_slide()
+            self.play(
+                FadeOut(resalte),
+                grupo_mob.animate.set_color(WHITE),
+                run_time=0.35
+            )
+
+        self.play(
+            FadeOut(VGroup(editor_ui, bloque_codigo, panel_bg, txt_panel), shift=DOWN * 0.3),
+            run_time=0.8
+        )
+
 
     def slide_matmul(self):
-        """Diapositiva: Slide Matmul."""
 
         titulo, linea = self.crear_titulo(
             "Multiplicación: El 'Dot Product'", 
@@ -6245,13 +5900,13 @@ class Presentacion(Slide):
         celda_C = mat_C[0][2] 
 
         self.play(FadeIn(grupo_matmul))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             *[b[0].animate.set_fill(PAPEL_TAN, opacity=0.8) for b in fila_A],
             *[b[0].animate.set_fill(PAPEL_TAN, opacity=0.8) for b in col_B]
         )
-        self.next_slide()
+        self._siguiente()
 
         calculo_texto = Text(
             "(1 × 0) + (2 × 1) + (3 × 3) = 11", 
@@ -6266,7 +5921,7 @@ class Presentacion(Slide):
             ReplacementTransform(fila_copia, calculo_texto), 
             ReplacementTransform(col_copia, calculo_texto)
         )
-        self.next_slide()
+        self._siguiente()
 
         dot_calc = self.crear_bloque("11", color_fondo=NARANJA_TERRACOTA, color_texto=PAPEL_CREMA, ancho=0.8)
         dot_calc.move_to(calculo_texto.get_center())
@@ -6278,20 +5933,19 @@ class Presentacion(Slide):
             celda_C[0].animate.set_fill(PAPEL_TAN, opacity=0.4) 
         )
         self.play(Indicate(dot_calc, color=PAPEL_TAN, scale_factor=1.2))
-        self.next_slide()
+        self._siguiente()
         
         def_matmul = Text(
-            "Combina cada elemento de la fila con su pareja en la columna.\nSe multiplican y se suman para obtener un único número.", 
+            "fila · columna → un número", 
             font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).to_edge(DOWN, buff=0.6)
         
         self.play(Write(def_matmul))
-        self.next_slide()
+        self._siguiente()
         
         self.limpiar_pantalla()
 
     def slide_temperature(self):
-        """Diapositiva: Slide Temperature."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -6318,7 +5972,7 @@ class Presentacion(Slide):
 
         self.play(FadeIn(label_eq, shift=DOWN*0.2), Write(eq_temp), run_time=1.5)
         self.play(eq_temp.animate.scale(1.1).set_glow(0.3), rate_func=there_and_back, run_time=1)
-        self.next_slide()
+        self._siguiente()
 
         explicacion = Tex(
             r"$T \to 0$: Determinista, conservador (Como Sancho)\\$T > 1$: Aleatorio, creativo, ``alucinaciones'' (Como el Quijote)",
@@ -6326,7 +5980,6 @@ class Presentacion(Slide):
         ).next_to(math_group, DOWN, buff=0.8)
 
         self.play(FadeIn(explicacion, shift=UP))
-        self.next_slide()
 
         self.play(FadeOut(math_group, explicacion))
 
@@ -6365,7 +6018,7 @@ class Presentacion(Slide):
 
             bubble_group = VGroup(sombra, rect, user_icon, username, contenido)
             
-            info = Text(f"Generación - Intento #{intento}", 
+            info = Text(f"Generación - Intento #{intento}",
                         font="Monospace", font_size=16, color=color_perfil).next_to(rect, DOWN, buff=0.15, aligned_edge=RIGHT)
             
             return VGroup(bubble_group, info).next_to(grupo_prompt, DOWN, buff=1.0)
@@ -6378,23 +6031,22 @@ class Presentacion(Slide):
 
         actual = r_sancho_1
         self.play(FadeIn(actual, shift=UP))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(actual, r_sancho_2), run_time=1)
         actual = r_sancho_2
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(actual, r_quijote_1), run_time=1.5)
         actual = r_quijote_1
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeTransform(actual, r_quijote_2), run_time=1)
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_residual(self):
-        """Diapositiva: Slide Residual."""
 
         escala = 0.85 
 
@@ -6450,14 +6102,14 @@ class Presentacion(Slide):
         self.play(Create(skip_connection))
         self.play(GrowArrow(arrow_add_y), FadeIn(label_y, shift=RIGHT))
         self.play(Write(eq_final))
-        self.next_slide()
+        self._siguiente()
 
         pos_texto = DOWN * 3
         
-        txt_desc_1 = Text("La señal original viaja por la red...", font=FUENTE, font_size=24 * escala, color=TINTA_NEGRA).move_to(pos_texto)
-        txt_desc_2 = Text("El Quijote f(x) transforma el mundo, pero la señal se desvanece.", font=FUENTE, font_size=24 * escala, color=MARRON_QUIJOTE).move_to(pos_texto)
-        txt_desc_3 = Text("Sancho lleva una copia intacta de la realidad por un 'atajo'.", font=FUENTE, font_size=24 * escala, color=NARANJA_TERRACOTA).move_to(pos_texto)
-        txt_desc_4 = Text("La realidad de Sancho y la visión del Quijote se suman.", font=FUENTE, font_size=24 * escala, color=MARRON_OSCURO).move_to(pos_texto)
+        txt_desc_1 = Text("La señal viaja...", font=FUENTE, font_size=24 * escala, color=TINTA_NEGRA).move_to(pos_texto)
+        txt_desc_2 = Text("f(x) transforma... la señal se desvanece", font=FUENTE, font_size=24 * escala, color=MARRON_QUIJOTE).move_to(pos_texto)
+        txt_desc_3 = Text("Sancho lleva la copia por el atajo", font=FUENTE, font_size=24 * escala, color=NARANJA_TERRACOTA).move_to(pos_texto)
+        txt_desc_4 = Text("Realidad + visión se suman en +", font=FUENTE, font_size=24 * escala, color=MARRON_OSCURO).move_to(pos_texto)
 
         def crear_imagen_pixelada(resolucion="alta"):
             cuadros = []
@@ -6483,7 +6135,7 @@ class Presentacion(Slide):
 
         txt_input = Text("Imagen Real", font=FUENTE, font_size=18, color=MARRON_OSCURO).next_to(img_alta_x, UP)
         self.play(FadeIn(img_alta_x, shift=DOWN), FadeIn(txt_input), FadeIn(txt_desc_1))
-        self.next_slide()
+        self._siguiente()
 
         self.play(ReplacementTransform(txt_desc_1, txt_desc_2))
         txt_f = Text("Visión Alterada f(x)", font=FUENTE, font_size=18, color=MARRON_QUIJOTE).next_to(img_baja_f, UP)
@@ -6491,7 +6143,7 @@ class Presentacion(Slide):
             ReplacementTransform(img_alta_x.copy(), img_baja_f),
             FadeIn(txt_f)
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(ReplacementTransform(txt_desc_2, txt_desc_3))
         txt_skip = Text("La Copia de Sancho", font=FUENTE, font_size=18, color=NARANJA_TERRACOTA).next_to(line_across, UP)
@@ -6508,7 +6160,7 @@ class Presentacion(Slide):
             img_alta_copia.animate.move_to(pos_add).shift(UP*1.2),
             run_time=0.8
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(ReplacementTransform(txt_desc_3, txt_desc_4))
         txt_output = Text("Realidad Recuperada", font=FUENTE, font_size=18, color=MARRON_OSCURO).next_to(img_final_y, UP)
@@ -6521,12 +6173,11 @@ class Presentacion(Slide):
         
         caja_eq = SurroundingRectangle(eq_final, color=NARANJA_TERRACOTA, buff=0.2, stroke_width=2)
         self.play(Create(caja_eq))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()
 
     def slide_dropout(self):
-        """Diapositiva: Slide Dropout."""
 
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
@@ -6568,7 +6219,6 @@ class Presentacion(Slide):
         grupo_intro = VGroup(label_proposito, label_eq, eq_dropout, explicacion).arrange(DOWN, buff=0.4).move_to(ORIGIN)
 
         self.play(FadeIn(grupo_intro, shift=DOWN*0.2), run_time=1.5)
-        self.next_slide()
 
         self.play(FadeOut(grupo_intro))
 
@@ -6605,7 +6255,7 @@ class Presentacion(Slide):
         red_grupo = VGroup(conexiones, nodos, etiquetas)
 
         self.play(FadeIn(red_grupo))
-        self.next_slide()
+        self._siguiente()
 
         def aplicar_dropout_capa(indice_capa, indices_apagar, texto_explicativo):
             animaciones = []
@@ -6627,7 +6277,6 @@ class Presentacion(Slide):
             texto = Text(texto_explicativo, font=FUENTE, font_size=20, color=TINTA_NEGRA).to_edge(DOWN, buff=0.5)
             
             self.play(*animaciones, FadeIn(texto, shift=UP), run_time=1.5)
-            self.next_slide()
             self.play(FadeOut(texto))
 
         aplicar_dropout_capa(1, [1, 4], "Dense 1: Desactivamos el 40% de las neuronas al azar.")
@@ -6640,10 +6289,9 @@ class Presentacion(Slide):
         ).to_edge(DOWN, buff=0.5)
 
         self.play(Write(texto_metafora))
-        self.next_slide()
+        self._siguiente()
 
     def slide_cache_blocking(self):
-        """Diapositiva: Cache Blocking (Tiling) — sin referencias a código, animaciones mejoradas."""
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
 
@@ -6698,10 +6346,10 @@ class Presentacion(Slide):
         self.play(DrawBorderThenFill(cpu_box), Write(label_cpu))
         self.play(GrowArrow(flecha_bus), FadeIn(label_bus))
         self.play(DrawBorderThenFill(cache_box), Write(label_cache))
-        self.next_slide()
+        self._siguiente()
 
         texto_prob = Text(
-            "Multiplicar matrices exige leer filas y columnas enteras a la vez",
+            "MatMul exige filas y columnas enteras a la vez",
             font=FUENTE, font_size=20, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_prob))
@@ -6712,13 +6360,13 @@ class Presentacion(Slide):
             fila_datos.animate.set_fill(ROJO_TOMATE, opacity=0.85),
             col_datos.animate.set_fill(ROJO_TOMATE, opacity=0.85),
         )
-        self.next_slide()
+        self._siguiente()
 
         grupo_prob = VGroup(fila_datos, col_datos)
         self.play(grupo_prob.animate.move_to(cache_box.get_center()).scale(0.75), run_time=1.2)
 
         texto_error = Text(
-            "¡Demasiado grande! La caché se desborda — hay que releer desde RAM",
+            "Caché insuficiente → releer desde RAM",
             font=FUENTE, font_size=19, color=ROJO_TOMATE, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(FadeTransform(texto_prob, texto_error))
@@ -6726,11 +6374,10 @@ class Presentacion(Slide):
             Wiggle(cache_box, scale_value=1.12, rotation_angle=0.04),
             Flash(cache_box, color=ROJO_TOMATE, line_length=0.38, num_lines=10)
         )
-        self.next_slide()
         self.play(FadeOut(grupo_prob))
 
         texto_sol = Text(
-            "Solución: dividir la matriz en mosaicos que sí caben en caché",
+            "Mosaicos que caben en caché",
             font=FUENTE, font_size=20, color=VERDE_OLIVA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(FadeTransform(texto_error, texto_sol))
@@ -6749,11 +6396,10 @@ class Presentacion(Slide):
             )
             self.play(FadeOut(bloque, shift=RIGHT * 0.5), run_time=0.4)
 
-        self.next_slide()
 
         self.play(FadeOut(texto_sol))
         concl = Text(
-            "Menos viajes a RAM → hasta 10× más velocidad en multiplicación de matrices",
+            "Menos RAM → hasta 10× más rápido",
             font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.25)
         self.play(
@@ -6763,11 +6409,10 @@ class Presentacion(Slide):
         )
         self.play(Flash(cache_box.get_center(), color=ORO_VIEJO, line_length=0.5, num_lines=12))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_parallel_rayon(self):
-        """Diapositiva: Paralelización — sin referencias a código, animaciones mejoradas."""
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
 
@@ -6787,10 +6432,10 @@ class Presentacion(Slide):
         ]).arrange_in_grid(6, 6, buff=0.03).move_to(DOWN * 0.3)
 
         self.play(FadeIn(matriz, lag_ratio=0.03), run_time=1.0)
-        self.next_slide()
+        self._siguiente()
 
         texto_seq = Text(
-            "Un solo núcleo calcula cada celda del resultado en serie, una tras otra",
+            "Un núcleo · una celda a la vez",
             font=FUENTE, font_size=20, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_seq))
@@ -6808,7 +6453,7 @@ class Presentacion(Slide):
         label_lento = Text("Lento: O(m·n·k) en serie", font=FUENTE, font_size=18,
                            color=ROJO_CONTRA, weight=BOLD).next_to(matriz, UP, buff=0.28)
         self.play(FadeIn(label_lento, shift=DOWN*0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(texto_seq), FadeOut(trabajador), FadeOut(label_lento),
@@ -6817,7 +6462,7 @@ class Presentacion(Slide):
         )
 
         texto_div = Text(
-            "La biblioteca divide el buffer de resultado en franjas de filas independientes",
+            "Buffer dividido en franjas independientes",
             font=FUENTE, font_size=20, color=VERDE_OLIVA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_div))
@@ -6831,7 +6476,7 @@ class Presentacion(Slide):
             chunk3.animate.shift(DOWN * 0.28),
             run_time=0.9
         )
-        self.next_slide()
+        self._siguiente()
 
         colores_hilos = [ROJO_TOMATE, VERDE_OLIVA, ORO_VIEJO]
         nombres_hilos = ["Hilo 1", "Hilo 2", "Hilo 3"]
@@ -6849,7 +6494,7 @@ class Presentacion(Slide):
         )
 
         texto_par = Text(
-            "Cada hilo escribe en su franja exclusiva — sin esperas ni bloqueos",
+            "Cada hilo: franja exclusiva, sin bloqueos",
             font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(FadeTransform(texto_div, texto_par))
@@ -6865,7 +6510,7 @@ class Presentacion(Slide):
               for chunk, color in zip(chunks, colores_hilos)],
             run_time=0.8
         )
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             *[FadeOut(lbl) for lbl in label_t],
@@ -6876,17 +6521,16 @@ class Presentacion(Slide):
         )
 
         concl = Text(
-            "Resultado: el tiempo se divide entre el número de núcleos disponibles",
+            "Tiempo ÷ núcleos disponibles",
             font=FUENTE, font_size=21, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.3)
         self.play(Write(concl), Indicate(matriz, color=ORO_VIEJO, scale_factor=1.04))
         self.play(Flash(matriz.get_center(), color=ORO_VIEJO, line_length=0.6, num_lines=14))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_batched_matmul(self):
-        """Diapositiva: Batched MatMul — sin referencias a código, animaciones mejoradas."""
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
 
@@ -6940,10 +6584,10 @@ class Presentacion(Slide):
             LaggedStart(*[FadeIn(sublabels[i]) for i in range(3)], lag_ratio=0.2),
             run_time=0.8
         )
-        self.next_slide()
+        self._siguiente()
 
         texto_seq = Text(
-            "Sin batching: cada cabeza de atención espera a que la anterior termine",
+            "Sin batch: cabezas en serie",
             font=FUENTE, font_size=20, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_seq))
@@ -6958,7 +6602,7 @@ class Presentacion(Slide):
                            font_size=18, color=ROJO_CONTRA, weight=BOLD)
         label_lento.next_to(matrices, UP, buff=0.65)
         self.play(FadeIn(label_lento, shift=DOWN*0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(texto_seq), FadeOut(label_lento),
@@ -6966,7 +6610,7 @@ class Presentacion(Slide):
         )
 
         texto_batch = Text(
-            "Con batching: las cabezas se agrupan en un solo tensor y se despachan juntas",
+            "Con batch: todas a la vez",
             font=FUENTE, font_size=20, color=OCRE_CERVANTINO, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_batch))
@@ -6980,10 +6624,10 @@ class Presentacion(Slide):
         label_tensor.next_to(batch_box, DOWN, buff=0.22)
 
         self.play(Create(batch_box), FadeIn(label_tensor, shift=UP*0.15))
-        self.next_slide()
+        self._siguiente()
 
         texto_par = Text(
-            "Cada cabeza se asigna a un hilo distinto — todas calculan al mismo tiempo",
+            "Un hilo por cabeza · simultáneo",
             font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(FadeTransform(texto_batch, texto_par))
@@ -7008,11 +6652,10 @@ class Presentacion(Slide):
         label_rapido.next_to(matrices, UP, buff=0.65)
         self.play(FadeIn(label_rapido, shift=DOWN*0.2))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_intro_matmul_optimizacion(self):
-        """Diapositiva introductoria: Por qué optimizar MatMul en un Transformer."""
         sol_fondo      = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
 
@@ -7029,7 +6672,7 @@ class Presentacion(Slide):
             font=FUENTE, font_size=24, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.35)
         self.play(Write(pregunta))
-        self.next_slide()
+        self._siguiente()
 
         radio = 1.6
         datos_pastel = [
@@ -7123,7 +6766,7 @@ class Presentacion(Slide):
             for j in range(1, len(datos_pastel))
         ]
         self.play(LaggedStart(*animaciones_etiquetas, lag_ratio=0.3), run_time=1.2)
-        self.next_slide()
+        self._siguiente()
 
         for fila in razones_grupo:
             self.play(
@@ -7131,7 +6774,7 @@ class Presentacion(Slide):
                 FadeIn(fila[1], shift=RIGHT * 0.2),
                 run_time=0.7
             )
-        self.next_slide()
+        self._siguiente()
 
         
         concl = Text(
@@ -7152,11 +6795,10 @@ class Presentacion(Slide):
             run_time=1.0
         )
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_simd(self):
-        """Diapositiva: SIMD Vectorization — sin referencias a código, animaciones mejoradas."""
         sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
 
@@ -7190,10 +6832,10 @@ class Presentacion(Slide):
             run_time=1.2
         )
         self.play(FadeIn(etiquetas_val, lag_ratio=0.05), FadeIn(indices), run_time=0.8)
-        self.next_slide()
+        self._siguiente()
 
         texto_escalar = Text(
-            "Modo escalar: la CPU procesa un número por ciclo de reloj",
+            "Escalar: 1 número / ciclo",
             font=FUENTE, font_size=21, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.25)
         self.play(Write(texto_escalar))
@@ -7215,7 +6857,7 @@ class Presentacion(Slide):
         label_ciclos = Text("3 ciclos → 3 elementos", font=FUENTE, font_size=18, color=ROJO_CONTRA, weight=BOLD)
         label_ciclos.next_to(fila, UP, buff=0.3)
         self.play(FadeIn(label_ciclos, shift=DOWN*0.2))
-        self.next_slide()
+        self._siguiente()
 
         self.play(
             FadeOut(texto_escalar), FadeOut(reloj_grupo), FadeOut(label_ciclos),
@@ -7224,7 +6866,7 @@ class Presentacion(Slide):
         )
 
         texto_simd = Text(
-            "Modo vectorial: la CPU calcula 4 números en un solo ciclo",
+            "SIMD: 4 números / ciclo",
             font=FUENTE, font_size=21, color=ROJO_TOMATE, weight=BOLD
         ).next_to(linea, DOWN, buff=0.25)
         self.play(Write(texto_simd))
@@ -7250,10 +6892,10 @@ class Presentacion(Slide):
         label_1ciclo = Text("1 ciclo → 4 elementos", font=FUENTE, font_size=18,
                             color=VERDE_OLIVA, weight=BOLD).next_to(fila, UP, buff=0.3)
         self.play(FadeIn(label_1ciclo, shift=DOWN*0.2))
-        self.next_slide()
+        self._siguiente()
 
         texto_avance = Text(
-            "El registro avanza de 4 en 4 — cubriendo todo el array en pocos ciclos",
+            "Registro: avanza de 4 en 4",
             font=FUENTE, font_size=20, color=MARRON_OSCURO
         ).next_to(linea, DOWN, buff=0.25)
         self.play(FadeTransform(texto_simd, texto_avance), FadeOut(label_1ciclo))
@@ -7275,7 +6917,6 @@ class Presentacion(Slide):
                 run_time=0.6
             )
 
-        self.next_slide()
 
         self.play(FadeOut(grupo_simd), FadeOut(texto_avance))
         conclusion = Text(
@@ -7289,115 +6930,102 @@ class Presentacion(Slide):
         )
         self.play(Flash(fila.get_center(), color=ORO_VIEJO, line_length=0.5, num_lines=14))
 
-        self.next_slide()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_roadmap(self):
-        """Diapositiva: Hoja de Ruta de la Presentación"""
-        sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
         llanuras_fondo = crear_llanuras_manchegas()
+        adornos = self._crear_adornos_esquinas(escala=0.7, buff=0.7)
+        # Hacer girar el molino
+        adornos[0][-1].add_updater(lambda m, dt: m.rotate(-dt * 0.5))
 
         titulo, linea = self.crear_titulo(
-            "Hoja de Ruta: El Camino a Seguir", 
-            palabra_clave="Ruta", 
+            "Hoja de Ruta",
+            palabra_clave="Ruta",
             color_clave=ORO_VIEJO
         )
 
-        self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo))
+        self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
 
+        # Cuatro pasos con color, ícono y etiqueta corta
         pasos = [
-            ("Operaciones\nTensoriales", ROJO_TOMATE),
-            ("Arquitectura\ndel Modelo", VERDE_OLIVA),
-            ("Fase de\nEntrenamiento", ORO_VIEJO),
-            ("Muestra\nPráctica", NARANJA_TERRACOTA)
+            ("Tensores",      ROJO_TOMATE,      crear_rueda_carreta),
+            ("Arquitectura",  VERDE_OLIVA,       crear_molino),
+            ("Tokenización",  ORO_VIEJO,         crear_pergamino),
+            ("Demo",          NARANJA_TERRACOTA, crear_herradura),
         ]
 
-        nodos = VGroup()
-        textos = VGroup()
-        iconos = VGroup()
+        nodos   = VGroup()
+        textos  = VGroup()
+        iconos  = VGroup()
         flechas = VGroup()
 
-        for i, (texto, color) in enumerate(pasos):
-            anillo = Circle(radius=0.5, stroke_color=color, stroke_width=5, fill_color=PAPEL_CREMA, fill_opacity=0.9)
-            numero = Text(str(i + 1), font=FUENTE, font_size=36, color=color, weight=BOLD)
+        for i, (etiqueta, color, fn_icono) in enumerate(pasos):
+            # Círculo numerado
+            anillo = Circle(
+                radius=0.55,
+                stroke_color=color, stroke_width=5,
+                fill_color=PAPEL_CREMA, fill_opacity=0.95
+            )
+            numero = Text(str(i + 1), font=FUENTE, font_size=38, color=color, weight=BOLD)
             numero.move_to(anillo.get_center())
             grupo_nodo = VGroup(anillo, numero)
-            
-            label = Text(texto, font=FUENTE, font_size=18, color=TINTA_NEGRA, weight=BOLD, line_spacing=1)
-            
-            if i == 0:
-                icono = VGroup(*[
-                    Square(side_length=0.15, fill_color=color, fill_opacity=0.8, stroke_width=1, stroke_color=color) 
-                    for _ in range(4)
-                ]).arrange_in_grid(2, 2, buff=0.05)
-            elif i == 1:
-                n1 = Dot(radius=0.06, color=color).move_to(LEFT*0.15 + UP*0.1)
-                n2 = Dot(radius=0.06, color=color).move_to(LEFT*0.15 + DOWN*0.1)
-                n3 = Dot(radius=0.06, color=color).move_to(RIGHT*0.15)
-                l1 = Line(n1.get_center(), n3.get_center(), stroke_width=2, color=color)
-                l2 = Line(n2.get_center(), n3.get_center(), stroke_width=2, color=color)
-                icono = VGroup(l1, l2, n1, n2, n3)
-            elif i == 2:
-                ejes = VGroup(
-                    Line(DOWN*0.15 + LEFT*0.15, DOWN*0.15 + RIGHT*0.2, stroke_width=2, color=color),
-                    Line(DOWN*0.15 + LEFT*0.15, UP*0.2 + LEFT*0.15, stroke_width=2, color=color)
-                )
-                curva = Line(UP*0.1 + LEFT*0.05, DOWN*0.05 + RIGHT*0.15, stroke_width=3, color=color).add_tip(tip_length=0.1, tip_width=0.1)
-                icono = VGroup(ejes, curva)
-            else:
-                icono = Triangle(fill_color=color, fill_opacity=0.8, stroke_width=1, stroke_color=color).scale(0.2).rotate(-90 * DEGREES)
-                
+
+            # Icono cervantino pequeño encima
+            icono = fn_icono().scale(0.28)
+
+            # Etiqueta corta abajo
+            label = Text(etiqueta, font=FUENTE, font_size=20, color=MARRON_OSCURO, weight=BOLD)
+
             nodos.add(grupo_nodo)
-            textos.add(label)
             iconos.add(icono)
+            textos.add(label)
 
-        nodos.arrange(RIGHT, buff=1.5).move_to(DOWN * 0.2)
-        
+        # Posicionar nodos en fila centrada
+        nodos.arrange(RIGHT, buff=1.8).move_to(DOWN * 0.3)
+
         for i in range(len(pasos)):
-            textos[i].next_to(nodos[i], DOWN, buff=0.4)
-            iconos[i].next_to(nodos[i], UP, buff=0.3)
+            iconos[i].next_to(nodos[i], UP,   buff=0.35)
+            textos[i].next_to(nodos[i], DOWN, buff=0.35)
 
+        # Flechas entre nodos
         for i in range(len(pasos) - 1):
-            flecha = Line(
-                nodos[i].get_right() + RIGHT*0.1, 
-                nodos[i+1].get_left() + LEFT*0.1, 
-                color=MARRON_OSCURO, stroke_width=4
-            ).add_tip(tip_length=0.2, tip_width=0.2)
+            flecha = Arrow(
+                nodos[i].get_right()   + RIGHT * 0.05,
+                nodos[i+1].get_left()  + LEFT  * 0.05,
+                buff=0.0, color=MARRON_OSCURO,
+                stroke_width=4, max_tip_length_to_length_ratio=0.25
+            )
             flechas.add(flecha)
 
+        # Animación: aparece nodo → icono → flecha
         for i in range(len(pasos)):
             self.play(
-                DrawBorderThenFill(nodos[i][0]), 
-                Write(nodos[i][1]), 
+                DrawBorderThenFill(nodos[i][0]),
+                Write(nodos[i][1]),
+                run_time=0.5
+            )
+            self.play(
+                FadeIn(iconos[i], scale=0.6),
+                Write(textos[i]),
                 run_time=0.6
             )
-            
-            if i == 0:
-                self.play(Write(textos[i]), DrawBorderThenFill(iconos[i], lag_ratio=0.2), run_time=0.8)
-            elif i == 1:
-                self.play(Write(textos[i]), Create(iconos[i], lag_ratio=0.3), run_time=0.8)
-            elif i == 2:
-                self.play(Write(textos[i]), Create(iconos[i][0]), run_time=0.4)
-                self.play(Create(iconos[i][1]), run_time=0.4)
-            else:
-                self.play(Write(textos[i]), DrawBorderThenFill(iconos[i]), run_time=0.5)
-                self.play(Flash(iconos[i], color=NARANJA_TERRACOTA, line_length=0.2), run_time=0.4)
-            
             if i < len(pasos) - 1:
-                self.play(Create(flechas[i]), run_time=0.6)
+                self.play(Create(flechas[i]), run_time=0.5)
 
-        self.next_slide()
+        self._siguiente()
 
+        # Pulso final en todos los nodos
         self.play(
-            *[Indicate(nodos[i][0], color=MARRON_QUIJOTE, scale_factor=1.1) for i in range(len(pasos))],
+            *[Indicate(nodos[i][0], color=ORO_VIEJO, scale_factor=1.12) for i in range(len(pasos))],
             run_time=1.2
         )
-        
-        self.next_slide()
+
+        adornos[0][-1].clear_updaters()
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_tokenizacion(self):
-        """Diapositiva: Slide Tokenizacion."""
 
         titulo, linea = self.crear_titulo(
             "La Tokenización", 
@@ -7408,9 +7036,9 @@ class Presentacion(Slide):
         frase = "Confía en el tiempo, que suele dar dulces salidas a muchas amargas dificultades"
 
         p1 = Text(
-            "1. Por palabra: Vocabulario infinito, muy ineficiente.", 
-            font=FUENTE, font_size=24, color=TINTA_NEGRA,
-            t2c={"Por palabra:": MARRON_OSCURO, "infinito": NARANJA_TERRACOTA}
+            "1. Por palabra  →  vocab infinito", 
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD,
+            t2c={"Por palabra": MARRON_OSCURO}
         )
         tokens_palabra = frase.split(" ")
         
@@ -7425,9 +7053,9 @@ class Presentacion(Slide):
         grupo_palabra = VGroup(p1, ej_palabra).arrange(DOWN, aligned_edge=LEFT, buff=0.25)
 
         p2 = Text(
-            "2. Por carácter: Secuencias larguísimas, pierde contexto.", 
-            font=FUENTE, font_size=24, color=TINTA_NEGRA,
-            t2c={"Por carácter:": MARRON_OSCURO, "pierde contexto": NARANJA_TERRACOTA}
+            "2. Por carácter  →  secuencias gigantes", 
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD,
+            t2c={"Por carácter": MARRON_OSCURO}
         )
         tokens_caracter = [c if c != ' ' else '_' for c in frase]
         
@@ -7444,9 +7072,9 @@ class Presentacion(Slide):
 
  
         p3 = Text(
-            "3. Sub-palabras (BPE): Algo más equilibrado.", 
+            "3. BPE  →  balance ideal", 
             font=FUENTE, font_size=26, color=TINTA_NEGRA, weight=BOLD, 
-            t2c={"Sub-palabras (BPE):": NARANJA_TERRACOTA, "equilibrado.": NARANJA_TERRACOTA}
+            t2c={"BPE": NARANJA_TERRACOTA}
         )
     
         tokens_bpe = [
@@ -7469,18 +7097,18 @@ class Presentacion(Slide):
         puntos.next_to(linea, DOWN, buff=0.5).shift(LEFT * 0.5)
 
         self.play(Write(titulo), Create(linea))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(p1, shift=RIGHT * 0.3))
         self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_palabra], lag_ratio=0.05))
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(p2, shift=RIGHT * 0.3))
         self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_caracter], lag_ratio=0.01)) 
-        self.next_slide()
+        self._siguiente()
 
         self.play(FadeIn(p3, shift=RIGHT * 0.3))
         self.play(LaggedStart(*[GrowFromCenter(b) for b in ej_bpe], lag_ratio=0.05))
-        self.next_slide()
+        self._siguiente()
 
         self.limpiar_pantalla()

@@ -1,118 +1,87 @@
-//! Capa de Dropout 
+//! # El Olvido Virtuoso — Dropout
 //!
-//! Dropout es una técnica de regularización que pone a cero de forma aleatoria las activaciones
-//! durante el entrenamiento para prevenir el sobreajuste (overfitting). Durante la inferencia,
-//! pasa los valores sin cambios.
+//! Como el caballero que de vez en cuando olvida alguna hazaña para no volverse
+//! arrogante, el Dropout obliga al modelo a no depender de ninguna neurona en
+//! particular. En cada paso de entrenamiento, algunas neuronas se "duermen"
+//! al azar, forzando al resto a aprender representaciones más robustas.
+//!
+//! Durante la inferencia (cuando Molinete ya habla con el mundo), todas las
+//! neuronas permanecen despiertas — el olvido fue solo una práctica de humildad.
 
 use crate::tensor::Tensor;
 
-/// Capa de dropout entrenable
-///
-/// Esta capa descarta activaciones aleatoriamente durante el entrenamiento como regularización.
+/// Capa de dropout entrenable — el ejercicio de la humildad neuronal
 pub struct DropoutEntrenable {
-    pub tasa: f32,
-    pub entrenando: bool,
+    pub tasa: f32,       // Probabilidad de silenciar cada neurona (0.0 = sin silencio)
+    pub entrenando: bool, // true durante el entrenamiento, false en inferencia
 }
 
 impl DropoutEntrenable {
-    /// Crea una nueva capa de dropout
-    ///
-    /// # Argumentos
-    ///
-    /// * `tasa` - Probabilidad de dropout (0.0 = sin dropout, 1.0 = descartar todo)
+    /// Forja una nueva capa de dropout con la tasa de silencio dada
     pub fn new(tasa: f32) -> Self {
-        assert!(
-            (0.0..=1.0).contains(&tasa),
-            "La tasa de dropout debe estar entre 0.0 y 1.0"
-        );
-        Self {
-            tasa,
-            entrenando: true,
-        }
+        assert!((0.0..=1.0).contains(&tasa), "La tasa de dropout debe estar entre 0.0 y 1.0");
+        Self { tasa, entrenando: true }
     }
 
-    /// Paso hacia adelante (forward) con almacenamiento en caché para el paso hacia atrás
+    /// Paso hacia adelante — el sorteo del olvido
     ///
-    /// # Argumentos
-    ///
-    /// * `x` - Tensor de entrada
-    ///
-    /// # Retorna
-    ///
-    /// Tupla de (salida, cache) donde cache almacena la máscara de dropout
+    /// Durante el entrenamiento, cada neurona se silencia con probabilidad `tasa`.
+    /// Las sobrevivientes se escalan por 1/(1-tasa) para mantener la misma
+    /// esperanza matemática — el llamado "inverted dropout".
     pub fn forward(&self, x: &Tensor) -> (Tensor, CacheDropout) {
         if !self.entrenando || self.tasa == 0.0 {
-            // Sin dropout - simplemente dejar pasar
-            let cache = CacheDropout {
-                mascara: None,
-                escala: 1.0,
-            };
-            return (x.clone(), cache);
+            // En inferencia, todas las neuronas contribuyen sin modificación
+            return (x.clone(), CacheDropout { mascara: None, escala: 1.0 });
         }
 
         if self.tasa >= 1.0 {
-            // Descartar todo
-            let cache = CacheDropout {
-                mascara: Some(vec![false; x.datos.len()]),
-                escala: 1.0,
-            };
-            return (Tensor::ceros(x.forma.clone()), cache);
+            // Silencio total — caso extremo, raramente usado
+            return (Tensor::ceros(x.forma.clone()),
+                    CacheDropout { mascara: Some(vec![false; x.datos.len()]), escala: 1.0 });
         }
 
-        // Aplicar dropout con escalado
+        // El escudo de compensación: las neuronas que sobreviven reciben más responsabilidad
         let escala = 1.0 / (1.0 - self.tasa);
         let mut mascara = Vec::with_capacity(x.datos.len());
         let mut salida = Tensor::ceros(x.forma.clone());
 
         for i in 0..x.datos.len() {
-            let mantener = rand::random::<f32>() > self.tasa;
+            let mantener = rand::random::<f32>() > self.tasa; // ¿sobrevive este escudero?
             mascara.push(mantener);
             if mantener {
-                salida.datos[i] = x.datos[i] * escala;
+                salida.datos[i] = x.datos[i] * escala; // el sobreviviente carga más peso
             }
+            // La neurona silenciada aporta cero — descansa en su lecho
         }
 
-        let cache = CacheDropout {
-            mascara: Some(mascara),
-            escala,
-        };
-
-        (salida, cache)
+        (salida, CacheDropout { mascara: Some(mascara), escala })
     }
 
-    /// Paso hacia atrás (backward) a través de dropout
+    /// Paso hacia atrás — el error solo fluye por las neuronas que sobrevivieron
     ///
-    /// # Argumentos
-    ///
-    /// * `grad_salida` - Gradiente que fluye hacia atrás desde la siguiente capa
-    /// * `cache` - Máscara de dropout almacenada en caché desde el paso hacia adelante
-    ///
-    /// # Retorna
-    ///
-    /// Gradiente con respecto a la entrada
+    /// Usamos la misma máscara del forward: las neuronas que fueron silenciadas
+    /// no reciben gradiente (su contribución al error fue nula).
     pub fn backward(&self, grad_salida: &Tensor, cache: &CacheDropout) -> Tensor {
         if let Some(mascara) = &cache.mascara {
-            // Aplicar la misma máscara a los gradientes
             let mut grad_entrada = Tensor::ceros(grad_salida.forma.clone());
             for (i, &mantener) in mascara.iter().enumerate() {
                 if mantener {
                     grad_entrada.datos[i] = grad_salida.datos[i] * cache.escala;
                 }
-                // else: el gradiente es cero (el valor fue descartado)
+                // La neurona silenciada no propaga gradiente — su lección es la ausencia
             }
             grad_entrada
         } else {
-            // No se aplicó dropout, simplemente pasar el gradiente
+            // Sin dropout activo, el gradiente fluye libremente
             grad_salida.clone()
         }
     }
 }
 
-/// Caché para el paso hacia atrás del dropout
+/// Tesoro del dropout — guarda la máscara para el paso hacia atrás
 pub struct CacheDropout {
-    /// Máscara de dropout (true = mantenido, false = descartado)
-    /// None si el dropout estaba desactivado
+    /// La máscara del sorteo: true = neurona viva, false = neurona silenciada
     pub mascara: Option<Vec<bool>>,
-    /// Factor de escalado aplicado a los valores mantenidos
+    /// El factor de compensación aplicado a las sobrevivientes
     pub escala: f32,
 }

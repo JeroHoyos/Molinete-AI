@@ -1,143 +1,115 @@
-//! Operaciones con Tensores para Redes Neuronales
+//! # El Pergamino de los Números — Módulo de Tensores
 //!
-//! Este módulo proporciona una biblioteca de tensores mínima optimizada para modelos transformer.
-//! Los tensores almacenan arreglos multidimensionales con información de forma (shape) y saltos (stride)
-//! para una indexación y disposición en memoria eficientes.
+//! Así como Sancho Panza cargaba las alforjas con todo lo necesario para la aventura,
+//! este módulo carga los valores numéricos que alimentan el entendimiento de Molinete.
 //!
-//! ## Conceptos Principales
+//! Un **Tensor** no es sino un pergamino de muchas dimensiones: puede ser un número suelto
+//! (escalar), una fila de palabras (vector), una tabla de conocimiento (matriz), o incluso
+//! un cofre de cofres de cofres (tensor 4D). La magia reside en que toda esa riqueza vive
+//! en una única hilera continua de memoria, como cuentas ensartadas en un hilo de seda.
 //!
-//! - **Datos (Data)**: Un `Vec<f32>` plano que almacena todos los elementos en orden de fila mayor (row-major order).
-//! - **Forma (Shape)**: Dimensiones del tensor (ej., `[lote, secuencia, dimension]`).
-//! - **Saltos (Strides)**: Tamaños de paso para cada dimensión para calcular los índices planos.
+//! ## Los Tres Pilares del Pergamino
+//!
+//! - **datos**: El hilo de seda — un `Vec<f32>` plano con todos los valores.
+//! - **forma**: La descripción del cofre — sus dimensiones, ej. `[lote, secuencia, embedding]`.
+//! - **saltos**: El mapa del tesoro — cuántos pasos dar en memoria para avanzar en cada dimensión.
 //!
 //! ## Ejemplo
 //!
 //! ```rust
 //! use molineteai::Tensor;
 //!
-//! // Crear una matriz 2x3
-//! let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-//! let tensor = Tensor::new(data, vec![2, 3]);
+//! // Una tabla de sabiduría de 2 filas y 3 columnas
+//! let datos = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+//! let pergamino = Tensor::new(datos, vec![2, 3]);
 //!
-//! // Multiplicación de matrices
-//! let other = Tensor::new(vec![1.0, 0.0, 0.0, 1.0, 1.0, 1.0], vec![3, 2]);
-//! let result = tensor.matmul(&other);
-//! assert_eq!(result.shape, vec![2, 2]);
+//! // Multiplicación de pergaminos (matmul)
+//! let otro = Tensor::new(vec![1.0, 0.0, 0.0, 1.0, 1.0, 1.0], vec![3, 2]);
+//! let resultado = pergamino.matmul(&otro);
+//! assert_eq!(resultado.forma, vec![2, 2]);
 //! ```
 //!
-//! ## Optimizaciones de Rendimiento
+//! ## Las Hazañas del Paralelismo
 //!
-//! Varias operaciones utilizan procesamiento en paralelo a través de Rayon para mejorar el rendimiento:
+//! Varias operaciones usan la lanza de Rayon para partir el trabajo entre múltiples núcleos:
 //!
-//! - **Multiplicación de matrices**: Algoritmo de bloqueo de caché (cache-blocked) con procesamiento de filas en paralelo.
-//! - **Operaciones elemento a elemento (Element-wise)**: Iteración paralela sobre los datos.
-//! - **Softmax**: Cálculo en paralelo por fila.
-//!
-//! Estas optimizaciones proporcionan un aumento de velocidad de 2 a 4 veces en CPUs multinúcleo, 
-//! manteniendo el código educativo y comprensible. Todas las optimizaciones están claramente marcadas 
-//! en el código con comentarios que explican el enfoque.
+//! - **Multiplicación de matrices**: bloques de caché con filas en paralelo (2-4× más veloz).
+//! - **Operaciones elemento a elemento**: iteración paralela sobre los datos.
+//! - **Softmax**: cálculo por fila en paralelo.
 
-// Librería externa para procesar datos en paralelo (multihilo) y ganar velocidad.
+// Rayon: la cuadrilla de escuderos que trabajan al unísono para acelerar el cómputo.
 use rayon::prelude::*;
 
-/// Un arreglo multidimensional para cálculos de redes neuronales
+/// Un pergamino multidimensional para los cálculos del Transformador
 ///
-/// Los tensores almacenan datos en un `Vec<f32>` contiguo con información de forma y saltos
-/// para una indexación multidimensional eficiente. Todas las operaciones usan una disposición 
-/// de memoria de fila mayor (estilo C, row-major layout).
+/// Los tensores guardan sus valores en un `Vec<f32>` contiguo con información de forma
+/// y saltos, permitiendo indexación multidimensional eficiente. Todo se almacena en
+/// orden de fila mayor (estilo C, como los libros que se leen de izquierda a derecha).
 ///
 /// # Campos
 ///
-/// - `datos`: Arreglo plano de valores f32
-/// - `forma`: Dimensiones (ej., `[2, 3]` para una matriz de 2x3)
-/// - `saltos`: Tamaños de paso para cada dimensión (calculados a partir de la forma)
+/// - `datos`: Hilera plana de valores f32 — las palabras del pergamino.
+/// - `forma`: Las dimensiones del cofre, ej. `[2, 3]` para una tabla de 2×3.
+/// - `saltos`: Los pasos para navegar la memoria — calculados desde la forma.
 ///
 /// # Disposición en Memoria
 ///
-/// Para la forma `[2, 3]`, los datos se almacenan como: `[fila0_col0, fila0_col1, fila0_col2, fila1_col0, fila1_col1, fila1_col2]`
+/// Para la forma `[2, 3]`, los datos se guardan así:
+/// `[fila0_col0, fila0_col1, fila0_col2, fila1_col0, fila1_col1, fila1_col2]`
 ///
-/// Los saltos (strides) serían `[3, 1]`, lo que significa:
-/// - Moverse un paso en la dimensión 0 (filas) avanza 3 posiciones en los datos
-/// - Moverse un paso en la dimensión 1 (columnas) avanza 1 posición en los datos
+/// Los saltos serían `[3, 1]`:
+/// - Avanzar una fila = saltar 3 posiciones en los datos.
+/// - Avanzar una columna = saltar 1 posición en los datos.
 #[derive(Clone, Debug)]
 pub struct Tensor {
-    /// Almacenamiento plano de todos los elementos del tensor
+    /// Todos los valores del tensor en una hilera plana de memoria
     pub datos: Vec<f32>,
-    /// Forma del tensor (dimensiones)
+    /// Las dimensiones del tensor — la forma del cofre
     pub forma: Vec<usize>,
-    /// Saltos para cada dimensión (calculados a partir de la forma)
+    /// Los saltos para cada dimensión — el mapa del tesoro
     pub saltos: Vec<usize>,
 }
 
 impl Tensor {
-    /// Crea un nuevo tensor con los datos y la forma dados
+    /// Forja un nuevo tensor con los datos y la forma dados
+    ///
+    /// Como un herrero que da forma al metal, este constructor verifica que el número
+    /// de valores coincida con el producto de las dimensiones antes de crear el tensor.
     ///
     /// # Argumentos
     ///
-    /// * `data` - Vector plano de valores
-    /// * `shape` - Dimensiones del tensor
+    /// * `datos` - La hilera plana de valores
+    /// * `forma` - Las dimensiones del tensor
     ///
     /// # Pánicos
     ///
-    /// Entra en pánico si el producto de las dimensiones de la forma no es igual a la longitud de los datos
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
-    /// assert_eq!(tensor.shape, vec![2, 2]);
-    /// ```
+    /// Si el producto de las dimensiones no coincide con la longitud de los datos,
+    /// el molino se detiene y lanza un error.
     pub fn new(datos: Vec<f32>, forma: Vec<usize>) -> Self {
         let tamaño_esperado: usize = forma.iter().product();
         assert_eq!(
             datos.len(),
             tamaño_esperado,
-            "La longitud de los datos ({}) no coincide con la forma {:?} (se esperaba {})",
+            "¡Desatino! Los datos tienen {} elementos pero la forma {:?} exige {}",
             datos.len(),
             forma,
             tamaño_esperado
         );
 
         let saltos = Self::calcular_saltos(&forma);
-        Self {
-            datos,
-            forma,
-            saltos,
-        }
+        Self { datos, forma, saltos }
     }
 
-    /// Crea un tensor lleno de ceros
-    ///
-    /// # Argumentos
-    ///
-    /// * `forma` - Dimensiones del tensor
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::ceros(vec![3, 4]);
-    /// assert_eq!(tensor.datos.len(), 12);
-    /// assert!(tensor.datos.iter().all(|&x| x == 0.0));
-    /// ```
+    /// Crea un pergamino en blanco — lleno de ceros como una página sin escribir
     pub fn ceros(forma: Vec<usize>) -> Self {
         let tamaño: usize = forma.iter().product();
-        let datos = vec![0.0; tamaño];
-        Self::new(datos, forma)
+        Self::new(vec![0.0; tamaño], forma)
     }
 
     /// Calcula los saltos a partir de la forma (disposición de fila mayor)
     ///
-    /// Para la forma `[d0, d1, d2]`, los saltos son `[d1*d2, d2, 1]`
-    ///
-    /// # Argumentos
-    ///
-    /// * `forma` - Dimensiones del tensor
-    ///
-    /// # Retorna
-    ///
-    /// Vector con los valores de salto para cada dimensión
+    /// Para la forma `[d0, d1, d2]`, los saltos son `[d1*d2, d2, 1]`.
+    /// Es el mapa que permite saltar de una celda a otra dentro del pergamino plano.
     fn calcular_saltos(forma: &[usize]) -> Vec<usize> {
         let mut saltos = vec![1; forma.len()];
         for i in (0..forma.len().saturating_sub(1)).rev() {
@@ -146,53 +118,25 @@ impl Tensor {
         saltos
     }
 
-    /// Multiplicación de matrices
+    /// Multiplicación de pergaminos (matmul)
     ///
-    /// Soporta:
-    /// - 2D × 2D: Multiplicación de matrices estándar
-    /// - 4D × 4D: Multiplicación de matrices por lotes para atención (ver más abajo)
+    /// La operación más noble del álgebra lineal: combinar dos tablas de conocimiento
+    /// para producir una tercera. Como cuando Don Quijote mezcla el bálsamo de Fierabrás,
+    /// cada valor del resultado nace de un producto punto entre filas y columnas.
     ///
-    /// # Multiplicación de Matrices 2D
+    /// # Modos de combate
     ///
-    /// Para `A @ B` donde `A` es `[m, k]` y `B` es `[k, n]`:
-    /// - Forma del resultado: `[m, n]`
-    /// - Cada elemento `C[i,j] = sum(A[i,k] * B[k,j])` para todo k
+    /// - **2D × 2D**: Multiplicación estándar de matrices.
+    /// - **4D × 4D**: Multiplicación por lotes para los cálculos de atención.
     ///
-    /// # Rendimiento
+    /// # Estrategia del caballero
     ///
-    /// - **Matrices pequeñas** (< 1K ops): Cálculo secuencial
-    /// - **Matrices grandes** (≥ 1K ops): Algoritmo en paralelo de bloqueo de caché (cache-blocked)
-    ///
-    /// La versión paralela utiliza bloques de 8x8 para la eficiencia de la caché y 
-    /// se paraleliza a través de las filas de salida, proporcionando un aumento de 
-    /// velocidad de 2 a 4 veces en las típicas CPUs multinúcleo.
-    ///
-    /// # Multiplicación de Matrices por Lotes 4D (Batched Matmul)
-    ///
-    /// Para cálculos de atención con la forma `[lote, num_cabezas, sec, dim_cabeza]`
-    /// Procesa cada par (lote, cabeza) de forma independiente y en paralelo.
-    ///
-    /// # Pánicos
-    ///
-    /// Entra en pánico si las dimensiones son incompatibles o no están soportadas
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let a = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
-    /// let b = Tensor::new(vec![1.0, 0.0, 0.0, 1.0], vec![2, 2]);
-    /// let c = a.matmul(&b);
-    /// assert_eq!(c.forma, vec![2, 2]);
-    /// ```
-    ///
-    /// Bucle interno optimizado con SIMD para la multiplicación de matrices
-    /// Calcula: resultado[j] += val_a * b[j] para todo j
-    /// Estructurado para la auto-vectorización en ARM NEON (Apple Silicon)
+    /// - **Matrices pequeñas** (< 1K operaciones): Cálculo secuencial, sin overhead de hilos.
+    /// - **Matrices grandes** (≥ 1K operaciones): Algoritmo de bloqueo de caché en paralelo.
     #[inline(always)]
     fn matmul_interno_simd(val_a: f32, b: &[f32], resultado: &mut [f32]) {
-        // Bucle simple que LLVM puede auto-vectorizar
-        // En Apple Silicon esto utilizará instrucciones SIMD ARM NEON
+        // Bucle sencillo que LLVM convierte en instrucciones SIMD (AVX2/NEON)
+        // Cuatro gigantes atacados al mismo tiempo con una sola lanza
         for (r, &val_b) in resultado.iter_mut().zip(b.iter()) {
             *r += val_a * val_b;
         }
@@ -203,7 +147,7 @@ impl Tensor {
         if self.forma.len() == 2 && other.forma.len() == 2 {
             assert_eq!(
                 self.forma[1], other.forma[0],
-                "Dimensiones de matriz incompatibles: [{}, {}] @ [{}, {}]",
+                "¡Dimensiones incompatibles! [{}, {}] @ [{}, {}] — las filas del segundo deben coincidir con las columnas del primero",
                 self.forma[0], self.forma[1], other.forma[0], other.forma[1]
             );
 
@@ -211,13 +155,12 @@ impl Tensor {
             let n = other.forma[1];
             let k = self.forma[1];
 
-            // Usa la versión paralela para matrices más grandes (umbral de trabajo: 1000 operaciones)
-            // Este umbral equilibra la sobrecarga paralela con las ganancias de rendimiento
+            // Para la batalla grande, convocamos a los escuderos paralelos
             if m * n * k >= 1_000 {
                 return self.matmul_paralelo_bloques(other, m, n, k);
             }
 
-            // Versión secuencial para matrices pequeñas (evita la sobrecarga paralela)
+            // Para la escaramuza pequeña, bastamos solos
             let mut resultado = vec![0.0; m * n];
             for i in 0..m {
                 for j in 0..n {
@@ -228,11 +171,10 @@ impl Tensor {
                     resultado[i * n + j] = suma;
                 }
             }
-
             return Tensor::new(resultado, vec![m, n]);
         }
 
-        // === MULTIPLICACIÓN DE MATRICES POR LOTES 4D (para atención) ===
+        // === MULTIPLICACIÓN POR LOTES 4D (para la atención multicabeza) ===
         // Forma: [lote, num_cabezas, sec, dim_cabeza] @ [lote, num_cabezas, dim_cabeza, sec]
         if self.forma.len() == 4 && other.forma.len() == 4 {
             let lote = self.forma[0];
@@ -249,16 +191,14 @@ impl Tensor {
             let tam_total = lote * num_cabezas * sec1 * sec2;
             let mut resultado = vec![0.0; tam_total];
 
-            // Paralelizar sobre las combinaciones de (lote, cabeza)
-            // Cada par (lote, cabeza) calcula una multiplicación de matrices sec1×sec2 independiente
+            // Cada par (lote, cabeza) es un caballero independiente que combate su propia batalla
             resultado
                 .par_chunks_mut(sec1 * sec2)
                 .enumerate()
                 .for_each(|(idx_lc, bloque)| {
-                    let b = idx_lc / num_cabezas;
-                    let h = idx_lc % num_cabezas;
+                    let b = idx_lc / num_cabezas; // índice de lote
+                    let h = idx_lc % num_cabezas; // índice de cabeza de atención
 
-                    // Calcula el matmul 2D para este lote/cabeza
                     for i in 0..sec1 {
                         for j in 0..sec2 {
                             let mut suma = 0.0;
@@ -276,47 +216,25 @@ impl Tensor {
         }
 
         panic!(
-            "Formas de matmul no soportadas: {:?} @ {:?}",
+            "¡Formas de batalla no soportadas! {:?} @ {:?}",
             self.forma, other.forma
         );
     }
 
     /// Multiplicación de matrices en paralelo con bloqueo de caché
     ///
-    /// Esta optimización proporciona un aumento significativo de velocidad para matrices grandes mediante:
+    /// El arte de dividir la batalla en bloques que caben en la memoria rápida (caché L1).
+    /// Como las tropas de Don Quijote divididas en escuadrones de 8, cada bloque procesa
+    /// su porción sin interferir con los demás.
     ///
-    /// 1. **Bloqueo de caché (Cache blocking)**: Procesa los datos en bloques de 8x8 que caben en la caché L1
-    /// 2. **Procesamiento paralelo**: Distribuye los bloques de filas entre los núcleos de la CPU usando Rayon
-    /// 3. **Localidad de memoria**: Los bucles internos acceden a la memoria de forma secuencial
-    ///
-    /// El tamaño de bloque de 8x8 (256 bytes por bloque) equilibra la eficiencia de la caché con
-    /// las oportunidades de paralelismo. Bloques más pequeños mejorarían la tasa de aciertos de caché pero
-    /// reducirían el paralelismo disponible; bloques más grandes harían lo contrario.
-    ///
-    /// # Rendimiento
-    ///
-    /// Típicamente de 2 a 4 veces más rápido que una implementación ingenua en CPUs multinúcleo,
-    /// con un aumento de velocidad aún mayor para matrices más grandes.
-    ///
-    /// # Argumentos
-    ///
-    /// * `other` - Matriz del lado derecho
-    /// * `m` - Filas en self
-    /// * `n` - Columnas en other
-    /// * `k` - Dimensión interna
-    ///
-    /// # Retorna
-    ///
-    /// Tensor resultante con forma `[m, n]`
+    /// **Estrategia**: Bloques de 8×8 = 256 bytes — caben bien en la caché L1 (32-64 KB).
     fn matmul_paralelo_bloques(&self, other: &Tensor, m: usize, n: usize, k: usize) -> Tensor {
-        // Tamaño del bloque para la optimización de la caché
-        // Bloques de 8x8 = 256 bytes (cabe muy bien en la caché L1: típicamente 32-64KB)
+        // Tamaño del escuadrón: 8×8 elementos caben en la caché L1
         const TAM_BLOQUE: usize = 8;
 
         let mut resultado = vec![0.0; m * n];
 
-        // Paralelizar sobre los bloques de filas de salida
-        // Cada hilo procesa TAM_BLOQUE filas de forma independiente
+        // Cada hilo recibe TAM_BLOQUE filas y las procesa de forma independiente
         resultado
             .par_chunks_mut(TAM_BLOQUE * n)
             .enumerate()
@@ -324,21 +242,17 @@ impl Tensor {
                 let i_inicio = i_bloque * TAM_BLOQUE;
                 let i_fin = (i_inicio + TAM_BLOQUE).min(m);
 
-                // Iterar sobre los bloques de columnas
                 for j_inicio in (0..n).step_by(TAM_BLOQUE) {
                     let j_fin = (j_inicio + TAM_BLOQUE).min(n);
 
-                    // Iterar sobre los bloques de la dimensión interna
                     for k_inicio in (0..k).step_by(TAM_BLOQUE) {
                         let k_fin = (k_inicio + TAM_BLOQUE).min(k);
 
-                        // Calcular este bloque (bucles internos amigables con la caché)
+                        // El bucle interno accede a memoria de forma secuencial — la lanza SIMD actúa aquí
                         for i in i_inicio..i_fin {
                             let desplazamiento_fila = (i - i_inicio) * n;
                             for k_idx in k_inicio..k_fin {
                                 let val_a = self.datos[i * k + k_idx];
-
-                                // Bucle más interno optimizado con SIMD
                                 Self::matmul_interno_simd(
                                     val_a,
                                     &other.datos[k_idx * n + j_inicio..k_idx * n + j_fin],
@@ -353,55 +267,28 @@ impl Tensor {
         Tensor::new(resultado, vec![m, n])
     }
 
-    /// Activación Softmax
+    /// Softmax — la balanza que convierte puntuaciones en probabilidades
     ///
-    /// Calcula la función softmax a lo largo del eje especificado:
-    ///
-    /// ```text
-    /// softmax(x)[i] = exp(x[i]) / sum(exp(x[j])) para todo j
-    /// ```
-    ///
-    /// # Estabilidad Numérica
-    ///
-    /// Utiliza la versión numéricamente estable:
+    /// Como el juicio de un sabio que pondera los méritos de cada caballero y distribuye
+    /// su favor de forma que todo sume exactamente uno. Usa el truco de restar el máximo
+    /// para evitar que los números exploten como gigantes enardecidos.
     ///
     /// ```text
-    /// softmax(x)[i] = exp(x[i] - max(x)) / sum(exp(x[j] - max(x)))
-    /// ```
-    ///
-    /// Restar el máximo evita el desbordamiento (overflow) en exp() mientras produce
-    /// el mismo resultado (ya que los factores máximos se cancelan).
-    ///
-    /// # Argumentos
-    ///
-    /// * `eje` - Eje a lo largo del cual calcular softmax (usa -1 para el último eje)
-    ///
-    /// # Rendimiento
-    ///
-    /// Para tensores 2D con eje=-1, softmax se calcula por fila en paralelo.
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::new(vec![1.0, 2.0, 3.0], vec![1, 3]);
-    /// let resultado = tensor.softmax(-1);
-    /// // La suma del resultado es 1.0 a lo largo de la última dimensión
+    /// softmax(x)[i] = exp(x[i] - max(x)) / Σ exp(x[j] - max(x))
     /// ```
     pub fn softmax(&self, eje: isize) -> Tensor {
-        // Convertir el eje negativo a positivo
         let eje_pos = if eje < 0 {
             (self.forma.len() as isize + eje) as usize
         } else {
             eje as usize
         };
 
-        // === SOFTMAX 2D POR FILA (caso común para atención) ===
+        // === SOFTMAX 2D POR FILA — el caso más común en la atención ===
         if self.forma.len() == 2 && eje_pos == 1 {
             let filas = self.forma[0];
             let columnas = self.forma[1];
 
-            // Cálculo de softmax en paralelo por fila
+            // Cada fila se procesa de forma independiente — un caballero por fila
             let resultado: Vec<f32> = (0..filas)
                 .into_par_iter()
                 .flat_map_iter(|i| {
@@ -409,13 +296,11 @@ impl Tensor {
                     let fin = inicio + columnas;
                     let fila = &self.datos[inicio..fin];
 
-                    // Encontrar el máximo para la estabilidad numérica
+                    // Restamos el máximo para evitar el desbordamiento del exp()
                     let maximo = fila.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-
-                    // Calcular exp(x - maximo)
                     let valores_exp: Vec<f32> = fila.iter().map(|&x| (x - maximo).exp()).collect();
 
-                    // Normalizar
+                    // Normalizamos para que la fila sume exactamente 1.0
                     let suma: f32 = valores_exp.iter().sum();
                     valores_exp.into_iter().map(move |val| val / suma)
                 })
@@ -424,213 +309,142 @@ impl Tensor {
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // === RESPALDO: SOFTMAX GLOBAL ===
-        // Menos común, pero incluido para estar completos
+        // === RESPALDO: SOFTMAX GLOBAL (menos frecuente) ===
         let maximo = self.datos.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
         let valores_exp: Vec<f32> = self.datos.iter().map(|&x| (x - maximo).exp()).collect();
         let suma: f32 = valores_exp.iter().sum();
         let resultado = valores_exp.iter().map(|&x| x / suma).collect();
-
         Tensor::new(resultado, self.forma.clone())
     }
 
-    /// Suma elemento a elemento con soporte de propagación (broadcasting)
+    /// Suma elemento a elemento con broadcasting
     ///
-    /// Soporta varios patrones de broadcasting comunes en transformers:
+    /// Como añadir sabiduría a cada celda del pergamino. Soporta los patrones
+    /// más comunes en los transformadores:
     ///
-    /// 1. **Coincidencia exacta**: Misma forma
-    /// 2. **Broadcasting de la última dimensión**: `[*, n] + [n]` (ej., sumar sesgo o bias)
-    /// 3. **Broadcasting de lote**: `[lote, sec, dim] + [sec, dim]`
-    ///
-    /// # Argumentos
-    ///
-    /// * `other` - Tensor a sumar (puede tener una forma diferente si aplica el broadcasting)
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let a = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
-    /// let b = Tensor::new(vec![1.0, 1.0, 1.0, 1.0], vec![2, 2]);
-    /// let c = a.add(&b);
-    /// assert_eq!(c.datos, vec![2.0, 3.0, 4.0, 5.0]);
-    /// ```
+    /// 1. **Misma forma**: Suma directa elemento a elemento.
+    /// 2. **Broadcasting de lote**: `[lote, sec, dim] + [sec, dim]`
+    /// 3. **Broadcasting de sesgo**: `[*, n] + [n]` — sumar el sesgo a cada fila.
     pub fn add(&self, other: &Tensor) -> Tensor {
-        // === COINCIDENCIA EXACTA: Misma forma ===
+        // Misma forma: la suma más sencilla, como sumar dos listas de monedas
         if self.forma == other.forma {
-            let resultado = self
-                .datos
-                .par_iter()
-                .zip(&other.datos)
-                .map(|(a, b)| a + b)
-                .collect();
+            let resultado = self.datos.par_iter().zip(&other.datos).map(|(a, b)| a + b).collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // === BROADCASTING DE LOTE: [lote, sec, dim] + [sec, dim] ===
+        // Broadcasting de lote: [lote, sec, dim] + [sec, dim]
+        // El vector más pequeño se repite para cada elemento del lote
         if self.forma.len() == 3 && other.forma.len() == 2 {
             let tam_lote = self.forma[0];
             let longitud_sec = self.forma[1];
             let dim = self.forma[2];
 
-            assert_eq!(
-                other.forma[0], longitud_sec,
-                "La longitud de la secuencia debe coincidir para el broadcasting"
-            );
-            assert_eq!(other.forma[1], dim, "La dimensión debe coincidir para el broadcasting");
+            assert_eq!(other.forma[0], longitud_sec, "La longitud de secuencia debe coincidir");
+            assert_eq!(other.forma[1], dim, "La dimensión debe coincidir");
 
             let resultado: Vec<f32> = (0..tam_lote * longitud_sec * dim)
                 .into_par_iter()
                 .map(|i| {
                     let s = (i / dim) % longitud_sec;
                     let d = i % dim;
-                    let idx_otro = s * dim + d;
-                    self.datos[i] + other.datos[idx_otro]
+                    self.datos[i] + other.datos[s * dim + d]
                 })
                 .collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // === BROADCASTING DE LA ÚLTIMA DIMENSIÓN: [*, n] + [n] (ej., suma de sesgo) ===
+        // Broadcasting de la última dimensión: [*, n] + [n] — para sumar sesgos
         if self.forma.len() > other.forma.len() {
             let ultima_dim = *self.forma.last().unwrap();
             if other.datos.len() == ultima_dim {
                 let resultado: Vec<f32> = (0..self.datos.len())
                     .into_par_iter()
-                    .map(|i| {
-                        let idx_otro = i % ultima_dim;
-                        self.datos[i] + other.datos[idx_otro]
-                    })
+                    .map(|i| self.datos[i] + other.datos[i % ultima_dim])
                     .collect();
                 return Tensor::new(resultado, self.forma.clone());
             }
         }
 
-        panic!(
-            "Broadcasting no soportado para suma: {:?} + {:?}",
-            self.forma, other.forma
-        );
+        panic!("¡Broadcasting no soportado para suma! {:?} + {:?}", self.forma, other.forma);
     }
 
-    /// Multiplicación elemento a elemento con propagación (broadcasting)
-    ///
-    /// Ver `add()` para los patrones de broadcasting.
+    /// Multiplicación elemento a elemento con broadcasting — ver `add()` para los patrones.
     pub fn mul(&self, other: &Tensor) -> Tensor {
-        // Coincidencia exacta
         if self.forma == other.forma {
-            let resultado = self
-                .datos
-                .par_iter()
-                .zip(&other.datos)
-                .map(|(a, b)| a * b)
-                .collect();
+            let resultado = self.datos.par_iter().zip(&other.datos).map(|(a, b)| a * b).collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // Broadcasting de la última dimensión
         if self.forma.len() > other.forma.len() {
             let ultima_dim = *self.forma.last().unwrap();
             if other.datos.len() == ultima_dim {
                 let resultado: Vec<f32> = (0..self.datos.len())
                     .into_par_iter()
-                    .map(|i| {
-                        let idx_otro = i % ultima_dim;
-                        self.datos[i] * other.datos[idx_otro]
-                    })
+                    .map(|i| self.datos[i] * other.datos[i % ultima_dim])
                     .collect();
                 return Tensor::new(resultado, self.forma.clone());
             }
         }
 
-        panic!(
-            "Broadcasting no soportado para multiplicación: {:?} * {:?}",
-            self.forma, other.forma
-        );
+        panic!("¡Broadcasting no soportado para multiplicación! {:?} * {:?}", self.forma, other.forma);
     }
 
-    /// Resta elemento a elemento con propagación (broadcasting)
+    /// Resta elemento a elemento con broadcasting
     pub fn sub(&self, other: &Tensor) -> Tensor {
-        // Coincidencia exacta
         if self.forma == other.forma {
-            let resultado = self
-                .datos
-                .par_iter()
-                .zip(&other.datos)
-                .map(|(a, b)| a - b)
-                .collect();
+            let resultado = self.datos.par_iter().zip(&other.datos).map(|(a, b)| a - b).collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // Broadcasting de la última dimensión (para operaciones keepdim)
+        // Broadcasting keepdim: última dimensión = 1
         if self.forma.len() == other.forma.len() {
             let ultima_dim = *self.forma.last().unwrap();
             let ultima_dim_otro = *other.forma.last().unwrap();
-
             if ultima_dim_otro == 1
                 && self.forma[..self.forma.len() - 1] == other.forma[..other.forma.len() - 1]
             {
                 let resultado: Vec<f32> = (0..self.datos.len())
                     .into_par_iter()
-                    .map(|i| {
-                        let idx_otro = (i / ultima_dim) * ultima_dim_otro;
-                        self.datos[i] - other.datos[idx_otro]
-                    })
+                    .map(|i| self.datos[i] - other.datos[(i / ultima_dim) * ultima_dim_otro])
                     .collect();
                 return Tensor::new(resultado, self.forma.clone());
             }
         }
 
-        panic!(
-            "Broadcasting no soportado para resta: {:?} - {:?}",
-            self.forma, other.forma
-        );
+        panic!("¡Broadcasting no soportado para resta! {:?} - {:?}", self.forma, other.forma);
     }
 
-    /// División elemento a elemento con propagación (broadcasting)
+    /// División elemento a elemento con broadcasting
     pub fn div(&self, other: &Tensor) -> Tensor {
-        // Coincidencia exacta
         if self.forma == other.forma {
-            let resultado = self
-                .datos
-                .par_iter()
-                .zip(&other.datos)
-                .map(|(a, b)| a / b)
-                .collect();
+            let resultado = self.datos.par_iter().zip(&other.datos).map(|(a, b)| a / b).collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // Broadcasting de la última dimensión (para operaciones keepdim)
         if self.forma.len() == other.forma.len() {
             let ultima_dim = *self.forma.last().unwrap();
             let ultima_dim_otro = *other.forma.last().unwrap();
-
             if ultima_dim_otro == 1
                 && self.forma[..self.forma.len() - 1] == other.forma[..other.forma.len() - 1]
             {
                 let resultado: Vec<f32> = (0..self.datos.len())
                     .into_par_iter()
-                    .map(|i| {
-                        let idx_otro = (i / ultima_dim) * ultima_dim_otro;
-                        self.datos[i] / other.datos[idx_otro]
-                    })
+                    .map(|i| self.datos[i] / other.datos[(i / ultima_dim) * ultima_dim_otro])
                     .collect();
                 return Tensor::new(resultado, self.forma.clone());
             }
         }
 
-        panic!(
-            "Broadcasting no soportado para división: {:?} / {:?}",
-            self.forma, other.forma
-        );
+        panic!("¡Broadcasting no soportado para división! {:?} / {:?}", self.forma, other.forma);
     }
 
-    /// Suma un escalar a todos los elementos
+    /// Suma un escalar a todos los elementos — como añadir una moneda a cada bolsillo
     pub fn add_scalar(&self, escalar: f32) -> Tensor {
         let resultado = self.datos.par_iter().map(|&x| x + escalar).collect();
         Tensor::new(resultado, self.forma.clone())
     }
 
-    /// Multiplica todos los elementos por un escalar
+    /// Multiplica todos los elementos por un escalar — la escala de un caballero
     pub fn mul_scalar(&self, escalar: f32) -> Tensor {
         let resultado = self.datos.par_iter().map(|&x| x * escalar).collect();
         Tensor::new(resultado, self.forma.clone())
@@ -642,83 +456,52 @@ impl Tensor {
         Tensor::new(resultado, self.forma.clone())
     }
 
-    /// Raíz cuadrada elemento a elemento
+    /// Raíz cuadrada elemento a elemento — √x para cada valor del pergamino
     pub fn sqrt(&self) -> Tensor {
         let resultado = self.datos.par_iter().map(|&x| x.sqrt()).collect();
         Tensor::new(resultado, self.forma.clone())
     }
 
-   /// Redimensiona (reshape) el tensor a una nueva forma
+    /// Redimensiona el pergamino a una nueva forma sin cambiar sus valores
     ///
-    /// El número total de elementos debe seguir siendo el mismo.
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::new(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]);
-    /// let redimensionado = tensor.reshape(&[3, 2]);
-    /// assert_eq!(redimensionado.forma, vec![3, 2]);
-    /// ```
+    /// Como doblar un mapa de otra manera: el territorio no cambia, solo su presentación.
     pub fn reshape(&self, nueva_forma: &[usize]) -> Tensor {
         let nuevo_tamano: usize = nueva_forma.iter().product();
         assert_eq!(
-            self.datos.len(),
-            nuevo_tamano,
-            "No se puede redimensionar: la cantidad de elementos no coincide"
+            self.datos.len(), nuevo_tamano,
+            "¡No se puede redimensionar! La cantidad de elementos no coincide"
         );
         Tensor::new(self.datos.clone(), nueva_forma.to_vec())
     }
 
-    /// Transpone dos dimensiones
-    ///
-    /// # Argumentos
-    ///
-    /// * `dim1` - Primera dimensión a intercambiar (soporta indexación negativa)
-    /// * `dim2` - Segunda dimensión a intercambiar (soporta indexación negativa)
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
-    /// let transpuesto = tensor.transpose(0, 1);
-    /// assert_eq!(transpuesto.forma, vec![2, 2]);
-    /// ```
+    /// Transpone dos dimensiones — intercambia filas por columnas como un escribano
     pub fn transpose(&self, dim1: isize, dim2: isize) -> Tensor {
         let ndim = self.forma.len() as isize;
-
-        // Convertir índices negativos
         let d1 = if dim1 < 0 { ndim + dim1 } else { dim1 } as usize;
         let d2 = if dim2 < 0 { ndim + dim2 } else { dim2 } as usize;
 
-        // Crear nueva forma con las dimensiones intercambiadas
         let mut nueva_forma = self.forma.clone();
         nueva_forma.swap(d1, d2);
 
-        // Para matrices 2D, podemos usar una transposición simple
+        // Para matrices 2D, transposición simple y eficiente
         if self.forma.len() == 2 {
             let filas = self.forma[0];
             let columnas = self.forma[1];
             let mut resultado = vec![0.0; filas * columnas];
-
             for i in 0..filas {
                 for j in 0..columnas {
                     resultado[j * filas + i] = self.datos[i * columnas + j];
                 }
             }
-
             return Tensor::new(resultado, nueva_forma);
         }
 
-        // Para tensores 4D transponiendo las dos últimas dimensiones (común en atención)
-        // [lote, cabezales, sec1, sec2] -> [lote, cabezales, sec2, sec1]
+        // Para tensores 4D transponiendo las dos últimas dimensiones (atención multicabeza)
         if self.forma.len() == 4 && d1 == 2 && d2 == 3 {
             let d0 = self.forma[0];
             let dim_d1 = self.forma[1];
             let dim_d2 = self.forma[2];
             let dim_d3 = self.forma[3];
-
             let mut resultado = vec![0.0; self.datos.len()];
 
             for i0 in 0..d0 {
@@ -732,12 +515,11 @@ impl Tensor {
                     }
                 }
             }
-
             return Tensor::new(resultado, nueva_forma);
         }
 
-        // Para dimensiones mayores, hacer una transposición completa con remapeo de pasos (strides)
-        let pasos_antiguos = &self.saltos; 
+        // Transposición general con remapeo de saltos
+        let pasos_antiguos = &self.saltos;
         let mut nuevos_pasos = pasos_antiguos.clone();
         nuevos_pasos.swap(d1, d2);
 
@@ -745,56 +527,43 @@ impl Tensor {
         let mut resultado = vec![0.0; tamano_total];
 
         for (i, item) in resultado.iter_mut().enumerate().take(tamano_total) {
-            // Calcular el multi-índice antiguo a partir del índice plano
             let mut idx_antiguo = 0;
             let mut restante = i;
-
             for (idx_dim, &paso) in nuevos_pasos.iter().enumerate() {
                 let coord = restante / paso;
                 restante %= paso;
                 idx_antiguo += coord * pasos_antiguos[idx_dim];
             }
-
             *item = self.datos[idx_antiguo];
         }
 
         Tensor::new(resultado, nueva_forma)
     }
 
-    /// Reemplaza los valores donde la máscara es verdadera con el valor dado
+    /// Aplica la máscara causal — tapa las posiciones futuras con -infinito
     ///
-    /// Utilizado para el enmascaramiento causal en la atención (estableciendo posiciones futuras a -inf)
-    ///
-    /// Soporta propagación (broadcasting): [lote, num_cabezales, sec, sec] con máscara [sec, sec]
-    ///
-    /// # Argumentos
-    ///
-    /// * `mascara` - Máscara booleana (distinto de cero = verdadero)
-    /// * `valor` - Valor a rellenar donde la máscara es verdadera
+    /// Como el yelmo de Mambrino que protege la cabeza de ver lo que aún no ha sucedido.
+    /// Las posiciones tapadas quedan a -1e9, que tras el softmax se convierten en 0%.
     pub fn masked_fill(&self, mascara: &Tensor, valor: f32) -> Tensor {
-        // Manejar coincidencia exacta
         if self.forma == mascara.forma {
-            let resultado = self
-                .datos
-                .par_iter()
-                .zip(&mascara.datos)
+            let resultado = self.datos.par_iter().zip(&mascara.datos)
                 .map(|(&x, &m)| if m != 0.0 { valor } else { x })
                 .collect();
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        // Manejar broadcasting: [lote, num_cabezales, sec, sec] con máscara [sec, sec]
+        // Broadcasting: [lote, num_cabezas, sec, sec] con máscara [sec, sec]
         if self.forma.len() == 4 && mascara.forma.len() == 2 {
             let lote = self.forma[0];
-            let num_cabezales = self.forma[1];
+            let num_cabezas = self.forma[1];
             let sec = self.forma[2];
 
-            assert_eq!(mascara.forma[0], sec, "La dimensión de la secuencia de la máscara debe coincidir");
-            assert_eq!(mascara.forma[1], sec, "La dimensión de la secuencia de la máscara debe coincidir");
+            assert_eq!(mascara.forma[0], sec);
+            assert_eq!(mascara.forma[1], sec);
 
             let mut resultado = Vec::with_capacity(self.datos.len());
             for _b in 0..lote {
-                for _h in 0..num_cabezales {
+                for _h in 0..num_cabezas {
                     for i in 0..sec {
                         for j in 0..sec {
                             let idx_mascara = i * sec + j;
@@ -811,18 +580,10 @@ impl Tensor {
             return Tensor::new(resultado, self.forma.clone());
         }
 
-        panic!(
-            "Broadcasting no soportado para masked_fill: {:?} con máscara {:?}",
-            self.forma, mascara.forma
-        );
+        panic!("¡Broadcasting no soportado para masked_fill! {:?} con máscara {:?}", self.forma, mascara.forma);
     }
 
-    /// Calcula la media (promedio) a lo largo de un eje
-    ///
-    /// # Argumentos
-    ///
-    /// * `eje` - Eje a lo largo del cual calcular la media (usa -1 para el último eje)
-    /// * `mantener_dim` - Indica si se debe mantener la dimensión reducida (tamaño 1)
+    /// Calcula la media a lo largo de un eje — el promedio del saber acumulado
     pub fn mean(&self, eje: isize, mantener_dim: bool) -> Tensor {
         let eje_pos = if eje < 0 {
             (self.forma.len() as isize + eje) as usize
@@ -830,70 +591,36 @@ impl Tensor {
             eje as usize
         };
 
-        // Para tensores 2D, calcular la media a lo largo del eje especificado
         if self.forma.len() == 2 && eje_pos == 1 {
-            // Media a lo largo de las columnas (el resultado tiene forma [filas, 1] o [filas])
             let filas = self.forma[0];
             let columnas = self.forma[1];
-
-            let resultado: Vec<f32> = (0..filas)
-                .into_par_iter()
-                .map(|i| {
-                    let inicio = i * columnas;
-                    let fin = inicio + columnas;
-                    let suma: f32 = self.datos[inicio..fin].iter().sum();
-                    suma / columnas as f32
-                })
-                .collect();
-
+            let resultado: Vec<f32> = (0..filas).into_par_iter().map(|i| {
+                let inicio = i * columnas;
+                let suma: f32 = self.datos[inicio..inicio + columnas].iter().sum();
+                suma / columnas as f32
+            }).collect();
             let nueva_forma = if mantener_dim { vec![filas, 1] } else { vec![filas] };
             return Tensor::new(resultado, nueva_forma);
         }
 
-        // Para tensores 3D [lote, sec, dim], calcular la media a lo largo del último eje
         if self.forma.len() == 3 && eje_pos == 2 {
             let lote = self.forma[0];
             let sec = self.forma[1];
             let dim = self.forma[2];
-
-            let resultado: Vec<f32> = (0..lote * sec)
-                .into_par_iter()
-                .map(|i| {
-                    let inicio = i * dim;
-                    let fin = inicio + dim;
-                    let suma: f32 = self.datos[inicio..fin].iter().sum();
-                    suma / dim as f32
-                })
-                .collect();
-
-            let nueva_forma = if mantener_dim {
-                vec![lote, sec, 1]
-            } else {
-                vec![lote, sec]
-            };
+            let resultado: Vec<f32> = (0..lote * sec).into_par_iter().map(|i| {
+                let inicio = i * dim;
+                let suma: f32 = self.datos[inicio..inicio + dim].iter().sum();
+                suma / dim as f32
+            }).collect();
+            let nueva_forma = if mantener_dim { vec![lote, sec, 1] } else { vec![lote, sec] };
             return Tensor::new(resultado, nueva_forma);
         }
 
-        panic!("Operación mean (media) no soportada para la forma {:?}", self.forma);
+        panic!("¡Operación mean no soportada para la forma {:?}!", self.forma);
     }
 
-    /// Calcula la varianza a lo largo de un eje
-    ///
-    /// # Argumentos
-    ///
-    /// * `eje` - Eje a lo largo del cual calcular la varianza (típicamente -1 para la última dimensión)
-    /// * `mantener_dim` - Indica si se debe mantener la dimensión reducida
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let x = Tensor::new(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]);
-    /// let varianza = x.var(-1, true); // Varianza a lo largo de la última dimensión
-    /// assert_eq!(varianza.forma, vec![2, 1]);
-    /// ```
+    /// Calcula la varianza a lo largo de un eje — la dispersión del conocimiento
     pub fn var(&self, eje: isize, mantener_dim: bool) -> Tensor {
-        // Calcula la varianza a lo largo del eje especificado (típicamente la última dimensión para LayerNorm)
         if eje == -1 || eje as usize == self.forma.len() - 1 {
             let ultima_dim = self.forma[self.forma.len() - 1];
             let tamano_exterior = self.datos.len() / ultima_dim;
@@ -901,16 +628,9 @@ impl Tensor {
             let mut resultado = Vec::new();
             for i in 0..tamano_exterior {
                 let inicio = i * ultima_dim;
-                let fin = inicio + ultima_dim;
-                let segmento = &self.datos[inicio..fin];
-
-                // Calcula la media para este segmento
+                let segmento = &self.datos[inicio..inicio + ultima_dim];
                 let media: f32 = segmento.iter().sum::<f32>() / ultima_dim as f32;
-
-                // Calcula la varianza
-                let varianza =
-                    segmento.iter().map(|&x| (x - media).powi(2)).sum::<f32>() / ultima_dim as f32;
-
+                let varianza = segmento.iter().map(|&x| (x - media).powi(2)).sum::<f32>() / ultima_dim as f32;
                 resultado.push(varianza);
             }
 
@@ -925,66 +645,29 @@ impl Tensor {
             return Tensor::new(resultado, forma_resultado);
         }
 
-        panic!(
-            "Operación var (varianza) no soportada para la forma {:?} con eje {}",
-            self.forma, eje
-        );
+        panic!("¡Operación var no soportada para la forma {:?} con eje {}!", self.forma, eje);
     }
 
-    /// Crea un tensor con enteros secuenciales
-    ///
-    /// # Argumentos
-    ///
-    /// * `inicio` - Valor inicial (inclusivo)
-    /// * `fin` - Valor final (exclusivo)
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let tensor = Tensor::arange(0, 5);
-    /// assert_eq!(tensor.datos, vec![0.0, 1.0, 2.0, 3.0, 4.0]);
-    /// ```
+    /// Crea un pergamino con enteros secuenciales [inicio, fin)
     pub fn arange(inicio: usize, fin: usize) -> Tensor {
         let datos: Vec<f32> = (inicio..fin).map(|i| i as f32).collect();
         let longitud = datos.len();
         Tensor::new(datos, vec![longitud])
     }
 
-    /// Concatena dos tensores a lo largo de la primera dimensión (dimensión de la secuencia)
+    /// Concatena dos pergaminos a lo largo de la primera dimensión
     ///
-    /// Utilizado para la caché KV: concatena K/V almacenados en caché con nuevos K/V.
-    ///
-    /// # Argumentos
-    ///
-    /// * `other` - Tensor con el que concatenar (debe tener la misma forma excepto en la primera dimensión)
-    ///
-    /// # Ejemplo
-    ///
-    /// ```rust
-    /// # use molineteai::Tensor;
-    /// let a = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
-    /// let b = Tensor::new(vec![5.0, 6.0], vec![1, 2]);
-    /// let c = a.concat(&b);
-    /// assert_eq!(c.forma, vec![3, 2]);
-    /// assert_eq!(c.datos, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-    /// ```
+    /// Como encuadernar dos manuscritos en un único volumen más grueso.
     pub fn concat(&self, other: &Tensor) -> Tensor {
         assert_eq!(
-            self.forma.len(),
-            other.forma.len(),
-            "Los tensores deben tener el mismo número de dimensiones para la concatenación"
+            self.forma.len(), other.forma.len(),
+            "Los pergaminos deben tener el mismo número de dimensiones"
         );
-
-        // Comprueba que todas las dimensiones excepto la primera coincidan
         for i in 1..self.forma.len() {
-            assert_eq!(
-                self.forma[i], other.forma[i],
-                "Todas las dimensiones excepto la primera deben coincidir para la concatenación"
-            );
+            assert_eq!(self.forma[i], other.forma[i],
+                "Todas las dimensiones excepto la primera deben coincidir");
         }
 
-        // Concatena a lo largo de la primera dimensión
         let mut nueva_forma = self.forma.clone();
         nueva_forma[0] += other.forma[0];
 

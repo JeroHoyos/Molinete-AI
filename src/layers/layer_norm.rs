@@ -1,81 +1,40 @@
-//! Normalización de Capa (Layer Normalization)
+//! # El Equilibrio del Sabio — Normalización de Capa
 //!
-//! La normalización de capa es crucial para entrenar redes profundas. Normaliza
-//! las activaciones para que tengan media cero y varianza unitaria, y luego aplica
-//! parámetros aprendibles de escala (gamma) y desplazamiento (beta).
+//! En las profundas mazmorras de una red neuronal, los valores pueden desbocarse
+//! como caballos sin freno: unos enormes, otros diminutos, provocando inestabilidad.
+//! La Normalización de Capa es el escudero que mantiene el orden: normaliza cada
+//! vector de activación para que tenga media cero y varianza unitaria, y luego
+//! aplica escala (γ) y desplazamiento (β) aprendibles.
 //!
-//! ## La Parte Complicada: Paso Hacia Atrás (Backward Pass)
-//!
-//! El paso hacia atrás de la normalización de capa es complejo porque la media y la varianza
-//! dependen de TODOS los elementos en el grupo normalizado. Esto crea dependencias que
-//! requieren un cálculo de gradientes cuidadoso.
-//!
-//! ## Paso Hacia Adelante (Forward Pass)
+//! ## El Proceso del Equilibrio
 //!
 //! ```text
-//! 1. media = E[x] = sum(x) / N
-//! 2. var = E[(x - media)²] = sum((x - media)²) / N
-//! 3. x_norm = (x - media) / √(var + ε)
-//! 4. y = γ * x_norm + β
+//! 1. media  = E[x]              ← promedio de la secuencia
+//! 2. var    = E[(x - media)²]   ← dispersión de los valores
+//! 3. x_norm = (x - media) / √(var + ε)   ← normalización
+//! 4. y      = γ · x_norm + β    ← escala y desplazamiento aprendibles
 //! ```
 //!
-//! donde:
-//! - ε (épsilon) previene la división por cero
-//! - γ (gamma) es la escala aprendible
-//! - β (beta) es el desplazamiento aprendible
+//! ## La Parte Complicada: el Paso Hacia Atrás
 //!
-//! ## Paso Hacia Atrás (Backward Pass)
-//!
-//! Los gradientes son:
-//!
-//! ```text
-//! grad_γ = sum(grad_y * x_norm)
-//! grad_β = sum(grad_y)
-//! grad_x_norm = grad_y * γ
-//! ```
-//!
-//! La parte complicada es retropropagar a través de la normalización:
-//!
-//! ```text
-//! grad_x = (1/√var) * (grad_x_norm - E[grad_x_norm] - x_norm * E[grad_x_norm * x_norm])
-//! ```
-//!
-//! Esta fórmula tiene en cuenta:
-//! 1. Cada elemento afecta a la media (primer término E)
-//! 2. Cada elemento afecta a la varianza (segundo término E)
-//! 3. El gradiente directo a través de x_norm
-//!
-//! ## ¿Por Qué Normalización de Capa?
-//!
-//! - **Estabilidad de entrenamiento**: Previene el desplazamiento de covariables interno
-//! - **Convergencia más rápida**: Las activaciones normalizadas se entrenan más rápido
-//! - **Menos sensible a la inicialización**: La normalización reduce el impacto de una mala inicialización
-//! - **Funciona con cualquier tamaño de lote**: A diferencia de la normalización por lotes (batch norm), no depende de las estadísticas del lote
+//! La media y la varianza dependen de TODOS los elementos del vector, creando
+//! dependencias cruzadas que complican el cálculo del gradiente. La fórmula
+//! resultante tiene en cuenta tanto la dependencia de la media como la de la varianza.
 
 use crate::tensor::Tensor;
 
-/// Capa de normalización de capa
-///
-/// Normaliza las activaciones a lo largo de la dimensión de características y aplica
-/// escala y desplazamiento aprendibles.
+/// Capa de normalización — el árbitro del equilibrio neuronal
 pub struct NormCapaEntrenable {
-    pub gamma: Tensor, // Parámetro de escala [n_embd]
-    pub beta: Tensor,  // Parámetro de desplazamiento [n_embd]
-    pub eps: f32,      // Constante pequeña para estabilidad numérica
+    pub gamma: Tensor, // γ: escala aprendible, inicializado a 1.0
+    pub beta: Tensor,  // β: desplazamiento aprendible, inicializado a 0.0
+    pub eps: f32,      // ε: pequeña constante para evitar división por cero
 }
 
 impl NormCapaEntrenable {
-    /// Crea una nueva capa de normalización de capa
+    /// Crea una nueva capa de normalización
     ///
-    /// # Argumentos
-    ///
-    /// * `forma_normalizada` - Tamaño de la dimensión de características a normalizar
-    ///
-    /// # Inicialización
-    ///
-    /// - gamma inicializado a 1.0 (sin escala inicialmente)
-    /// - beta inicializado a 0.0 (sin desplazamiento inicialmente)
-    /// - eps = 1e-5 (valor estándar)
+    /// γ = 1 (sin escala inicial) y β = 0 (sin desplazamiento inicial).
+    /// ε = 1e-5 es el valor estándar de la industria.
     pub fn new(forma_normalizada: usize) -> Self {
         Self {
             gamma: Tensor::new(vec![1.0; forma_normalizada], vec![forma_normalizada]),
@@ -84,30 +43,18 @@ impl NormCapaEntrenable {
         }
     }
 
-    /// Paso hacia adelante
-    ///
-    /// Normaliza la entrada a media cero y varianza unitaria, luego aplica escala/desplazamiento
-    ///
-    /// # Argumentos
-    ///
-    /// * `x` - Tensor de entrada [long_sec, n_embd]
-    ///
-    /// # Retorna
-    ///
-    /// Tupla de (salida, cache) donde:
-    /// - salida: Tensor normalizado [long_sec, n_embd]
-    /// - cache: Almacena valores necesarios para el paso hacia atrás
+    /// Paso hacia adelante — el árbitro normaliza cada vector de la secuencia
     pub fn forward(&self, x: &Tensor) -> (Tensor, CacheNormCapa) {
-        // Calcular estadísticas a lo largo de la última dimensión
+        // 1. Estadísticas a lo largo de la última dimensión
         let media = x.mean(-1, true);
         let varianza = x.var(-1, true);
-        let desv_est = varianza.add_scalar(self.eps).sqrt();
+        let desv_est = varianza.add_scalar(self.eps).sqrt(); // ε previene división por cero
 
-        // Normalizar
+        // 2. Normalización: centra y escala a media=0, varianza=1
         let x_centrado = x.sub(&media);
         let x_norm = x_centrado.div(&desv_est);
 
-        // Aplicar escala y desplazamiento aprendibles
+        // 3. Reescalado aprendible: el modelo ajusta la normalización según lo necesite
         let y = x_norm.mul(&self.gamma).add(&self.beta);
 
         let cache = CacheNormCapa {
@@ -121,24 +68,19 @@ impl NormCapaEntrenable {
         (y, cache)
     }
 
-    /// Paso hacia atrás
+    /// Paso hacia atrás — la parte más delicada del pergamino
     ///
-    /// Calcula los gradientes para gamma, beta y la entrada. El gradiente de la entrada es
-    /// complejo porque la normalización crea dependencias entre todos los elementos.
+    /// La fórmula del gradiente tiene en cuenta que la media y la varianza
+    /// dependen de todos los elementos de la fila:
     ///
-    /// # Argumentos
-    ///
-    /// * `grad_salida` - Gradiente de la siguiente capa [long_sec, n_embd]
-    /// * `cache` - Valores almacenados en caché del paso hacia adelante
-    ///
-    /// # Retorna
-    ///
-    /// Gradientes para gamma, beta y la entrada
+    /// ```text
+    /// grad_x = (1/√var) · (grad_x_norm - E[grad_x_norm] - x_norm · E[grad_x_norm · x_norm])
+    /// ```
     pub fn backward(&self, grad_salida: &Tensor, cache: &CacheNormCapa) -> GradientesNormCapa {
         let n_embd = self.gamma.datos.len();
         let long_sec = grad_salida.forma[0];
 
-        // Calcular grad_gamma y grad_beta acumulando a lo largo de la secuencia
+        // Gradientes de γ y β: se acumulan sumando sobre toda la secuencia
         let mut grad_gamma = vec![0.0; n_embd];
         let mut grad_beta = vec![0.0; n_embd];
         for i in 0..long_sec {
@@ -149,37 +91,31 @@ impl NormCapaEntrenable {
             }
         }
 
-        // Retropropagar a través de la escala: grad_x_norm = grad_salida * gamma
+        // Retropropagar a través de la escala: grad_x_norm = grad_salida · γ
         let grad_x_norm = grad_salida.mul(&self.gamma);
 
-        // Retropropagar a través de la normalización (¡la parte compleja!)
-        // Esto tiene en cuenta las dependencias de la media y la varianza
+        // La parte compleja: retropropagar a través de la normalización
         let mut datos_grad_x = vec![0.0; long_sec * n_embd];
 
         for i in 0..long_sec {
             let inicio_fila = i * n_embd;
-            let fin_fila = inicio_fila + n_embd;
-
-            let fila_grad_x_norm = &grad_x_norm.datos[inicio_fila..fin_fila];
-            let fila_x_norm = &cache.x_norm.datos[inicio_fila..fin_fila];
+            let fila_grad_x_norm = &grad_x_norm.datos[inicio_fila..inicio_fila + n_embd];
+            let fila_x_norm = &cache.x_norm.datos[inicio_fila..inicio_fila + n_embd];
             let valor_desv_est = cache.desv_est.datos[i];
 
-            // Calcular media de los gradientes (tiene en cuenta la dependencia de la media)
+            // Media de los gradientes: tiene en cuenta la dependencia de la media
             let media_grad: f32 = fila_grad_x_norm.iter().sum::<f32>() / n_embd as f32;
 
-            // Calcular media de (grad * x_norm) (tiene en cuenta la dependencia de la varianza)
-            let media_grad_x: f32 = fila_grad_x_norm
-                .iter()
-                .zip(fila_x_norm.iter())
-                .map(|(g, x)| g * x)
-                .sum::<f32>()
-                / n_embd as f32;
+            // Media de (grad · x_norm): tiene en cuenta la dependencia de la varianza
+            let media_grad_x: f32 = fila_grad_x_norm.iter().zip(fila_x_norm.iter())
+                .map(|(g, x)| g * x).sum::<f32>() / n_embd as f32;
 
-            // Fórmula final del gradiente
+            // Fórmula final: combina los tres caminos del gradiente
             for j in 0..n_embd {
                 let idx = inicio_fila + j;
                 datos_grad_x[idx] =
-                    (fila_grad_x_norm[j] - media_grad - fila_x_norm[j] * media_grad_x) / valor_desv_est;
+                    (fila_grad_x_norm[j] - media_grad - fila_x_norm[j] * media_grad_x)
+                    / valor_desv_est;
             }
         }
 
@@ -191,18 +127,18 @@ impl NormCapaEntrenable {
     }
 }
 
-/// Caché para el paso hacia atrás de la normalización de capa
+/// Tesoro del forward — guarda x_norm y desv_est para el backward
 pub struct CacheNormCapa {
     pub x: Tensor,
-    pub x_norm: Tensor,
+    pub x_norm: Tensor,    // El vector normalizado, necesario para grad_gamma
     #[allow(dead_code)]
     pub media: Tensor,
-    pub desv_est: Tensor,
+    pub desv_est: Tensor,  // La desviación estándar, necesaria para escalar el gradiente
 }
 
-/// Gradientes para la normalización de capa
+/// Los tres gradientes de la normalización de capa
 pub struct GradientesNormCapa {
-    pub gamma: Tensor,
-    pub beta: Tensor,
-    pub x: Tensor,
+    pub gamma: Tensor, // ∂L/∂γ
+    pub beta: Tensor,  // ∂L/∂β
+    pub x: Tensor,     // ∂L/∂x
 }
