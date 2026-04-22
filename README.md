@@ -116,7 +116,7 @@ Config {
 ## Estructura del repositorio
 
 ```
-Molinete-AI/
+molineteai/
 ├── src/                        ← Implementación del modelo en Rust
 │   ├── layers/
 │   │   ├── activation.rs
@@ -138,18 +138,20 @@ Molinete-AI/
 │   ├── tensor.rs
 │   └── tokenizador.rs
 ├── examples/                   ← Scripts de exploración en Python
+│   ├── molineteai.py           ← Punto de entrada principal Python
 │   └── modulos/
 │       ├── arquitectura.py     ← Exploración de la arquitectura del modelo
 │       ├── chat.py             ← Interfaz de chat con el modelo entrenado
-│       ├── datos.py            ← Carga y preprocesamiento del corpus
+│       ├── datos.py            ← Descarga y preprocesamiento del corpus
 │       ├── entrenamiento.py    ← Bucle de entrenamiento paso a paso
 │       ├── infraestructura.py  ← Warmup, clipping y utilidades de entrenamiento
 │       ├── tensores.py         ← Operaciones tensoriales básicas
 │       ├── tokenizadores.py    ← Entrenamiento y uso del tokenizador BPE
-│       └── ui.py               ← Interfaz de usuario para generación de texto
+│       └── ui.py               ← Interfaz de usuario y utilidades de consola
 ├── presentation/               ← Animaciones Manim de la arquitectura
-├── molineteai.py               ← Punto de entrada principal Python
-├── shakespeare.txt             ← Corpus alternativo para pruebas rápidas
+│   ├── main.py                 ← Escenas de la presentación
+│   └── requirements.txt
+├── cervantes.txt               ← Corpus de entrenamiento (Cervantes)
 ├── Cargo.toml
 ├── Cargo.lock
 ├── pyproject.toml
@@ -193,7 +195,7 @@ maturin develop --release
 ### 4. Ejecutar el modelo
 
 ```bash
-python molineteai.py
+python examples/molineteai.py
 ```
 
 ---
@@ -247,8 +249,11 @@ La carpeta `presentation/` contiene una charla con **animaciones desarrolladas e
 ```bash
 cd presentation
 pip install -r requirements.txt
-python main.py
+py -m manim_slides render main.py Presentacion
+py -m manim_slides present Presentacion
 ```
+
+Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
 
 ---
 

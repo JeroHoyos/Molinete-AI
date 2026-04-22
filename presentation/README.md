@@ -1,49 +1,48 @@
 
-
 # Ejecutar una presentación con Manim Slides
 
 Estas instrucciones explican cómo preparar el entorno, instalar dependencias, compilar las diapositivas y ejecutar la presentación.
 
 ---
 
-# 1. Activar el entorno virtual
+# 1. Instalar dependencias
 
-Primero activa el entorno virtual del proyecto.
+Se recomienda usar [`uv`](https://docs.astral.sh/uv/) para gestionar el entorno virtual e instalar dependencias.
 
-### Linux / Mac
-```bash
-source .venv/bin/activate
-````
-
-### Windows
+### Instalar uv (si no lo tienes)
 
 ```bash
-.venv\Scripts\activate
+pip install uv
 ```
 
-Si no existe un entorno virtual, créalo:
+### Crear entorno e instalar dependencias
 
 ```bash
-python -m venv .venv
+uv venv .env
+uv pip install -r requirements.txt
 ```
+
+Esto crea el entorno en `.env/` e instala todo en un solo paso.
 
 ---
 
-# 2. Instalar dependencias
+# 2. Activar el entorno virtual
 
-Instalar las dependencias del proyecto usando el archivo `requirements.txt`.
-
+### Windows
 ```bash
-pip install -r requirements.txt
+.env\Scripts\activate
+```
+
+### Linux / Mac
+```bash
+source .env/bin/activate
 ```
 
 ---
 
 # 3. Compilar las diapositivas
 
-Para generar el video de las diapositivas se usa `manim`.
-
-Estructura básica:
+Para generar el video de las diapositivas:
 
 ```bash
 py -m manim_slides render main.py Presentacion
@@ -53,7 +52,7 @@ py -m manim_slides render main.py Presentacion
 
 # 4. Presentar las diapositivas
 
-Una vez renderizadas, se puede iniciar la presentación:
+Una vez renderizadas, inicia la presentación:
 
 ```bash
 py -m manim_slides present Presentacion
@@ -62,8 +61,6 @@ py -m manim_slides present Presentacion
 ---
 
 # 5. Controles durante la presentación
-
-Controles básicos:
 
 * `→` siguiente diapositiva
 * `←` diapositiva anterior
@@ -74,13 +71,13 @@ Controles básicos:
 
 # 6. Flujo típico de trabajo
 
-El flujo normal es:
-
 ```bash
-source venv/bin/activate
-pip install -r requirements.txt
-manim_slides render presentacion.py Presentacion
-manim_slides present Presentacion
+uv venv .env
+uv pip install -r requirements.txt
+.env\Scripts\activate                        # Windows
+# source .env/bin/activate                   # Linux / Mac
+py -m manim_slides render main.py Presentacion
+py -m manim_slides present Presentacion
 ```
 
 ---
@@ -92,4 +89,6 @@ manim_slides present Presentacion
 * Los videos renderizados se guardan en la carpeta `media/`.
 
 # Para cambiar el path entre windows y linux
+```bash
 sed -i 's/\\\\/\//g' slides/Presentacion.json
+```

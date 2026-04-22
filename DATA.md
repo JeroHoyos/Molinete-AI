@@ -28,20 +28,14 @@
 
 ## 1. Obtener los datos
 
-La forma más sencilla es usar el script de descarga incluido en el proyecto:
+La forma más sencilla es usar el menú interactivo del proyecto:
 
 ```bash
-python download_data.py
-```
-
-Este script descargará todas las obras automáticamente desde Project Gutenberg y las concatenará en un único archivo `cervantes.txt`, con cabeceras separadoras entre cada obra.
-
-También puedes descargarlo desde el menú interactivo:
-
-```bash
-python molineteai.py
+python examples/molineteai.py
 # → Opción 11: Descargar corpus
 ```
+
+Esto descargará todas las obras automáticamente desde Project Gutenberg y las concatenará en un único archivo `cervantes.txt`, con cabeceras separadoras entre cada obra.
 
 ### Descarga manual
 

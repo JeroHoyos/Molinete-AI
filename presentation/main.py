@@ -340,6 +340,36 @@ pub struct TokenizadorBPE {
     (salida, cache)
 }""",
 
+    "python_bindings.rs": """use pyo3::prelude::*;
+
+#[pyclass]
+pub struct TokenizadorBPE { inner: crate::TokenizadorBPE }
+
+#[pymethods]
+impl TokenizadorBPE {
+    #[new]
+    pub fn new(tam_vocab: usize) -> Self {
+        Self { inner: crate::TokenizadorBPE::nuevo(tam_vocab) }
+    }
+    pub fn entrenar(&mut self, texto: &str, tam_vocab: usize) {
+        self.inner.entrenar(texto, tam_vocab);
+    }
+    pub fn codificar(&self, texto: &str) -> Vec<usize> {
+        self.inner.codificar(texto)
+    }
+    pub fn decodificar(&self, ids: Vec<usize>) -> String {
+        self.inner.decodificar(&ids)
+    }
+}
+
+#[pymodule]
+fn molineteai(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<TokenizadorBPE>()?;
+    m.add_class::<GPT2Entrenable>()?;
+    m.add_class::<Config>()?;
+    Ok(())
+}""",
+
     "temperature.rs": """pub fn generar(&self, prompt: &[usize], max_tokens: usize, temperatura: f32) -> Vec<usize> {
     let mut tokens = prompt.to_vec();
 
@@ -670,98 +700,100 @@ class Presentacion(Slide):
 
     def construct(self):
         self.camera.background_color = WHITE
-        
-        # self.slide_pronto_iniciamos()
-        # self.slide_introduction()
-        # self.slide_credits()
-        # self.slide_que_es_transformer()
-        # self.slide_por_que_rust()
-        # self.slide_molinete_ai()
+                
+        self.slide_pronto_iniciamos()
+        self.slide_introduction()
+        self.slide_credits()
+        self.slide_que_es_transformer()
+        self.slide_por_que_rust()
+        self.slide_molinete_ai()
 
-        # self.slide_roadmap()
+        self.slide_roadmap()
 
-        # self.slide_que_es_un_tensor()
-        # self.mostrar_snippet("tensor.rs")
+        self.slide_que_es_un_tensor()
+        self.mostrar_snippet("tensor.rs")
 
-        # self.slide_strides()
+        self.slide_strides()
 
-        # self.slide_matmul()
-        # self.mostrar_snippet("matmul_base.rs")
+        self.slide_matmul()
+        self.mostrar_snippet("matmul_base.rs")
 
-        # self.slide_intro_matmul_optimizacion()
+        self.slide_intro_matmul_optimizacion()
 
-        # self.slide_simd()
-        # self.mostrar_snippet("simd_vectorization.rs")
+        self.slide_simd()
+        self.mostrar_snippet("simd_vectorization.rs")
 
-        # self.slide_cache_blocking()
-        # self.mostrar_snippet("cache_blocking.rs")
+        self.slide_cache_blocking()
+        self.mostrar_snippet("cache_blocking.rs")
 
-        # self.slide_parallel_rayon()
-        # self.mostrar_snippet("parallel_rayon.rs")
+        self.slide_parallel_rayon()
+        self.mostrar_snippet("parallel_rayon.rs")
 
-        # self.slide_batched_matmul()
-        # self.mostrar_snippet("batched_matmul.rs")
+        self.slide_batched_matmul()
+        self.mostrar_snippet("batched_matmul.rs")
 
-        # self.slide_softmax()
-        # self.mostrar_snippet("softmax.rs")
+        self.slide_softmax()
+        self.mostrar_snippet("softmax.rs")
 
-        # self.slide_forward_pass()
-        # self.slide_problema_strawberry()
+        self.slide_forward_pass()
+        self.slide_problema_strawberry()
 
-        # self.slide_tokenizacion()
-        # self.mostrar_snippet("BDPtokenizer.rs")
+        self.slide_tokenizacion()
+        self.mostrar_snippet("BDPtokenizer.rs")
 
-        # self.slide_byte_pair_encoding()
-        # self.mostrar_snippet("pair_counts.rs")
+        self.slide_byte_pair_encoding()
+        self.mostrar_snippet("pair_counts.rs")
 
-        # self.slide_tamano_vocabulario()
+        self.slide_tamano_vocabulario()
 
-        # self.slide_embeddings()
+        self.slide_embeddings()
         self.slide_position_embeddings()
-        # self.mostrar_snippet("embedding.rs")
+        self.mostrar_snippet("embedding.rs")
 
-        # self.slide_layer_normalization()
-        # self.mostrar_snippet("normalization.rs")
+        self.slide_layer_normalization()
+        self.mostrar_snippet("normalization.rs")
 
-        # self.slide_mha_acto1_intuicion()
-        # self.slide_mha_acto2_formula()
-        # self.slide_mha_acto3_calculo()
-        # self.slide_mha_acto4_multihead()
-        # self.mostrar_snippet("attention.rs")
+        self.slide_mha_acto1_intuicion()
+        self.slide_mha_acto2_formula()
+        self.slide_mha_acto3_calculo()
+        self.slide_mha_acto4_multihead()
+        self.mostrar_snippet("attention.rs")
 
-        # self.slide_arquitectura_neurona()
-        # self.mostrar_snippet("mlp_forward.rs")
+        self.slide_arquitectura_neurona()
+        self.mostrar_snippet("mlp_forward.rs")
 
-        # self.slide_zoom_neurona()
-        # self.slide_activacion()
-        # self.mostrar_snippet("gelu.rs")
+        self.slide_zoom_neurona()
+        self.slide_activacion()
+        self.mostrar_snippet("gelu.rs")
 
-        # self.slide_residual()
-        # self.mostrar_snippet("block_backward.rs")
+        self.slide_residual()
+        self.mostrar_snippet("block_backward.rs")
 
-        # self.slide_entrenamiento()
-        # self.mostrar_snippet("compute_loss.rs")
+        self.slide_entrenamiento()
+        self.mostrar_snippet("compute_loss.rs")
 
-        # self.slide_descenso_gradiente()
-        # self.mostrar_snippet("linear_backward.rs")
+        self.slide_descenso_gradiente()
+        self.mostrar_snippet("linear_backward.rs")
 
-        # self.slide_backpropagation()
+        self.slide_backpropagation()
 
-        # self.slide_adam()
-        # self.mostrar_snippet("adamw_update.rs")
+        self.slide_adam()
+        self.mostrar_snippet("adamw_update.rs")
 
-        # self.slide_dropout()
-        # self.mostrar_snippet("dropout.rs")
+        self.slide_dropout()
+        self.mostrar_snippet("dropout.rs")
 
-        # self.slide_training_metrics()
+        self.slide_training_metrics()
 
-        # self.slide_temperature()
-        # self.mostrar_snippet("temperature.rs")
+        self.slide_temperature()
+        self.mostrar_snippet("temperature.rs")
 
-        # self.slide_model_in_action()
-        # self.slide_final()
-        
-        
+        self.slide_model_in_action()
+        self.slide_rust_python_bridge()
+        self.mostrar_snippet_python_bindings()
+        self.slide_molinete_resultado()
+        self.slide_final()
+                
     def mostrar_snippet(self, titulo_archivo):
         self.diapo_codigo(
             codigo_fuente=RUST_SNIPPETS[titulo_archivo],
@@ -7023,6 +7055,348 @@ class Presentacion(Slide):
 
         adornos[0][-1].clear_updaters()
         self._siguiente()
+        self.limpiar_pantalla()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SLIDE: Cómo conectar Rust con Python (PyO3 / maturin)
+    # ─────────────────────────────────────────────────────────────────────────
+    def slide_rust_python_bridge(self):
+        from pygments.style import Style
+        from pygments.token import Token, Keyword, Name, String, Number, Operator, Punctuation, Comment
+
+        llanuras_fondo = crear_llanuras_manchegas()
+
+        titulo, linea = self.crear_titulo(
+            "Rust × Python: el puente PyO3",
+            palabra_clave="PyO3",
+            color_clave=NARANJA_TERRACOTA,
+        )
+        self.play(Write(titulo), Create(linea), FadeIn(llanuras_fondo))
+
+        # ── Estilo cervantino ─────────────────────────────────────────────
+        class EstiloCervantino(Style):
+            background_color = FONDO_CAJA
+            styles = {
+                Token:           TINTA_NEGRA,
+                Keyword:         f'bold {NARANJA_TERRACOTA}',
+                Keyword.Type:    f'bold {MARRON_OSCURO}',
+                String:          MARRON_OSCURO,
+                Number:          PAPEL_TAN,
+                Name.Function:   NARANJA_TERRACOTA,
+                Operator:        TINTA_NEGRA,
+                Punctuation:     TINTA_NEGRA,
+                Comment:         f'italic {CAJA_INFERIOR}',
+            }
+
+        # ── Helper: ventana editor ────────────────────────────────────────
+        def hacer_editor(codigo, lang, titulo_arch, escala=0.62, ancho_max=5.8):
+            bloque = Code(
+                code_string=codigo,
+                language=lang,
+                formatter_style=EstiloCervantino,
+                background="rectangle",
+            ).scale(escala)
+            if bloque.width > ancho_max:
+                bloque.scale_to_fit_width(ancho_max)
+            if len(bloque) > 0:
+                bloque[0].set_opacity(0)
+            if len(bloque) > 1:
+                bloque[1].set_color(PAPEL_TAN)
+
+            ancho_caja = max(bloque.width + 0.4, 4.5)
+            alto_caja  = bloque.height + 0.75
+
+            bg = RoundedRectangle(
+                corner_radius=0.1, width=ancho_caja, height=alto_caja,
+                fill_color=FONDO_CAJA, fill_opacity=1,
+                stroke_color=MARRON_OSCURO, stroke_width=2,
+            )
+            header = Rectangle(
+                width=ancho_caja, height=0.38,
+                fill_color=MARRON_OSCURO, fill_opacity=1, stroke_width=0,
+            ).align_to(bg, UP)
+            dots = VGroup(
+                Circle(radius=0.06, fill_color=ROJO_MAC,     fill_opacity=1, stroke_width=0),
+                Circle(radius=0.06, fill_color=AMARILLO_MAC, fill_opacity=1, stroke_width=0),
+                Circle(radius=0.06, fill_color=VERDE_MAC,    fill_opacity=1, stroke_width=0),
+            ).arrange(RIGHT, buff=0.13).move_to(header.get_left() + RIGHT * 0.4)
+            ftitle = Text(titulo_arch, font="Monospace", font_size=13,
+                          color=PAPEL_CREMA).move_to(header)
+            bloque.move_to(bg.get_center() + DOWN * 0.12)
+            return VGroup(bg, header, dots, ftitle, bloque)
+
+        # ── Editores ──────────────────────────────────────────────────────
+        cargo_src = (
+            '[lib]\ncrate-type = ["cdylib", "rlib"]\n\n'
+            '[dependencies]\npyo3 = { version = "0.22",\n'
+            '  features = ["extension-module"] }'
+        )
+        editor_cargo = hacer_editor(cargo_src, "toml", "Cargo.toml")
+
+        rust_src = (
+            "use pyo3::prelude::*;\n\n"
+            "#[pyclass]\n"
+            "pub struct TokenizadorBPE { ... }\n\n"
+            "#[pymethods]\n"
+            "impl TokenizadorBPE {\n"
+            "    #[new]\n"
+            "    pub fn new(tam_vocab: usize) -> Self { ... }\n"
+            "    pub fn codificar(&self, txt: &str) -> Vec<usize> { ... }\n"
+            "    pub fn decodificar(&self, ids: Vec<usize>) -> String { ... }\n"
+            "}"
+        )
+        editor_rust = hacer_editor(rust_src, "rust", "python_bindings.rs", escala=0.60)
+
+        # ── Terminal ──────────────────────────────────────────────────────
+        term_w, term_h = 5.5, 0.95
+        term_bg = RoundedRectangle(
+            corner_radius=0.1, width=term_w, height=term_h,
+            fill_color=NEGRO_SUAVE, fill_opacity=1,
+            stroke_color=HIERRO, stroke_width=2,
+        )
+        term_header = Rectangle(
+            width=term_w, height=0.30,
+            fill_color=HIERRO, fill_opacity=1, stroke_width=0,
+        ).align_to(term_bg, UP)
+        term_dots = VGroup(
+            Circle(radius=0.05, fill_color=ROJO_MAC,     fill_opacity=1, stroke_width=0),
+            Circle(radius=0.05, fill_color=AMARILLO_MAC, fill_opacity=1, stroke_width=0),
+            Circle(radius=0.05, fill_color=VERDE_MAC,    fill_opacity=1, stroke_width=0),
+        ).arrange(RIGHT, buff=0.11).move_to(term_header.get_left() + RIGHT * 0.35)
+        term_title = Text("terminal", font="Monospace", font_size=11,
+                          color=ACERO).move_to(term_header)
+        prompt  = Text("$ ", font="Monospace", font_size=17, color=VERDE_MAC)
+        cmd_txt = Text("maturin develop --release", font="Monospace",
+                       font_size=17, color=BLANCO)
+        linea_cmd = VGroup(prompt, cmd_txt).arrange(RIGHT, buff=0.0)
+        linea_cmd.move_to(term_bg.get_center() + DOWN * 0.04)
+        terminal = VGroup(term_bg, term_header, term_dots, term_title, linea_cmd)
+
+        # ── Layout: editores en fila arriba, terminal centrada abajo ──────
+        # Fila superior: los dos editores lado a lado
+        fila_editores = VGroup(editor_cargo, editor_rust).arrange(RIGHT, buff=0.5)
+
+        # Escalar la fila si supera el ancho de pantalla
+        if fila_editores.width > 13.0:
+            fila_editores.scale_to_fit_width(13.0)
+
+        # Posicionar fila justo bajo el título
+        fila_editores.next_to(linea, DOWN, buff=0.35)
+
+        # Terminal centrada horizontalmente, debajo de los editores
+        terminal.next_to(fila_editores, DOWN, buff=0.35)
+        terminal.set_x(0)  # centrar en pantalla
+
+        # Asegurar que la terminal no salga de pantalla por abajo
+        if terminal.get_bottom()[1] < -3.4:
+            desplazar = terminal.get_bottom()[1] - (-3.4)
+            fila_editores.shift(UP * abs(desplazar) * 0.5)
+            terminal.shift(UP * abs(desplazar) * 0.5)
+
+        # ── Animaciones ───────────────────────────────────────────────────
+        self.play(FadeIn(editor_cargo, shift=DOWN * 0.2), run_time=0.7)
+        self.play(FadeIn(editor_rust,  shift=DOWN * 0.2), run_time=0.7)
+        self._siguiente()
+
+        # Terminal aparece, luego el comando se "tipea"
+        cmd_txt.set_opacity(0)
+        self.play(FadeIn(VGroup(term_bg, term_header, term_dots, term_title, prompt),
+                         shift=UP * 0.15), run_time=0.6)
+        self.play(AddTextLetterByLetter(cmd_txt, time_per_char=0.05), run_time=1.2)
+        self._siguiente()
+
+        self.play(
+            Flash(editor_rust.get_center(), color=ORO_VIEJO,
+                  line_length=0.4, num_lines=12),
+            run_time=0.7,
+        )
+        self._siguiente()
+        self.limpiar_pantalla()
+
+    # helper para mostrar el snippet de python_bindings
+    def mostrar_snippet_python_bindings(self):
+        self.diapo_codigo(
+            codigo_fuente=RUST_SNIPPETS["python_bindings.rs"],
+            titulo_archivo="python_bindings.rs",
+        )
+        self.limpiar_pantalla()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SLIDE: Resultado de la librería Molinete AI
+    # ─────────────────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
+    # SLIDE: Resultado de la librería Molinete AI
+    # ─────────────────────────────────────────────────────────────────────────
+    def slide_molinete_resultado(self):
+        from pygments.style import Style
+        from pygments.token import Token, Keyword, Name, String, Number, Operator, Punctuation, Comment
+
+        llanuras_fondo = crear_llanuras_manchegas()
+        adornos = self._crear_adornos_esquinas(escala=0.55, buff=0.65)
+        adornos[0][-1].add_updater(lambda m, dt: m.rotate(-dt * 0.4))
+
+        titulo, linea = self.crear_titulo(
+            "Molinete AI: en acción",
+            palabra_clave="acción",
+            color_clave=ORO_VIEJO,
+        )
+        self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
+
+        # ── Estilo cervantino ─────────────────────────────────────────────
+        class EstiloCervantino(Style):
+            background_color = FONDO_CAJA
+            styles = {
+                Token:           TINTA_NEGRA,
+                Keyword:         f'bold {NARANJA_TERRACOTA}',
+                Keyword.Type:    f'bold {MARRON_OSCURO}',
+                String:          MARRON_OSCURO,
+                Number:          PAPEL_TAN,
+                Name.Function:   NARANJA_TERRACOTA,
+                Operator:        TINTA_NEGRA,
+                Punctuation:     TINTA_NEGRA,
+                Comment:         f'italic {CAJA_INFERIOR}',
+            }
+
+        # ── Editor Python (izquierda) ─────────────────────────────────────
+        api_src = (
+            "import molineteai\n\n"
+            "tok = molineteai.TokenizadorBPE(1536)\n"
+            "tok.entrenar(texto, 1536)\n\n"
+            "config = molineteai.Config.mediana(\n"
+            "    tok.tam_vocabulario())\n"
+            "modelo = molineteai.GPT2Entrenable(config)\n\n"
+            "modelo.entrenar(\n"
+            "    tok, texto,\n"
+            "    pasos=8000, tasa_aprendizaje=3e-4)\n\n"
+            "ids = modelo.generar(\n"
+            "    tok.codificar('En un lugar'),\n"
+            "    max_tokens=100, temperatura=0.8)\n"
+            "print(tok.decodificar(ids))"
+        )
+        bloque_api = Code(
+            code_string=api_src,
+            language="python",
+            formatter_style=EstiloCervantino,
+            background="rectangle",
+        ).scale(0.72)
+
+        if len(bloque_api) > 0:
+            bloque_api[0].set_opacity(0)
+        if len(bloque_api) > 1:
+            bloque_api[1].set_color(PAPEL_TAN)
+
+        ancho_ed = max(bloque_api.width + 0.5, 5.4)
+        alto_ed  = bloque_api.height + 0.9
+
+        sombra_api = RoundedRectangle(
+            corner_radius=0.12, width=ancho_ed, height=alto_ed,
+            fill_color=BLACK, fill_opacity=0.2, stroke_width=0,
+        ).shift(RIGHT * 0.1 + DOWN * 0.1)
+        bg_api = RoundedRectangle(
+            corner_radius=0.12, width=ancho_ed, height=alto_ed,
+            fill_color=FONDO_CAJA, fill_opacity=1,
+            stroke_color=MARRON_OSCURO, stroke_width=2.5,
+        )
+        header_api = Rectangle(
+            width=ancho_ed, height=0.45,
+            fill_color=MARRON_OSCURO, fill_opacity=1, stroke_width=0,
+        ).align_to(bg_api, UP)
+        dots_api = VGroup(
+            Circle(radius=0.07, fill_color=ROJO_MAC,    fill_opacity=1, stroke_width=0),
+            Circle(radius=0.07, fill_color=AMARILLO_MAC, fill_opacity=1, stroke_width=0),
+            Circle(radius=0.07, fill_color=VERDE_MAC,   fill_opacity=1, stroke_width=0),
+        ).arrange(RIGHT, buff=0.15).move_to(header_api.get_left() + RIGHT * 0.45)
+        ftitle_api = Text("molineteai.py", font="Monospace", font_size=14,
+                          color=PAPEL_CREMA).move_to(header_api)
+        bloque_api.move_to(bg_api.get_center() + DOWN * 0.15)
+        editor_api = VGroup(sombra_api, bg_api, header_api, dots_api, ftitle_api, bloque_api)
+
+        # Posicionar editor izquierda
+        editor_api.next_to(linea, DOWN, buff=0.4).to_edge(LEFT, buff=0.5)
+
+        # ── Panel derecho: texto generado ─────────────────────────────────
+        # Título del panel
+        salida_titulo = Text("Texto generado", font=FUENTE,
+                             font_size=22, color=MARRON_OSCURO, weight=BOLD)
+
+        # Burbuja de pergamino con el output
+        texto_generado = (
+            '"En un lugar de la Mancha,\n'
+            'de cuyo nombre no quiero\n'
+            'acordarme, no ha mucho\n'
+            'tiempo que vivía un hidalgo\n'
+            'de los de lanza en astillero,\n'
+            'adarga antigua..."'
+        )
+        burbuja_fondo = RoundedRectangle(
+            corner_radius=0.2, width=5.6, height=3.5,
+            fill_color=PERGAMINO_CLARO, fill_opacity=1,
+            stroke_color=ORO_VIEJO, stroke_width=3,
+        )
+        burbuja_txt = Text(
+            texto_generado,
+            font=FUENTE, font_size=19, color=TINTA_NEGRA,
+            line_spacing=1.3,
+        ).move_to(burbuja_fondo.get_center())
+        burbuja = VGroup(burbuja_fondo, burbuja_txt)
+
+        modelo_lbl = Text(
+            "Molinete AI  ·  4M params  ·  temperatura 0.8",
+            font=FUENTE, font_size=15, color=LADRILLO, weight=BOLD,
+        )
+
+        panel_der = VGroup(salida_titulo, burbuja, modelo_lbl).arrange(DOWN, buff=0.2)
+        panel_der.next_to(linea, DOWN, buff=0.4).to_edge(RIGHT, buff=0.5)
+
+        # Alinear tops
+        editor_api.align_to(panel_der, UP)
+
+        # ── Tarjetas de métricas (fila inferior) ─────────────────────────
+        stats = [
+            ("~4M",      "Parámetros",   ROJO_TOMATE),
+            ("BPE 1536", "Tokens",       VERDE_OLIVA),
+            ("loss ↓",   "Cross-entropy",ORO_VIEJO),
+            ("PyO3",     "Rust↔Python",  NARANJA_TERRACOTA),
+        ]
+        tarjetas = VGroup()
+        for valor, etiq, color in stats:
+            rect = RoundedRectangle(
+                corner_radius=0.12, width=2.8, height=0.95,
+                fill_color=FONDO_CAJA, fill_opacity=1,
+                stroke_color=color, stroke_width=2.5,
+            )
+            v_txt = Text(valor, font=FUENTE, font_size=24, color=color, weight=BOLD)
+            e_txt = Text(etiq,  font=FUENTE, font_size=14, color=MARRON_OSCURO)
+            VGroup(v_txt, e_txt).arrange(DOWN, buff=0.04).move_to(rect.get_center())
+            tarjetas.add(VGroup(rect, v_txt, e_txt))
+
+        tarjetas.arrange(RIGHT, buff=0.25).to_edge(DOWN, buff=0.28)
+        tarjetas.scale_to_fit_width(12.8)
+
+        # ── Animaciones ───────────────────────────────────────────────────
+        self.play(FadeIn(editor_api, shift=RIGHT * 0.4), run_time=0.9)
+        self._siguiente()
+
+        self.play(FadeIn(salida_titulo, shift=LEFT * 0.3))
+        self.play(
+            DrawBorderThenFill(burbuja_fondo),
+            Write(burbuja_txt),
+            run_time=1.6,
+        )
+        self.play(FadeIn(modelo_lbl), run_time=0.5)
+        self._siguiente()
+
+        self.play(
+            LaggedStart(*[GrowFromCenter(t) for t in tarjetas], lag_ratio=0.18),
+            run_time=1.2,
+        )
+        self.play(
+            *[Indicate(t[0], color=ORO_VIEJO, scale_factor=1.07) for t in tarjetas],
+            run_time=0.9,
+        )
+        self._siguiente()
+
+        adornos[0][-1].clear_updaters()
         self.limpiar_pantalla()
 
     def slide_tokenizacion(self):
