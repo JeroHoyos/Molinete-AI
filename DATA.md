@@ -4,6 +4,18 @@
 
 ---
 
+## Tabla de contenidos
+
+- [Obras de Cervantes](#obras-de-cervantes)
+- [1. Obtener los datos](#1-obtener-los-datos)
+- [2. Preprocesamiento](#2-preprocesamiento)
+- [3. ¿Por qué Cervantes?](#3-por-qué-cervantes)
+- [4. Usar otros textos](#4-usar-otros-textos)
+- [5. Ética y reproducibilidad](#5-ética-y-reproducibilidad)
+- [6. Estructura del archivo generado](#6-estructura-del-archivo-generado)
+
+---
+
 ## Obras de Cervantes
 
 | Campo | Detalle |
@@ -24,6 +36,8 @@
 | Novelas y Teatro | [pg15115.txt](https://www.gutenberg.org/cache/epub/15115/pg15115.txt) |
 | Entremeses | [pg57955.txt](https://www.gutenberg.org/cache/epub/57955/pg57955.txt) |
 
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
+
 ---
 
 ## 1. Obtener los datos
@@ -31,7 +45,7 @@
 La forma más sencilla es usar el menú interactivo del proyecto:
 
 ```bash
-python examples/molineteai.py
+python ejemplos/molineteai.py
 # → Opción 11: Descargar corpus
 ```
 
@@ -50,19 +64,23 @@ curl -o entremeses.txt https://www.gutenberg.org/cache/epub/57955/pg57955.txt
 cat quijote.txt novelas.txt galatea.txt teatro.txt entremeses.txt > cervantes.txt
 ```
 
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
+
 ---
 
 ## 2. Preprocesamiento
 
 El procesamiento es mínimo y directo. No se aplican transformaciones complejas; el tokenizador BPE aprende directamente del texto crudo.
 
-El script `download_data.py` se encarga de:
+La opción de descarga del menú se encarga de:
 
 1. Descargar cada obra por separado.
 2. Insertar cabeceras separadoras entre obras para facilitar la lectura del archivo resultante.
 3. Unificar todo en `cervantes.txt`.
 
 **Paso opcional:** Los archivos de Project Gutenberg incluyen un bloque legal al inicio y al final de cada obra (*"The Project Gutenberg License"*). Puedes eliminarlos manualmente si deseas un corpus más limpio, aunque en la práctica el tokenizador los maneja sin problemas dado su tamaño relativo.
+
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
 
 ---
 
@@ -80,17 +98,23 @@ La elección del corpus no es arbitraria. Cervantes ofrece varias ventajas concr
 
 **Contrapunto cultural.** Feste usa Shakespeare (inglés isabelino). Molinete AI usa Cervantes (español del Siglo de Oro). Ambos son contemporáneos y representan cumbres literarias paralelas. La contraposición es tanto lingüística como histórica.
 
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
+
 ---
 
 ## 4. Usar otros textos
 
 Si prefieres experimentar con un corpus diferente, simplemente reemplaza `cervantes.txt` por cualquier archivo de texto plano en UTF-8. Algunos candidatos compatibles:
 
-- **Shakespeare completo** (el corpus original de Feste): disponible en Gutenberg como [pg100.txt](https://www.gutenberg.org/files/100/100-0.txt)
-- **El Quijote solo** (versión reducida para entrenamientos más rápidos)
-- **Cualquier obra en dominio público** de tu elección
+| Corpus | Fuente | Notas |
+|:---|:---|:---|
+| Shakespeare completo | [pg100.txt](https://www.gutenberg.org/files/100/100-0.txt) | Corpus original de Feste |
+| El Quijote solo | [pg2000.txt](https://www.gutenberg.org/cache/epub/2000/pg2000.txt) | Versión reducida para entrenamientos más rápidos |
+| Cualquier texto UTF-8 | — | Sin preprocesamiento adicional requerido |
 
-El menú interactivo (opción 11) también incluye la descarga de Shakespeare para facilitar la comparación.
+El menú interactivo (opción 11) también incluye la descarga de Shakespeare para facilitar la comparación entre ambos proyectos.
+
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
 
 ---
 
@@ -104,6 +128,8 @@ Este proyecto está diseñado con fines **educativos y reproducibles**, por lo q
 - Todo el corpus es descargable con un solo comando y verificable por cualquiera.
 
 Si decides adaptar el proyecto a otro corpus, asegúrate de respetar los términos de licencia del texto que uses.
+
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>
 
 ---
 
@@ -129,3 +155,5 @@ Si decides adaptar el proyecto a otro corpus, asegúrate de respetar los términ
 ```
 
 El tokenizador BPE entrena directamente sobre este archivo sin ningún paso adicional de limpieza.
+
+<div align="right"><a href="#datamd--corpus-de-entrenamiento">↑ Volver arriba</a></div>

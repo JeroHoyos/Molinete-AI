@@ -45,11 +45,27 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 [![Licencia](https://img.shields.io/badge/licencia-Apache_2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![PyO3](https://img.shields.io/badge/PyO3-maturin-red.svg)](https://github.com/PyO3/maturin)
+[![Corpus](https://img.shields.io/badge/corpus-Cervantes-gold.svg)](DATA.md)
 
 **Autor:** Jerónimo Hoyos Botero  
 **Basado en:** [tag1consulting/feste](https://github.com/tag1consulting/feste)
 
 </div>
+
+---
+
+## Tabla de contenidos
+
+- [¿Qué es Molinete AI?](#qué-es-molinete-ai)
+- [¿Por qué "Molinete"?](#por-qué-molinete)
+- [Sobre el proyecto](#sobre-el-proyecto)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Inicio rápido](#inicio-rápido)
+- [Módulos Python](#módulos-python)
+- [Presentación](#presentación)
+- [Diferencias frente al repositorio original](#diferencias-frente-al-repositorio-original)
+- [Licencia](#licencia)
 
 ---
 
@@ -66,11 +82,15 @@ Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **M
 
 El objetivo no es solo replicar el experimento original, sino reinterpretarlo en español y convertirlo en una guía técnica rigurosa y accesible.
 
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
+
 ---
 
 ## ¿Por qué "Molinete"?
 
 Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes — una metáfora perfecta para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
+
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
@@ -111,6 +131,8 @@ Config {
 | Datos de entrenamiento | Primeros 2M de caracteres |
 | Tiempo estimado (local) | ~4–6 horas |
 
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
+
 ---
 
 ## Estructura del repositorio
@@ -137,8 +159,9 @@ molineteai/
 │   ├── registrador_entrenamiento.rs
 │   ├── tensor.rs
 │   └── tokenizador.rs
-├── examples/                   ← Scripts de exploración en Python
+├── ejemplos/                   ← Scripts de exploración en Python
 │   ├── molineteai.py           ← Punto de entrada principal Python
+│   ├── REFERENCIA.md           ← Documentación completa de la API
 │   └── modulos/
 │       ├── arquitectura.py     ← Exploración de la arquitectura del modelo
 │       ├── chat.py             ← Interfaz de chat con el modelo entrenado
@@ -150,6 +173,7 @@ molineteai/
 │       └── ui.py               ← Interfaz de usuario y utilidades de consola
 ├── presentation/               ← Animaciones Manim de la arquitectura
 │   ├── main.py                 ← Escenas de la presentación
+│   ├── README.md               ← Instrucciones de la presentación
 │   └── requirements.txt
 ├── cervantes.txt               ← Corpus de entrenamiento (Cervantes)
 ├── Cargo.toml
@@ -158,6 +182,8 @@ molineteai/
 ├── DATA.md                     ← Guía del corpus de datos
 └── README.md
 ```
+
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
@@ -182,9 +208,12 @@ cd Molinete-AI
 
 ### 2. Preparar el corpus
 
-El corpus de Cervantes debe descargarse manualmente. Ver [DATA.md](DATA.md) para instrucciones detalladas y fuentes recomendadas.
+El corpus de Cervantes debe descargarse antes de entrenar. Ver [DATA.md](DATA.md) para instrucciones detalladas y fuentes recomendadas. También puede usarse el menú interactivo del proyecto:
 
-Para pruebas rápidas, el repositorio incluye `shakespeare.txt` como corpus alternativo en inglés.
+```bash
+python ejemplos/molineteai.py
+# → Opción 11: Descargar corpus
+```
 
 ### 3. Compilar los bindings Python
 
@@ -195,14 +224,16 @@ maturin develop --release
 ### 4. Ejecutar el modelo
 
 ```bash
-python examples/molineteai.py
+python ejemplos/molineteai.py
 ```
+
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
 ## Módulos Python
 
-Una vez compilados los bindings con `maturin develop --release`, los módulos en `examples/modulos/` permiten explorar cada componente del sistema de forma aislada:
+Una vez compilados los bindings con `maturin develop --release`, los módulos en `ejemplos/modulos/` permiten explorar cada componente del sistema de forma aislada:
 
 | Módulo | Descripción |
 |:---|:---|
@@ -214,6 +245,8 @@ Una vez compilados los bindings con `maturin develop --release`, los módulos en
 | `datos.py` | Carga, preprocesamiento y exploración del corpus |
 | `chat.py` | Chat interactivo con un modelo ya entrenado |
 | `ui.py` | Interfaz para generación de texto con control de temperatura |
+
+Para la documentación completa de la API Python, ver [ejemplos/REFERENCIA.md](ejemplos/REFERENCIA.md).
 
 ### Ejemplo de uso desde Python
 
@@ -240,6 +273,8 @@ ids_out = modelo.generar(tok.codificar("En un lugar"), max_tokens=100, temperatu
 print(tok.decodificar(ids_out))
 ```
 
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
+
 ---
 
 ## Presentación
@@ -255,17 +290,21 @@ py -m manim_slides present Presentacion
 
 Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
 
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
+
 ---
 
 ## Diferencias frente al repositorio original
 
 | Aporte | Descripción |
 |:---|:---|
-| **Corpus en español** | Cervantes en lugar de Shakespeare, con guía de descarga en DATA.md |
+| **Corpus en español** | Cervantes en lugar de Shakespeare, con guía de descarga en [DATA.md](DATA.md) |
 | **Módulos de exploración** | Scripts Python que aíslan y demuestran el comportamiento de cada componente |
 | **Bindings Python** | API completa con PyO3/maturin para usar el modelo desde Python |
 | **Presentación Manim** | Animaciones de la arquitectura Transformer para uso pedagógico |
 | **Documentación en español** | Explicaciones adicionales orientadas a la comprensión del código |
+
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 

@@ -1,5 +1,9 @@
 # Molinete AI — Referencia Completa de la Librería
 
+[![PyO3](https://img.shields.io/badge/PyO3-maturin-red.svg)](https://github.com/PyO3/maturin)
+[![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+
 Molinete AI es una implementación educativa de un transformer GPT-2 escrita en Rust y compilada como módulo Python via PyO3. Todos los pesos, capas, optimizador y backpropagation están implementados desde cero, sin PyTorch ni TensorFlow.
 
 ```python
@@ -16,6 +20,8 @@ import molineteai
 - [GPT2](#gpt2)
 - [GPT2Entrenable](#gpt2entrenable)
 - [Funciones de módulo](#funciones-de-módulo)
+- [Ejemplo completo end-to-end](#ejemplo-completo-end-to-end)
+- [Instalación](#instalación)
 
 ---
 
@@ -185,6 +191,8 @@ print(d.forma)  # [2, 4]
 | `.masked_fill(mascara, valor)` | Reemplaza con `valor` donde `mascara != 0` |
 | `.concat(otro, eje)` | Concatena a lo largo de un eje |
 
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
+
 ---
 
 ## TokenizadorBPE
@@ -264,6 +272,8 @@ print(tok2.tam_vocabulario())  # 1024
 | `.guardar(ruta)` | `(str)` | Serializa a JSON |
 | `TokenizadorBPE.cargar(ruta)` | `(str) → TokenizadorBPE` | Carga desde JSON |
 
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
+
 ---
 
 ## Config
@@ -319,6 +329,8 @@ print(cfg.tasa_dropout)     # tasa de dropout (0.0 durante inferencia)
 | `Config.mediana(vocab_size)` | Configuración media, resultados de calidad |
 | `Config.gpt2_small(vocab_size)` | Réplica exacta de GPT-2 Small de OpenAI |
 
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
+
 ---
 
 ## GPT2
@@ -353,6 +365,8 @@ print(modelo.num_parametros())  # ~50K
 | `.forward(tokens)` | `(list[list[int]]) → list[float]` | Forward pass, devuelve logits aplanados |
 | `.forma_salida(batch, seq_len)` | `(int, int) → (int, int, int)` | Shape del tensor de salida `[B, T, V]` |
 | `.num_parametros()` | `() → int` | Total de parámetros del modelo |
+
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
 
 ---
 
@@ -554,6 +568,8 @@ for nombre, fn in [
 | `dividir_entrenamiento_validacion(tokens, fraccion_val)` | `(list[int], float) → (list[int], list[int])` | Split train/val determinista |
 | `contar_parametros_config(config)` | `(Config) → int` | Cuenta parámetros sin crear el modelo |
 
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
+
 ---
 
 ## Ejemplo Completo End-to-End
@@ -617,3 +633,5 @@ maturin develop --release   # compila e instala el módulo
 ```
 
 Una vez instalado, `import molineteai` funciona desde cualquier script Python en el entorno activo.
+
+<div align="right"><a href="#molinete-ai--referencia-completa-de-la-librería">↑ Volver arriba</a></div>
