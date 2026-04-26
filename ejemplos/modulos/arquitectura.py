@@ -13,7 +13,7 @@ Exporta:
 
 import time
 
-from modulos.ui import titulo
+from modulos.ui import titulo, emit
 
 
 def _verificar_molineteai() -> bool:
@@ -44,11 +44,22 @@ def run_03_arquitectura():
     # ── 1. Tabla de configuraciones (Rust) ───────────────────────────────────
     print(f"\n{'Config':<12} {'Vocab':<7} {'Embd':<7} {'Cabezas':<8} {'Capas':<7} {'Paráms':>12} {'Mem MB':>8}")
     print("─" * 70)
+    tabla_filas = []
     for nombre, cfg in configs:
         n = molineteai.contar_parametros_config(cfg)   # estimación desde Rust sin crear el modelo
         mem = n * 4 / 1e6
         print(f"{nombre:<12} {cfg.tam_vocabulario:<7} {cfg.n_embd:<7} "
               f"{cfg.n_cabezas:<8} {cfg.n_capas:<7} {n:>12,} {mem:>7.1f}")
+        tabla_filas.append({
+            "nombre": nombre,
+            "vocab": cfg.tam_vocabulario,
+            "embd": cfg.n_embd,
+            "cabezas": cfg.n_cabezas,
+            "capas": cfg.n_capas,
+            "params": n,
+            "mem_mb": round(mem, 1),
+        })
+    emit("arch_table", rows=tabla_filas)
 
     # ── 2. Forward pass real (Rust) ──────────────────────────────────────────
     print("\nForward pass con modelo Diminuto (lote=2, long_sec=8)...")

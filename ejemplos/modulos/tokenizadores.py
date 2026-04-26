@@ -15,10 +15,18 @@ Exporta:
 """
 
 import os
+import sys
 import time
 
 from modulos.ui    import titulo, pedir_input, barra_progreso, SEPARADOR
 from modulos.datos import elegir_corpus, verificar_corpus, es_corpus_cervantes
+
+FRASES_QUIJOTE = [
+    "En un lugar de la Mancha, de cuyo nombre no quiero acordarme",
+    "el ingenioso hidalgo don Quijote de la Mancha",
+    "Con esto que dijo Sancho Panza",
+    "sancho respondió con mucha flema",
+]
 
 
 def _verificar_molineteai() -> bool:
@@ -92,16 +100,28 @@ def run_01_tokenizadores():
         t_c = time.time() - t0
 
         ratio = len(texto) / len(ids)
-        print(f"  Tiempo entrenamiento: {t_e:.2f}s | Codificación: {t_c:.2f}s")
-        print(f"  Tokens: {len(ids):,} | Compresión: {ratio:.2f}x")
+        print(f"  Tiempo entrenamiento: {t_e:.2f}s | Codificación: {t_c:.2f}s", flush=True)
+        print(f"  Tokens: {len(ids):,} | Compresión: {ratio:.2f}x", flush=True)
 
         # Verificar ciclo codif→decodif (Rust)
         ok = tok.decodificar(tok.codificar(frase_prueba)) == frase_prueba
-        print(f"  Ciclo codif→decodif: {'✓ PASADA' if ok else '✗ FALLIDA'}")
+        print(f"  Ciclo codif→decodif: {'✓ PASADA' if ok else '✗ FALLIDA'}", flush=True)
 
-        # Análisis de vocabulario (Rust)
+        # Análisis de vocabulario y ejemplos (Python, flush por línea para el frontend)
         if tam > 256:
-            tok.analizar_vocabulario(texto)
+            muestra = texto[:10_000]
+            ids_m = tok.codificar(muestra)
+            ratio_m = len(muestra) / max(len(ids_m), 1)
+            print(f"  Muestra corpus: {len(muestra):,} chars → {len(ids_m):,} tokens ({ratio_m:.2f}x)", flush=True)
+
+        print(f"\nEjemplos de tokenización (vocab={tam}):", flush=True)
+        for frase in FRASES_QUIJOTE:
+            ids_f = tok.codificar(frase)
+            tokens_f = [tok.decodificar([i]) for i in ids_f]
+            print(f'  "{frase}"', flush=True)
+            print(f'  → {len(ids_f)} tokens: [{"|".join(tokens_f)}]', flush=True)
+            print(flush=True)
+            time.sleep(0.05)  # pequeña pausa para que el frontend renderice cada ejemplo
 
         # Guardar tokenizador (Rust)
         ruta = f"{dir_s}/tokenizador_{tam}.json"

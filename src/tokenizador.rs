@@ -660,9 +660,9 @@ impl TokenizadorBPE {
         // --- Ejemplos Prácticos de Tokenización ---
         println!("\nEjemplos de Tokenización:");
         let ejemplos = vec![
-            "To be, or not to be",
-            "Romeo and Juliet",
-            "La calidad de la misericordia",
+            "En un lugar de la Mancha",
+            "el ingenioso hidalgo don Quijote",
+            "Con esto que dijo Sancho Panza",
         ];
 
         for ejemplo in ejemplos {

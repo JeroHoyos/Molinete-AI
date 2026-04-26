@@ -15,10 +15,12 @@ Exporta:
     run_entrenar_presets()
 """
 
+import glob
 import os
+import shutil
 import time
 
-from modulos.ui    import titulo, pedir_input, barra_progreso, SEPARADOR
+from modulos.ui    import titulo, pedir_input, barra_progreso, SEPARADOR, emit
 from modulos.datos import elegir_corpus, verificar_corpus, es_corpus_cervantes
 
 # Prompts de generación según el corpus
@@ -82,6 +84,10 @@ def _entrenar_modelo(
 
     es_cervantes = es_corpus_cervantes(ruta_corpus)
 
+    for d in glob.glob(f"data/{nombre_modelo}_*"):
+        shutil.rmtree(d, ignore_errors=True)
+        print(f"Eliminado run anterior: {d}/")
+
     marca = int(time.time())
     dir_s = f"data/{nombre_modelo}_{marca}"
     os.makedirs(dir_s, exist_ok=True)
@@ -98,12 +104,19 @@ def _entrenar_modelo(
     barra_progreso("Tokenizador", segundos=0.5)
     tok = molineteai.TokenizadorBPE(vocab)
     tok.entrenar(texto, vocab)
-    print(f"✓ Vocabulario: {tok.tam_vocabulario()} tokens")
-    tok.analizar_vocabulario(texto)
+    n_vocab = tok.tam_vocabulario()
+    print(f"✓ Vocabulario: {n_vocab} tokens", flush=True)
     tok.guardar(f"{dir_s}/tokenizador.json")
 
     ids = tok.codificar(texto)
-    print(f"Tokens: {len(ids):,}  (compresión {len(texto)/len(ids):.2f}x)")
+    print(f"Tokens: {len(ids):,}  (compresión {len(texto)/len(ids):.2f}x)", flush=True)
+
+    # Ejemplos de tokenización con frases del Quijote (flush por línea → tiempo real)
+    print("\nEjemplos de tokenización:", flush=True)
+    for frase in ["En un lugar de la Mancha", "el ingenioso hidalgo don Quijote", "Sancho Panza respondió"]:
+        ids_f = tok.codificar(frase)
+        tokens_f = [tok.decodificar([i]) for i in ids_f]
+        print(f'  "{frase}" → {len(ids_f)} tokens: [{"|".join(tokens_f)}]', flush=True)
 
     # ── Modelo (Rust) ─────────────────────────────────────────────────────────
     cfg = config_fn(tok.tam_vocabulario())
@@ -112,8 +125,19 @@ def _entrenar_modelo(
     print(f"\nModelo: {repr(modelo)}")
     print(f"Parámetros: {n:,} ({n/1e6:.2f}M) — Memoria estimada: ~{n*4/1e6:.0f} MB")
 
+    # Notificar al frontend los metadatos del entrenamiento
+    emit("train_meta",
+         model_name=nombre_modelo,
+         params=n,
+         params_m=round(n / 1e6, 2),
+         total_steps=pasos,
+         lr=lr,
+         vocab=tok.tam_vocabulario(),
+         corpus_mb=round(len(texto) / 1e6, 2))
+
     # ── Entrenamiento (Rust) ──────────────────────────────────────────────────
     print(f"\nEntrenando {pasos:,} pasos (LR={lr}, paciencia={paciencia})...")
+    emit("train_start")
     modelo.entrenar(
         tok, texto,
         pasos=pasos,
@@ -126,6 +150,7 @@ def _entrenar_modelo(
         fraccion_validacion=0.1,
         decaimiento_peso=0.01,
     )
+    emit("train_done")
 
     # ── Generación (Rust) ─────────────────────────────────────────────────────
     print(f"\n{'─'*70}\nGeneración de texto\n{'─'*70}")
@@ -133,9 +158,12 @@ def _entrenar_modelo(
     for prompt, temp in prompts:
         ids_p = tok.codificar(prompt)
         ids_g = modelo.generar(ids_p, 80, temp)
+        texto_gen = tok.decodificar(ids_g)
         print(f"\n── \"{prompt}\" (temp={temp}) ──")
-        print(tok.decodificar(ids_g))
+        print(texto_gen)
+        emit("sample", prompt=prompt, text=texto_gen, temp=temp)
 
+    emit("checkpoint_saved", path=dir_s)
     print(f"\n✅ Archivos en {dir_s}/")
     print("  ├── tokenizador.json")
     print("  ├── punto_control_mejor.bin")
@@ -258,6 +286,10 @@ def run_entrenar_presets():
         print(f"⚠️  n_embd ({embd}) no es divisible por n_cabezas ({cab})")
         return
 
+    for d in glob.glob(f"data/{preset.replace('-', '_')}_*"):
+        shutil.rmtree(d, ignore_errors=True)
+        print(f"Eliminado run anterior: {d}/")
+
     marca = int(time.time())
     dir_s = f"data/{preset.replace('-', '_')}_{marca}"
     os.makedirs(dir_s, exist_ok=True)
@@ -284,7 +316,17 @@ def run_entrenar_presets():
     n = molineteai.contar_parametros_config(cfg)
     print(f"Parámetros: {n:,} ({n/1e6:.2f}M)")
 
+    emit("train_meta",
+         model_name=preset,
+         params=n,
+         params_m=round(n / 1e6, 2),
+         total_steps=pasos,
+         lr=lr,
+         vocab=tok.tam_vocabulario(),
+         corpus_mb=round(len(texto) / 1e6, 2))
+
     # Entrenamiento (Rust)
+    emit("train_start")
     modelo.entrenar(
         tok, texto,
         pasos=pasos, tasa_aprendizaje=lr,
@@ -292,12 +334,16 @@ def run_entrenar_presets():
         fraccion_calentamiento=0.1, norma_recorte=1.0,
         fraccion_validacion=0.1, decaimiento_peso=0.01,
     )
+    emit("train_done")
 
     # Generación (Rust)
     print(f"\n{'─'*70}\nGeneración\n{'─'*70}")
     prompts = PROMPTS_CERVANTES[:2] if es_cervantes else PROMPTS_CUSTOM[:2]
     for prompt, temp in prompts:
         ids_g = modelo.generar(tok.codificar(prompt), 60, temp)
-        print(f"\n── \"{prompt}\" (t={temp}) ──\n{tok.decodificar(ids_g)[:150]}")
+        texto_gen = tok.decodificar(ids_g)[:200]
+        print(f"\n── \"{prompt}\" (t={temp}) ──\n{texto_gen}")
+        emit("sample", prompt=prompt, text=texto_gen, temp=temp)
 
+    emit("checkpoint_saved", path=dir_s)
     print(f"\n✅ Archivos en {dir_s}/")

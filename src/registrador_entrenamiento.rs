@@ -173,7 +173,18 @@ impl RegistradorEntrenamiento {
         );
 
         if let Some(texto) = muestra {
-            println!("  Muestra: \"{}\"", texto);
+            // Emitir como evento MOL estructurado para el frontend web
+            let json_safe = texto
+                .replace('\\', "\\\\")
+                .replace('"', "\\\"")
+                .replace('\n', " ")
+                .replace('\r', "");
+            println!(
+                "__MOL__{{\"type\":\"sample\",\"prompt\":\"Paso {}\",\"text\":\"{}\",\"temp\":1.0}}",
+                paso, json_safe
+            );
+            // Flush explícito: stdout está en modo bloque cuando está en pipe
+            let _ = std::io::stdout().flush();
         }
 
         self.tiempo_ultimo_registro = Instant::now();

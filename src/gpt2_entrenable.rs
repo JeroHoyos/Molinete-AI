@@ -1721,25 +1721,6 @@ pub fn entrenar_gpt2(
             decaimiento_peso,
         );
 
-        // Guardar punto de control cada 250 pasos (con estado de entrenamiento completo) - ¡en segundo plano!
-        if paso > 0 && paso % 250 == 0 {
-            let punto_control = PuntoControl {
-                modelo: modelo.clonar_superficialmente(),
-                optimizador: Some(optimizador.clonar_superficialmente()),
-                tokenizador: Some((*tokenizador).clone()),
-                paso,
-                mejor_perdida_val,
-                mejor_paso_val,
-            };
-            let ruta_punto_control = format!("{}/punto_control_paso_{}.bin", dir_ejecucion, paso);
-            println!(
-                "💾 Guardando punto de control en {} (segundo plano)...",
-                ruta_punto_control
-            );
-            let handle = punto_control.guardar_en_segundo_plano(ruta_punto_control);
-            handles_puntos_control.push(handle);
-        }
-
         // Registrar progreso cada 50 pasos
         if paso % 50 == 0 || paso == num_pasos - 1 {
             // Calcular pérdida de validación
@@ -1818,29 +1799,14 @@ pub fn entrenar_gpt2(
                 );
                 println!("   Sin mejoras durante {} pasos", pasos_sin_mejora);
 
-                // Guardar punto de control de detención anticipada (con estado de entrenamiento completo) - ¡en segundo plano!
-                let punto_control = PuntoControl {
-                    modelo: modelo.clonar_superficialmente(),
-                    optimizador: Some(optimizador.clonar_superficialmente()),
-                    tokenizador: Some((*tokenizador).clone()),
-                    paso,
-                    mejor_perdida_val,
-                    mejor_paso_val,
-                };
-                let ruta_detencion_anticipada =
-                    format!("{}/punto_control_detencion_anticipada_paso_{}.bin", dir_ejecucion, paso);
-                println!("💾 Guardando punto de control de detención anticipada (segundo plano)...");
-                let handle = punto_control.guardar_en_segundo_plano(ruta_detencion_anticipada);
-                handles_puntos_control.push(handle);
-
                 break;
             }
         }
     }
 
-    // Guardar punto de control final (si completamos todos los pasos sin detención anticipada) - ¡en segundo plano!
-    println!("\n💾 Guardando punto de control final (segundo plano)...");
-    let punto_control_final = PuntoControl {
+    // Guardar punto de control último (estado al finalizar, sea por pasos completos o early stopping)
+    println!("\n💾 Guardando punto de control último (segundo plano)...");
+    let punto_control_ultimo = PuntoControl {
         modelo: modelo.clonar_superficialmente(),
         optimizador: Some(optimizador.clonar_superficialmente()),
         tokenizador: Some((*tokenizador).clone()),
@@ -1849,7 +1815,7 @@ pub fn entrenar_gpt2(
         mejor_paso_val,
     };
     let handle =
-        punto_control_final.guardar_en_segundo_plano(format!("{}/punto_control_final.bin", dir_ejecucion).to_string());
+        punto_control_ultimo.guardar_en_segundo_plano(format!("{}/punto_control_ultimo.bin", dir_ejecucion));
     handles_puntos_control.push(handle);
 
     // Esperar a que se completen todos los guardados de puntos de control en segundo plano
@@ -1875,4 +1841,5 @@ pub fn entrenar_gpt2(
         mejor_paso_val
     );
     println!("Mejor modelo guardado en: punto_control_mejor.bin");
+    println!("Último estado guardado en: punto_control_ultimo.bin");
 }
