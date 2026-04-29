@@ -125,7 +125,6 @@ def _buscar_modelos() -> list[dict]:
 
 
 def run_chat():
-    titulo("10 — Chat con Modelo Entrenado")
     if not _verificar_molineteai():
         return
 
@@ -142,15 +141,9 @@ def run_chat():
     ruta_ck = None
 
     if modelos:
-        print("\nModelos disponibles:\n")
-        for m in modelos:
-            perp = f"perp={m['mejor_perp']}" if m['mejor_perp'] else ""
-            tags = []
-            if m["tiene_mejor"]:  tags.append("mejor")
-            if m["tiene_ultimo"]: tags.append("último")
-            print(f"  [{m['idx']}] {m['display']} — {m['pasos']:,} pasos {perp} [{', '.join(tags)}]")
-        print()
-        sel = pedir_input(f"Selecciona un modelo (1-{len(modelos)}, o escribe la ruta .bin): ")
+        # El frontend muestra las tarjetas con los modelos vía chat_checkpoints.
+        # Bloqueamos stdin en silencio esperando la selección del usuario.
+        sel = pedir_input("")
 
         try:
             idx = int(sel) - 1

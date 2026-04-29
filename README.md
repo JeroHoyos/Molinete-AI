@@ -63,6 +63,7 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Inicio rápido](#inicio-rápido)
 - [Módulos Python](#módulos-python)
+- [Interfaz web](#interfaz-web)
 - [Presentación](#presentación)
 - [Diferencias frente al repositorio original](#diferencias-frente-al-repositorio-original)
 - [Licencia](#licencia)
@@ -172,10 +173,17 @@ molineteai/
 │       ├── tokenizadores.py    ← Entrenamiento y uso del tokenizador BPE
 │       └── ui.py               ← Interfaz de usuario y utilidades de consola
 ├── presentation/               ← Animaciones Manim de la arquitectura
-│   ├── main.py                 ← Escenas de la presentación
-│   ├── README.md               ← Instrucciones de la presentación
+│   ├── main.py                 ← Clase Presentacion; compone todas las diapositivas
+│   ├── colores.py              ← Constantes de color y tipografía (tema Cervantes)
+│   ├── objetos.py              ← Fábricas de Mobjects reutilizables
+│   ├── snippets.py             ← Fragmentos de código Rust para las diapositivas
+│   ├── slides/                 ← Módulos individuales de diapositivas (00–08)
+│   ├── README.md               ← Instrucciones de compilación y presentación
 │   └── requirements.txt
-├── cervantes.txt               ← Corpus de entrenamiento (Cervantes)
+├── web/                        ← Interfaz web (FastAPI + WebSocket)
+│   ├── server.py               ← Servidor con streaming de salida en tiempo real
+│   ├── runner.py               ← Gestor de subprocesos de los ejemplos
+│   └── index.html              ← UI de pergamino en una sola página
 ├── Cargo.toml
 ├── Cargo.lock
 ├── pyproject.toml
@@ -244,7 +252,7 @@ Una vez compilados los bindings con `maturin develop --release`, los módulos en
 | `entrenamiento.py` | Entrenamiento completo con registro de métricas |
 | `datos.py` | Carga, preprocesamiento y exploración del corpus |
 | `chat.py` | Chat interactivo con un modelo ya entrenado |
-| `ui.py` | Interfaz para generación de texto con control de temperatura |
+| `ui.py` | Arte ASCII, barras de progreso y utilidades de consola compartidas por todos los módulos |
 
 Para la documentación completa de la API Python, ver [ejemplos/REFERENCIA.md](ejemplos/REFERENCIA.md).
 
@@ -277,13 +285,45 @@ print(tok.decodificar(ids_out))
 
 ---
 
+## Interfaz web
+
+La carpeta `web/` incluye una interfaz web que permite ejecutar los módulos de ejemplo y chatear con el modelo directamente desde el navegador, sin necesidad de abrir una terminal.
+
+### Requisitos
+
+```bash
+pip install fastapi uvicorn
+```
+
+> El modelo debe estar compilado primero (`maturin develop --release`).
+
+### Iniciar el servidor
+
+```bash
+python web/server.py
+```
+
+Luego abre **http://localhost:7860** en tu navegador.
+
+### Puerto personalizado
+
+```bash
+PORT=8000 python web/server.py
+```
+
+<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
+
+---
+
 ## Presentación
 
 La carpeta `presentation/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
 
 ```bash
 cd presentation
-pip install -r requirements.txt
+uv venv .env
+uv pip install -r requirements.txt
+# Activar: .env\Scripts\activate (Windows) / source .env/bin/activate (Linux/Mac)
 py -m manim_slides render main.py Presentacion
 py -m manim_slides present Presentacion
 ```
