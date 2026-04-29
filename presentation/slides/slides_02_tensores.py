@@ -815,7 +815,7 @@ class SlidesTensores:
         )
 
         # ─── 4. MODO SIMD: 4 sumas en 1 ciclo ────────────────────────────────────
-        modo_simd_lbl = Text("SIMD — 4 sumas en 1 ciclo",
+        modo_simd_lbl = Text("Una instrucción vectorial — 4 sumas en paralelo",
                              font=FUENTE, font_size=19, color=NARANJA_TERRACOTA, weight=BOLD) \
                             .to_edge(DOWN, buff=0.55)
         self.play(FadeIn(modo_simd_lbl, shift=UP * 0.15))
@@ -922,7 +922,7 @@ class SlidesTensores:
 
         # ─── PROBLEMA: 2 columnas completas no caben en caché ────────────────────
         texto_prob = Text(
-            "MatMul necesita 2 columnas completas a la vez",
+            "MatMul necesita datos que no caben completos en caché",
             font=FUENTE, font_size=19, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_prob))
@@ -1232,7 +1232,7 @@ class SlidesTensores:
             stroke_color=NARANJA_TERRACOTA, stroke_width=3
         ).next_to(linea, DOWN, buff=0.26)
         concl = Text(
-            "Tiempo efectivo  ≈  T ÷ núcleos disponibles",
+            "Tiempo ≈ T / núcleos  (si el trabajo se divide bien)",
             font=FUENTE, font_size=21, color=MARRON_OSCURO, weight=BOLD
         ).move_to(caja_concl)
 
@@ -1359,7 +1359,7 @@ class SlidesTensores:
         # PANTALLA 2 — convergencia + iluminación simultánea + mensaje final
         # ═══════════════════════════════════════════════════════════════════════════
         sub2 = Text(
-            "Una sola bolsa · un solo viaje · todo contiguo en memoria",
+            "Una sola bolsa · un solo viaje · una sola llamada",
             font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=BUFF_SUB)
         self.play(Write(sub2))
@@ -1395,7 +1395,7 @@ class SlidesTensores:
         self.play(Create(divisores), run_time=0.45)
 
         annot_contiguo = Text(
-            "A · B · C  contiguos en memoria · sin saltos",
+            "A · B · C procesadas juntas · sin múltiples llamadas",
             font=FUENTE, font_size=14, color=MARRON_OSCURO
         ).move_to(Y_ANNOT).set_z_index(3)
         self.play(FadeIn(annot_contiguo, shift=UP * 0.10))
