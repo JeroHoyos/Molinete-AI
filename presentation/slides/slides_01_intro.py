@@ -401,7 +401,7 @@ class SlidesIntro:
             self.play(FadeIn(fila, shift=RIGHT * 0.2), run_time=0.55)
 
         veredicto = Text(
-            "Velocidad de C++  ·  Sin GIL: hilos reales  ·  Diferenciador único",
+            "Velocidad de C++  ·  Sin GIL: hilos reales",
             font=FUENTE, font_size=19, color=COLOR_RUST, weight=BOLD,
         )
         caja_veredicto = SurroundingRectangle(
@@ -415,6 +415,56 @@ class SlidesIntro:
         self.play(FadeIn(grupo_veredicto, shift=UP * 0.2), run_time=0.7)
         self._siguiente()
 
+        # ── ACTO 2: Python como interfaz, Rust como motor ─────────────────────
+        self.play(
+            FadeOut(tabla_completa),
+            FadeOut(Group(logo_py, logo_cpp, logo_rs)),
+            FadeOut(grupo_veredicto),
+            run_time=0.6,
+        )
+
+        ANCHO_PANEL = 7.0
+        ALTO_PANEL  = 1.6
+
+        # ── Panel Python ──────────────────────────────────────────────────────
+        py_bg = RoundedRectangle(
+            corner_radius=0.18, width=ANCHO_PANEL, height=ALTO_PANEL,
+            fill_color=FONDO_CAJA, fill_opacity=1,
+            stroke_color=MARRON_OSCURO, stroke_width=2,
+        ).set_x(0).next_to(linea, DOWN, buff=0.7)
+
+        py_logo = ImageMobject(os.path.join("assets", "logo_python.png")).set_height(0.9)
+        py_lbl  = Text("Interfaz", font=FUENTE, font_size=28,
+                        color=MARRON_OSCURO, weight=BOLD)
+        Group(py_logo, py_lbl).arrange(RIGHT, buff=0.35).move_to(py_bg)
+
+        # ── Conector ──────────────────────────────────────────────────────────
+        flecha = Arrow(
+            py_bg.get_bottom(), py_bg.get_bottom() + DOWN * 0.7,
+            color=NARANJA_TERRACOTA, stroke_width=4,
+            max_tip_length_to_length_ratio=0.45, buff=0,
+        ).set_x(0)
+
+        # ── Panel Rust ────────────────────────────────────────────────────────
+        rs_bg = RoundedRectangle(
+            corner_radius=0.18, width=ANCHO_PANEL, height=ALTO_PANEL,
+            fill_color=FONDO_CAJA, fill_opacity=1,
+            stroke_color=MARRON_OSCURO, stroke_width=2,
+        ).next_to(flecha.get_tip(), DOWN, buff=0.15).set_x(0)
+
+        rs_logo = ImageMobject(os.path.join("assets", "logo_rust.png")).set_height(1.0)
+        rs_lbl  = Text("Motor", font=FUENTE, font_size=28,
+                        color=MARRON_OSCURO, weight=BOLD)
+        Group(rs_logo, rs_lbl).arrange(RIGHT, buff=0.35).move_to(rs_bg)
+
+        # ── Animación ─────────────────────────────────────────────────────────
+        self.play(FadeIn(py_bg, shift=DOWN * 0.15), FadeIn(py_logo, shift=DOWN * 0.15),
+                  FadeIn(py_lbl, shift=DOWN * 0.15), run_time=0.6)
+        self.play(GrowArrow(flecha), run_time=0.45)
+        self.play(FadeIn(rs_bg, shift=UP * 0.15), FadeIn(rs_logo, shift=UP * 0.15),
+                  FadeIn(rs_lbl, shift=UP * 0.15), run_time=0.6)
+
+        self._siguiente()
         self.limpiar_pantalla()
 
     def slide_molinete_ai(self):
@@ -459,7 +509,7 @@ class SlidesIntro:
         enc_2 = VGroup(num_2, tit_2).arrange(RIGHT, buff=0.2, aligned_edge=DOWN)
         ico_2 = crear_yelmo_mambrino().scale(0.5)
         txt_2 = Text(
-            "El boss de Las Catacumbas se llama Molinete,\nel más fácil del juego.",
+            "El boss de Las Catacumbas,\nel más fácil del juego.",
             font=FUENTE, font_size=19, color=TINTA_NEGRA, line_spacing=1.4,
         )
         bloque_2 = VGroup(enc_2, ico_2, txt_2).arrange(DOWN, buff=0.18, aligned_edge=LEFT)

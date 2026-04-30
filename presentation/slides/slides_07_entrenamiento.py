@@ -178,23 +178,9 @@ class SlidesEntrenamiento:
             color_clave=NARANJA_TERRACOTA
         )
         llanuras_fondo = crear_llanuras_manchegas()
-        self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo)
-
-        pregunta = Text("¿Hacia dónde ajustar?",
-                        font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA,
-                        line_spacing=1.4).move_to(UP * 1.5)
-        self.play(Write(pregunta))
-        self._siguiente()
-
-        analogia = Text(
-            "Imagina que estás en una montaña con los ojos vendados.\n"
-            "Solo puedes sentir la pendiente bajo tus pies.\n"
-            "Estrategia: siempre da un paso cuesta abajo.",
-            font=FUENTE, font_size=21, color=MARRON_OSCURO, line_spacing=1.4
-        ).next_to(pregunta, DOWN, buff=0.5)
-        self.play(FadeIn(analogia, shift=UP * 0.2))
-
-        self.play(FadeOut(pregunta), FadeOut(analogia))
+        adornos = self._crear_adornos_esquinas(escala=0.55, buff=0.5)
+        adornos[1].add_updater(lambda m, dt: m.rotate(dt * 0.4))
+        self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
         def func_costo(x):
             return np.sin(x) + 0.3 * (x ** 2) + 2
@@ -222,34 +208,34 @@ class SlidesEntrenamiento:
         curva = ejes.plot(func_costo, color=NARANJA_TERRACOTA, stroke_width=4)
         area  = ejes.get_area(curva, opacity=0.08, color=NARANJA_TERRACOTA)
 
-        x_minimo  = -0.89
-        p_minimo  = ejes.c2p(x_minimo, func_costo(x_minimo))
+        x_minimo = -0.89
+        p_minimo = ejes.c2p(x_minimo, func_costo(x_minimo))
 
         def crear_stickman():
             cabeza  = Circle(radius=0.15, color=MARRON_OSCURO,
-                             fill_color=PAPEL_CREMA, fill_opacity=1)
+                            fill_color=PAPEL_CREMA, fill_opacity=1)
             cuerpo  = Line(cabeza.get_bottom(),
-                           cabeza.get_bottom() + DOWN * 0.4,
-                           color=MARRON_OSCURO, stroke_width=3)
+                        cabeza.get_bottom() + DOWN * 0.4,
+                        color=MARRON_OSCURO, stroke_width=3)
             brazos  = VGroup(
                 Line(cuerpo.get_center() + UP * 0.1,
-                     cuerpo.get_center() + UP * 0.3 + LEFT * 0.2,
-                     color=MARRON_OSCURO, stroke_width=3),
+                    cuerpo.get_center() + UP * 0.3 + LEFT * 0.2,
+                    color=MARRON_OSCURO, stroke_width=3),
                 Line(cuerpo.get_center() + UP * 0.1,
-                     cuerpo.get_center() + UP * 0.3 + RIGHT * 0.2,
-                     color=MARRON_OSCURO, stroke_width=3)
+                    cuerpo.get_center() + UP * 0.3 + RIGHT * 0.2,
+                    color=MARRON_OSCURO, stroke_width=3)
             )
             piernas = VGroup(
                 Line(cuerpo.get_bottom(),
-                     cuerpo.get_bottom() + DOWN * 0.3 + LEFT * 0.2,
-                     color=MARRON_OSCURO, stroke_width=3),
+                    cuerpo.get_bottom() + DOWN * 0.3 + LEFT * 0.2,
+                    color=MARRON_OSCURO, stroke_width=3),
                 Line(cuerpo.get_bottom(),
-                     cuerpo.get_bottom() + DOWN * 0.3 + RIGHT * 0.2,
-                     color=MARRON_OSCURO, stroke_width=3)
+                    cuerpo.get_bottom() + DOWN * 0.3 + RIGHT * 0.2,
+                    color=MARRON_OSCURO, stroke_width=3)
             )
             mastil  = Line(brazos[0].get_end(),
-                           brazos[0].get_end() + UP * 0.5,
-                           color=TINTA_NEGRA, stroke_width=2)
+                        brazos[0].get_end() + UP * 0.5,
+                        color=TINTA_NEGRA, stroke_width=2)
             bandera = Polygon(
                 mastil.get_end(),
                 mastil.get_end() + DOWN * 0.15 + LEFT * 0.3,
@@ -259,12 +245,8 @@ class SlidesEntrenamiento:
             return VGroup(cabeza, cuerpo, brazos, piernas, mastil, bandera)
 
         stickman = crear_stickman().scale(0.6).next_to(p_minimo, UP, buff=0)
-        lbl_meta  = Text("mínimo", font=FUENTE, font_size=13,
-                         color=NARANJA_TERRACOTA, weight=BOLD).next_to(stickman, UP, buff=0.08)
-
-        self.play(Create(ejes), Write(lbl_x), Write(lbl_y))
-        self.play(Create(curva), FadeIn(area))
-        self.play(FadeIn(stickman, shift=UP * 0.3), Write(lbl_meta))
+        lbl_meta = Text("mínimo", font=FUENTE, font_size=13,
+                        color=NARANJA_TERRACOTA, weight=BOLD).next_to(stickman, UP, buff=0.08)
 
         lr = 0.8
         eq_update = MathTex(
@@ -280,21 +262,24 @@ class SlidesEntrenamiento:
         lbl_grad = Text("∇L = pendiente en w", font=FUENTE,
                         font_size=16, color=NARANJA_TERRACOTA)
 
-        txt_pos  = Text("w = 4.00", font="Monospace", font_size=16, color=MARRON_OSCURO)
-        txt_grad_val = Text("∇L = —", font="Monospace", font_size=16, color=NARANJA_TERRACOTA)
-        txt_loss = Text("L = —", font="Monospace", font_size=16, color=ROJO_TOMATE)
+        txt_pos      = Text("w = 4.00", font="Monospace", font_size=16, color=MARRON_OSCURO)
+        txt_grad_val = Text("∇L = —",   font="Monospace", font_size=16, color=NARANJA_TERRACOTA)
+        txt_loss     = Text("L = —",    font="Monospace", font_size=16, color=ROJO_TOMATE)
 
         panel = VGroup(eq_grupo, lbl_lr, lbl_grad,
-                       txt_pos, txt_grad_val, txt_loss
-                       ).arrange(DOWN, buff=0.32, aligned_edge=LEFT
-                       ).next_to(ejes, RIGHT, buff=0.55).align_to(ejes, UP).shift(DOWN * 0.3)
+                    txt_pos, txt_grad_val, txt_loss
+                    ).arrange(DOWN, buff=0.32, aligned_edge=LEFT
+                    ).next_to(ejes, RIGHT, buff=0.55).align_to(ejes, UP).shift(DOWN * 0.3)
 
-        self.play(FadeIn(panel, shift=LEFT * 0.2))
+        self.play(Create(ejes), Write(lbl_x), Write(lbl_y), run_time=0.9)
+        self.play(Create(curva), FadeIn(area), run_time=1.0)
+        self.play(FadeIn(stickman, shift=UP * 0.3), Write(lbl_meta), run_time=0.6)
+        self.play(FadeIn(panel, shift=LEFT * 0.2), run_time=0.5)
         self._siguiente()
 
         x_val = 4.0
-        punto  = Dot(ejes.c2p(x_val, func_costo(x_val)),
-                     color=TINTA_NEGRA, radius=0.13)
+        punto = Dot(ejes.c2p(x_val, func_costo(x_val)),
+                    color=TINTA_NEGRA, radius=0.13)
         self.play(FadeIn(punto, scale=0.5))
 
         rastros = VGroup()
@@ -308,15 +293,15 @@ class SlidesEntrenamiento:
             p_next   = ejes.c2p(x_next, func_costo(x_next))
 
             nuevo_pos  = Text(f"w = {x_val:.2f}",
-                              font="Monospace", font_size=16, color=MARRON_OSCURO
-                              ).move_to(txt_pos, aligned_edge=LEFT)
+                            font="Monospace", font_size=16, color=MARRON_OSCURO
+                            ).move_to(txt_pos, aligned_edge=LEFT)
             nuevo_grad = Text(f"∇L = {grad_actual:+.2f}",
-                              font="Monospace", font_size=16,
-                              color=VERDE_OLIVA if abs(grad_actual) < 0.5 else NARANJA_TERRACOTA
-                              ).move_to(txt_grad_val, aligned_edge=LEFT)
+                            font="Monospace", font_size=16,
+                            color=VERDE_OLIVA if abs(grad_actual) < 0.5 else NARANJA_TERRACOTA
+                            ).move_to(txt_grad_val, aligned_edge=LEFT)
             nuevo_loss = Text(f"L = {func_costo(x_val):.2f}",
-                              font="Monospace", font_size=16, color=ROJO_TOMATE
-                              ).move_to(txt_loss, aligned_edge=LEFT)
+                            font="Monospace", font_size=16, color=ROJO_TOMATE
+                            ).move_to(txt_loss, aligned_edge=LEFT)
 
             self.play(
                 Transform(txt_pos,      nuevo_pos),
@@ -334,7 +319,7 @@ class SlidesEntrenamiento:
 
             angulo_salto = -TAU / 6 if grad_actual > 0 else TAU / 6
             flecha_salto = CurvedArrow(p_actual, p_next, angle=angulo_salto,
-                                       color=NARANJA_TERRACOTA, stroke_width=2.8)
+                                    color=NARANJA_TERRACOTA, stroke_width=2.8)
             self.play(Create(flecha_salto), run_time=0.35)
 
             rastro = Dot(p_actual, color=MARRON_OSCURO, radius=0.055).set_opacity(0.35)
@@ -351,20 +336,20 @@ class SlidesEntrenamiento:
 
         self.play(
             Wiggle(stickman, scale_value=1.18, rotation_angle=0.04 * TAU),
-            Flash(punto, color=NARANJA_TERRACOTA, line_length=0.45, flash_radius=0.32,
-                  num_lines=12),
+            Flash(punto, color=NARANJA_TERRACOTA, line_length=0.45,
+                flash_radius=0.32, num_lines=12),
             run_time=1.0
         )
         self._siguiente()
 
+        adornos[1].clear_updaters()
         self.play(
             FadeOut(ejes), FadeOut(lbl_x), FadeOut(lbl_y),
             FadeOut(curva), FadeOut(area),
             FadeOut(stickman), FadeOut(lbl_meta),
             FadeOut(punto), FadeOut(rastros),
-            FadeOut(panel)
+            FadeOut(panel), FadeOut(adornos)
         )
-
         self.limpiar_pantalla()
 
 
@@ -863,37 +848,7 @@ class SlidesEntrenamiento:
 
         self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo, herradura_fondo))
 
-        label_proposito = Text(
-            "Es una técnica de regularización.",
-            font=FUENTE, font_size=24, color=TINTA_NEGRA, weight=BOLD
-        )
-
-        label_eq = Text(
-            "Se basa en una Distribución de Bernoulli:",
-            font=FUENTE, font_size=20, color=MARRON_OSCURO
-        )
-
-        eq_dropout = MathTex(
-            r"r_i \sim \text{Bernoulli}(p)",
-            r"\quad \Rightarrow \quad",
-            r"y_i = \frac{r_i \cdot x_i}{p}",
-            color=TINTA_NEGRA
-        ).scale(1.2)
-
-        eq_dropout.set_color_by_tex("p", NARANJA_TERRACOTA)
-        eq_dropout.set_color_by_tex("r_i", MARRON_OSCURO)
-
-        explicacion = Tex(
-            r"Al escalar por $p$, mantenemos la esperanza matemática: $\mathbb{E}[y_i] = x_i$",
-            font_size=24, color=MARRON_OSCURO
-        )
-
-        grupo_intro = VGroup(label_proposito, label_eq, eq_dropout, explicacion).arrange(DOWN, buff=0.4).move_to(ORIGIN)
-
-        self.play(FadeIn(grupo_intro, shift=DOWN*0.2), run_time=1.5)
-
-        self.play(FadeOut(grupo_intro))
-
+        # ── Acto 2: red neuronal + problema + solución dropout ────────────────
         tamaños_capas = [4, 5, 5, 5, 4]
         colores_capas = [BLUE_D, NARANJA_TERRACOTA, NARANJA_TERRACOTA, NARANJA_TERRACOTA, GREEN_D]
         nombres_capas = ["Input", "Dense 1", "Dense 2", "Dense 3", "Output"]
@@ -904,9 +859,7 @@ class SlidesEntrenamiento:
         for size, color, nombre in zip(tamaños_capas, colores_capas, nombres_capas):
             capa = VGroup(*[Dot(radius=0.15, color=color) for _ in range(size)]).arrange(DOWN, buff=0.4)
             nodos.add(capa)
-
             etiqueta = Text(nombre, font=FUENTE, font_size=16, color=MARRON_OSCURO, weight=BOLD)
-            etiqueta.next_to(capa, UP, buff=0.3)
             etiquetas.add(etiqueta)
 
         nodos.arrange(RIGHT, buff=1.8).shift(DOWN * 0.2)
@@ -921,14 +874,88 @@ class SlidesEntrenamiento:
             grupo_conexiones = VGroup()
             for n1 in capa_act:
                 for n2 in capa_sig:
-                    grupo_conexiones.add(Line(n1.get_center(), n2.get_center(), stroke_width=1.5, color=MARRON_OSCURO, stroke_opacity=0.3))
+                    grupo_conexiones.add(Line(n1.get_center(), n2.get_center(),
+                                             stroke_width=1.5, color=MARRON_OSCURO, stroke_opacity=0.3))
             conexiones.add(grupo_conexiones)
 
         red_grupo = VGroup(conexiones, nodos, etiquetas)
-
         self.play(FadeIn(red_grupo))
-        self._siguiente()
 
+        # — Problema: algunas neuronas dominan, otras quedan ociosas —
+        txt_problema = Text(
+            "Durante el entrenamiento, no todas las neuronas aprenden por igual...",
+            font=FUENTE, font_size=20, color=TINTA_NEGRA
+        ).to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(txt_problema, shift=UP))
+        self._siguiente()
+        self.play(FadeOut(txt_problema))
+
+        # Resaltar neuronas "dominantes"
+        dominantes = {1: [0, 2], 2: [1, 3], 3: [0, 2]}
+        ociosas    = {1: [1, 3, 4], 2: [0, 2, 4], 3: [1, 3, 4]}
+
+        anims_dom = []
+        for capa_idx, idxs in dominantes.items():
+            for idx in idxs:
+                anims_dom.append(
+                    nodos[capa_idx][idx].animate.set_color(ORO_VIEJO).set_opacity(1.0)
+                )
+        self.play(*anims_dom, run_time=1.0)
+
+        txt_dominantes = Text(
+            "Unas pocas neuronas acaparan la mayor parte de la representación.",
+            font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD
+        ).to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(txt_dominantes, shift=UP))
+        self._siguiente()
+        self.play(FadeOut(txt_dominantes))
+
+        # Resaltar neuronas "ociosas"
+        anims_oci = []
+        for capa_idx, idxs in ociosas.items():
+            for idx in idxs:
+                anims_oci.append(
+                    nodos[capa_idx][idx].animate.set_color(ACERO).set_opacity(0.25)
+                )
+        self.play(*anims_oci, run_time=1.0)
+
+        txt_ociosas = Text(
+            "Mientras tanto, otras apenas participan y quedan relegadas.",
+            font=FUENTE, font_size=20, color=TINTA_NEGRA
+        ).to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(txt_ociosas, shift=UP))
+        self._siguiente()
+        self.play(FadeOut(txt_ociosas))
+
+        # Consecuencia: overfitting
+        txt_consecuencia = Text(
+            "El modelo deja de aprender patrones… y comienza a memorizar.",
+            font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD
+        ).to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(txt_consecuencia, shift=UP))
+        self._siguiente()
+        self.play(FadeOut(txt_consecuencia))
+
+        # Restaurar todos los nodos antes de aplicar dropout
+        anims_reset = []
+        for capa_idx, color in enumerate(colores_capas):
+            for nodo in nodos[capa_idx]:
+                anims_reset.append(nodo.animate.set_color(color).set_opacity(1.0))
+        for grupo in conexiones:
+            for linea in grupo:
+                anims_reset.append(linea.animate.set_stroke(opacity=0.3))
+        self.play(*anims_reset, run_time=0.8)
+
+        # Solución: dropout
+        txt_solucion = Text(
+            "Dropout: forzar a la red a no depender de nadie en particular.",
+            font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD
+        ).to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(txt_solucion, shift=UP))
+        self._siguiente()
+        self.play(FadeOut(txt_solucion))
+
+        # — Aplicar dropout capa por capa —
         def aplicar_dropout_capa(indice_capa, indices_apagar, texto_explicativo):
             animaciones = []
             capa = nodos[indice_capa]
@@ -947,233 +974,252 @@ class SlidesEntrenamiento:
                         animaciones.append(conexiones[indice_capa][line_idx].animate.set_stroke(opacity=0.02))
 
             texto = Text(texto_explicativo, font=FUENTE, font_size=20, color=TINTA_NEGRA).to_edge(DOWN, buff=0.5)
-
             self.play(*animaciones, FadeIn(texto, shift=UP), run_time=1.5)
             self.play(FadeOut(texto))
 
-        aplicar_dropout_capa(1, [1, 4], "Dense 1: Desactivamos el 40% de las neuronas al azar.")
-        aplicar_dropout_capa(2, [0, 2, 3], "Dense 2: Otras neuronas deben aprender a compensar la pérdida.")
-        aplicar_dropout_capa(3, [1, 4], "Dense 3: Ninguna neurona se vuelve indispensable.")
+        aplicar_dropout_capa(1, [1, 4],
+            "Aplicar dropout en Dense 1"
+        )
+
+        aplicar_dropout_capa(2, [0, 2, 3],
+            "Aplicar dropout en Dense 2"
+        )
+
+        aplicar_dropout_capa(3, [1, 4],
+            "Aplicar dropout en Dense 3"
+        )
 
         texto_metafora = Text(
-            "\"No confíes la batalla a un solo caballero,\nhaz que toda la orden luche unida.\"",
-            font=FUENTE, font_size=24, color=MARRON_OSCURO, slant=ITALIC
+            "\"No levantes un reino sobre un solo guerrero;\n"
+            "haz que cada espada sepa luchar por sí misma.\"",
+            font=FUENTE, font_size=24, color=TINTA_NEGRA, slant=ITALIC
         ).to_edge(DOWN, buff=0.5)
 
         self.play(Write(texto_metafora))
         self._siguiente()
+        self.limpiar_pantalla()
 
 
     def slide_training_metrics(self):
 
-        sol_fondo = crear_sol_cervantino().scale(0.8).to_corner(UR).shift(DOWN*0.2 + LEFT*0.2)
-        herradura_fondo = crear_herradura().scale(0.6).to_corner(DL).shift(UP*0.3 + RIGHT*0.3)
         llanuras_fondo = crear_llanuras_manchegas()
+        adornos = self._crear_adornos_esquinas(escala=0.55, buff=0.5)
+        adornos[1].add_updater(lambda m, dt: m.rotate(dt * 0.4))
 
         titulo, linea = self.crear_titulo(
             "Métricas de Entrenamiento: Loss y Perplejidad",
             palabra_clave="Métricas",
             color_clave=NARANJA_TERRACOTA
         )
-        self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo, herradura_fondo))
+        self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        pregunta = Text("¿Cómo mide el aprendizaje?",
-                        font=FUENTE, font_size=26, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.6)
-        self.play(Write(pregunta))
-        self._siguiente()
+        # ══════════════════════════════════════════════════════════════════════
+        # ACTO 1 — La sorpresa del modelo
+        # ══════════════════════════════════════════════════════════════════════
+        lbl_a1 = Text("Loss = sorpresa del modelo ante la palabra correcta",
+                      font=FUENTE, font_size=25, weight=BOLD, color=TINTA_NEGRA
+                      ).next_to(linea, DOWN, buff=0.38)
+        self.play(FadeIn(lbl_a1, shift=DOWN * 0.1))
 
-        contexto_txt = Text('"Esta que llaman por ahí Fortuna es una mujer..."',
-                            font=FUENTE, font_size=22, color=MARRON_OSCURO).move_to(UP * 0.6)
-        pregunta_sig = Text("¿Cuál sigue?",
-                            font=FUENTE, font_size=20, color=PAPEL_TAN).next_to(contexto_txt, DOWN, buff=0.2)
-        self.play(FadeIn(contexto_txt), Write(pregunta_sig))
-        self._siguiente()
+        ctx_bg  = RoundedRectangle(corner_radius=0.14, width=7.8, height=0.62,
+                                    fill_color=CAJA_INFERIOR, fill_opacity=0.65,
+                                    stroke_color=MARRON_OSCURO, stroke_width=1.8)
+        ctx_txt = Text('"...Fortuna es una mujer  ___"', font=FUENTE, font_size=20,
+                       color=TINTA_NEGRA, t2c={"___": NARANJA_TERRACOTA}).move_to(ctx_bg)
+        ctx_grp = VGroup(ctx_bg, ctx_txt).next_to(lbl_a1, DOWN, buff=0.32)
+        self.play(FadeIn(ctx_grp))
 
-        palabras_pred = ["borracha", "bella", "rica", "alta", "noble"]
-        probs_mal  = [0.05, 0.10, 0.08, 0.12, 0.05]
-        probs_bien = [0.72, 0.10, 0.07, 0.06, 0.05]
+        palabras_pred = ["borracha", "bella", "rica", "alta"]
+        probs_mal     = [0.06, 0.29, 0.22, 0.43]
+        probs_bien    = [0.74, 0.12, 0.09, 0.05]
+        BAR_W, BAR_MAX_H = 0.52, 1.55
+        COL_SEP = BAR_W + 0.32
 
-        bar_w, bar_max_h = 0.55, 1.8
-        base_y = DOWN * 1.3
-
-        def hacer_barras(probs, color_correcto, color_resto):
-            grupo = VGroup()
+        def _panel_barras(probs, color_winner, titulo_str, loss_str, loss_color):
+            rects, pcts, wrds = [], [], []
             for i, (p, pal) in enumerate(zip(probs, palabras_pred)):
-                h = p * bar_max_h / max(probs_bien)
-                rect = Rectangle(width=bar_w, height=h,
-                                 fill_color=color_correcto if i == 0 else color_resto,
-                                 fill_opacity=0.85, stroke_width=1.2,
+                h = max(0.06, p * BAR_MAX_H)
+                rect = Rectangle(width=BAR_W, height=h,
+                                 fill_color=color_winner if i == 0 else PAPEL_TAN,
+                                 fill_opacity=0.88, stroke_width=1.1,
                                  stroke_color=MARRON_OSCURO)
-                lbl_p = Text(f"{int(p*100)}%", font="Monospace", font_size=15,
-                             color=TINTA_NEGRA).next_to(rect, UP, buff=0.08)
-                lbl_w = Text(pal, font=FUENTE, font_size=15,
-                             color=TINTA_NEGRA).next_to(rect, DOWN, buff=0.1)
-                barra = VGroup(rect, lbl_p, lbl_w)
-                barra.move_to(RIGHT * (i - 2) * 1.1 + base_y)
-                barra.shift(DOWN * (bar_max_h - h) / 2)
-                grupo.add(barra)
-            return grupo
+                rect.move_to(np.array([i * COL_SEP, h / 2, 0]))
+                pct = Text(f"{int(p*100)}%", font="Monospace", font_size=13,
+                           color=TINTA_NEGRA).move_to(np.array([i * COL_SEP, h + 0.19, 0]))
+                wrd = Text(pal, font=FUENTE, font_size=13,
+                           color=TINTA_NEGRA).move_to(np.array([i * COL_SEP, -0.25, 0]))
+                rects.append(rect); pcts.append(pct); wrds.append(wrd)
 
-        barras_mal  = hacer_barras(probs_mal,  ROJO_TOMATE,     PAPEL_TAN)
-        barras_bien = hacer_barras(probs_bien, VERDE_OLIVA, PAPEL_TAN)
+            barras = VGroup(*[VGroup(r, p, w) for r, p, w in zip(rects, pcts, wrds)])
+            barras.center()
+            tit      = Text(titulo_str, font=FUENTE, font_size=17, weight=BOLD,
+                            color=color_winner).next_to(barras, UP, buff=0.35)
+            loss_lbl = Text(loss_str, font="Monospace", font_size=16, weight=BOLD,
+                            color=loss_color).next_to(barras, DOWN, buff=0.28)
+            return VGroup(tit, barras, loss_lbl)
 
-        lbl_mal  = Text("Sin entrenar · Loss ≈ 8",
-                        font=FUENTE, font_size=19, weight=BOLD, color=ROJO_TOMATE).next_to(barras_mal, DOWN, buff=0.5)
-        lbl_bien = Text("Entrenado · Loss ≈ 2.8",
-                        font=FUENTE, font_size=19, weight=BOLD, color=VERDE_OLIVA).next_to(barras_bien, DOWN, buff=0.5)
+        panel_mal  = _panel_barras(probs_mal,  ROJO_TOMATE, "Sin entrenar", "Loss ≈ 8.1", ROJO_TOMATE)
+        panel_bien = _panel_barras(probs_bien, VERDE_OLIVA, "Entrenado",   "Loss ≈ 2.5", VERDE_OLIVA)
 
-        self.play(FadeOut(pregunta_sig))
-        self.play(LaggedStart(*[FadeIn(b, shift=UP*0.2) for b in barras_mal], lag_ratio=0.1))
-        self.play(Write(lbl_mal))
-        self._siguiente()
+        comparacion = VGroup(panel_mal, panel_bien).arrange(RIGHT, buff=1.6)
+        comparacion.next_to(ctx_grp, DOWN, buff=0.28).set_x(0)
+
+        sep = DashedLine(
+            comparacion.get_top() + UP * 0.1,
+            comparacion.get_bottom() + DOWN * 0.1,
+            color=MARRON_OSCURO, stroke_width=1.2, dash_length=0.10,
+        ).set_x(comparacion.get_center()[0])
 
         self.play(
-            ReplacementTransform(barras_mal, barras_bien),
-            ReplacementTransform(lbl_mal, lbl_bien)
+            LaggedStart(*[FadeIn(b, shift=UP * 0.12) for b in panel_mal[1]], lag_ratio=0.1),
+            FadeIn(panel_mal[0]), run_time=0.9,
         )
+        self.play(Write(panel_mal[2]))
+        self.play(Create(sep))
+        self.play(
+            LaggedStart(*[FadeIn(b, shift=UP * 0.12) for b in panel_bien[1]], lag_ratio=0.1),
+            FadeIn(panel_bien[0]), run_time=0.9,
+        )
+        self.play(Write(panel_bien[2]))
 
-        self.play(FadeOut(pregunta), FadeOut(contexto_txt), FadeOut(barras_bien), FadeOut(lbl_bien))
+        formula = MathTex(r"L = -\log P(\text{borracha}\mid\text{contexto})",
+                          font_size=22, color=MARRON_OSCURO)
+        formula.next_to(comparacion, DOWN, buff=0.25)
+        self.play(Write(formula))
 
-        lbl_metricas = Text("Dos caras de la misma moneda",
-                            font=FUENTE, font_size=26, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.6)
-
-        caja_loss = RoundedRectangle(corner_radius=0.15, width=4.8, height=3.2,
-                                     fill_color=FONDO_CAJA, fill_opacity=1,
-                                     stroke_color=MARRON_OSCURO, stroke_width=2).move_to(LEFT * 2.8 + DOWN * 0.4)
-        tit_loss = Text("Cross-Entropy Loss", font=FUENTE, font_size=20,
-                        weight=BOLD, color=MARRON_OSCURO).move_to(caja_loss.get_top() + DOWN * 0.35)
-        eq_loss = MathTex(r"L = -\frac{1}{N}\sum_{i=1}^{N} \ln P(x_i)",
-                          color=TINTA_NEGRA).scale(0.85).next_to(tit_loss, DOWN, buff=0.3)
-        desc_loss = Text(
-            "P(palabra correcta)",
-            font=FUENTE, font_size=17, color=MARRON_OSCURO, line_spacing=1.3
-        ).next_to(eq_loss, DOWN, buff=0.3)
-        escala_loss = Text("0 perfecto · 8+ caos", font=FUENTE, font_size=16,
-                           color=NARANJA_TERRACOTA, weight=BOLD).next_to(desc_loss, DOWN, buff=0.25)
-        grupo_loss = VGroup(caja_loss, tit_loss, eq_loss, desc_loss, escala_loss)
-
-        caja_ppl = RoundedRectangle(corner_radius=0.15, width=4.8, height=3.2,
-                                    fill_color=FONDO_CAJA, fill_opacity=1,
-                                    stroke_color=NARANJA_TERRACOTA, stroke_width=2).move_to(RIGHT * 2.8 + DOWN * 0.4)
-        tit_ppl = Text("Perplejidad (PPL)", font=FUENTE, font_size=20,
-                       weight=BOLD, color=NARANJA_TERRACOTA).move_to(caja_ppl.get_top() + DOWN * 0.35)
-        eq_ppl = MathTex(r"PPL = e^{\,L}",
-                         color=NARANJA_TERRACOTA).scale(1.1).next_to(tit_ppl, DOWN, buff=0.3)
-        desc_ppl = Text(
-            "Opciones en duda",
-            font=FUENTE, font_size=17, color=MARRON_OSCURO, line_spacing=1.3
-        ).next_to(eq_ppl, DOWN, buff=0.3)
-        escala_ppl = Text("1 perfecto · 3000+ caos", font=FUENTE, font_size=16,
-                          color=NARANJA_TERRACOTA, weight=BOLD).next_to(desc_ppl, DOWN, buff=0.25)
-        grupo_ppl = VGroup(caja_ppl, tit_ppl, eq_ppl, desc_ppl, escala_ppl)
-
-        self.play(Write(lbl_metricas))
-        self.play(FadeIn(grupo_loss, shift=RIGHT * 0.3))
-        self.play(FadeIn(grupo_ppl, shift=LEFT * 0.3))
         self._siguiente()
+        self.play(FadeOut(lbl_a1, ctx_grp, panel_mal, panel_bien, sep, formula))
 
-        flecha_rel = CurvedArrow(caja_loss.get_right(), caja_ppl.get_left(),
-                                 color=ORO_VIEJO, angle=-PI/4, stroke_width=3)
-        lbl_rel = Text("e^L", font="Monospace", font_size=20,
-                       color=ORO_VIEJO, weight=BOLD).move_to(flecha_rel.get_center() + UP * 0.3)
-        self.play(Create(flecha_rel), Write(lbl_rel))
+        # ══════════════════════════════════════════════════════════════════════
+        # ACTO 2 — PPL: la sorpresa en palabras  (antes era acto 3)
+        # ══════════════════════════════════════════════════════════════════════
+        lbl_a2 = Text("Perplejidad = ¿cuántas opciones baraja el modelo?",
+                      font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA
+                      ).next_to(linea, DOWN, buff=0.38)
+        self.play(Write(lbl_a2))
 
-        self.play(FadeOut(lbl_metricas), FadeOut(grupo_loss), FadeOut(grupo_ppl),
-                  FadeOut(flecha_rel), FadeOut(lbl_rel))
+        eq_ppl = MathTex(r"PPL = e^{\,L}", font_size=46, color=NARANJA_TERRACOTA)
+        eq_ppl.next_to(lbl_a2, DOWN, buff=0.38)
+        self.play(Write(eq_ppl))
 
-        lbl_curva = Text("Así cae el Loss durante el entrenamiento",
-                         font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.8)
+        def _tarjeta_ppl(ppl_label, descripcion, n_boxes, color):
+            tit = Text(f"PPL {ppl_label}", font="Monospace", font_size=24,
+                       weight=BOLD, color=color)
+            n_show = min(n_boxes, 7)
+            cajas_viz = VGroup(*[
+                RoundedRectangle(corner_radius=0.05, width=0.40, height=0.32,
+                                 fill_color=color if i == 0 else PAPEL_TAN,
+                                 fill_opacity=0.72 if i == 0 else 0.38,
+                                 stroke_color=MARRON_OSCURO, stroke_width=1.0)
+                for i in range(n_show)
+            ]).arrange(RIGHT, buff=0.07)
+            if n_boxes > n_show:
+                puntos_lbl = Text("···", font="Monospace", font_size=16,
+                                  color=MARRON_OSCURO).next_to(cajas_viz, RIGHT, buff=0.1)
+                cajas_viz = VGroup(cajas_viz, puntos_lbl)
+            desc = Text(descripcion, font=FUENTE, font_size=15,
+                        color=MARRON_OSCURO, line_spacing=1.2)
+            contenido = VGroup(tit, cajas_viz, desc).arrange(DOWN, buff=0.22)
+            fondo = SurroundingRectangle(contenido, color=color,
+                                         fill_color=FONDO_CAJA, fill_opacity=1,
+                                         buff=0.30, corner_radius=0.16, stroke_width=2.2)
+            return VGroup(fondo, contenido)
 
-        ax = Axes(
-            x_range=[0, 16000, 4000],
-            y_range=[0, 9, 3],
-            x_length=7.5,
-            y_length=3.8,
-            axis_config={"include_tip": False, "color": MARRON_OSCURO},
-        ).move_to(DOWN * 0.4)
+        card_alto = _tarjeta_ppl("3 360", "Elegir entre\n3360 opciones.", 3360, ROJO_TOMATE)
+        card_bajo = _tarjeta_ppl("17", "Elegir entre\n17 opciones.", 17, VERDE_OLIVA)
 
-        x_label = Text("Pasos de entrenamiento", font=FUENTE, font_size=15,
-                       color=MARRON_OSCURO).next_to(ax, DOWN, buff=0.2)
-        y_label = Text("Loss", font=FUENTE, font_size=15,
-                       color=MARRON_OSCURO).next_to(ax, LEFT, buff=0.2)
+        tarjetas = VGroup(card_alto, card_bajo).arrange(RIGHT, buff=1.1)
+        tarjetas.next_to(eq_ppl, DOWN, buff=0.38).set_x(0)
+        if tarjetas.width > 12.8:
+            tarjetas.scale(12.8 / tarjetas.width)
+
+        self.play(FadeIn(card_alto, scale=0.92, shift=RIGHT * 0.15), run_time=0.8)
+        self.play(FadeIn(card_bajo, scale=0.92, shift=LEFT * 0.15), run_time=0.8)
+
+        flecha_t = Arrow(card_alto.get_right(), card_bajo.get_left(),
+                         color=VERDE_OLIVA, stroke_width=3,
+                         max_tip_length_to_length_ratio=0.2)
+        lbl_flt  = Text("entrenar", font=FUENTE, font_size=14, color=VERDE_OLIVA,
+                        slant=ITALIC).next_to(flecha_t, UP, buff=0.1)
+        self.play(GrowArrow(flecha_t), FadeIn(lbl_flt, shift=DOWN * 0.1))
+
+        self._siguiente()
+        self.play(FadeOut(lbl_a2, eq_ppl, card_alto, card_bajo, flecha_t, lbl_flt))
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ACTO 3 — La curva del entrenamiento  (antes era acto 2)
+        # ══════════════════════════════════════════════════════════════════════
+        lbl_a3 = Text("A medida que el Loss cae, el texto mejora",
+                      font=FUENTE, font_size=25, weight=BOLD, color=TINTA_NEGRA
+                      ).next_to(linea, DOWN, buff=0.38)
+        self.play(Write(lbl_a3))
 
         def curva_loss(t):
             return 2.85 + 5.27 * np.exp(-t / 4200)
 
-        curva = ax.plot(curva_loss, x_range=[0, 16000], color=NARANJA_TERRACOTA, stroke_width=4)
+        ax = Axes(
+            x_range=[0, 16000, 4000],
+            y_range=[0, 9, 3],
+            x_length=6.2,
+            y_length=3.6,
+            axis_config={"include_tip": False, "color": MARRON_OSCURO},
+        ).shift(LEFT * 2.0 + DOWN * 0.5)
 
-        puntos_datos = [(0, 8.12, "3 360"), (4000, 4.45, "85"), (16000, 2.85, "17")]
-        dots = VGroup()
-        anotaciones = VGroup()
-        for paso, loss_v, ppl_v in puntos_datos:
-            y_v = curva_loss(paso)
-            d = Dot(ax.c2p(paso, y_v), radius=0.1,
-                    color=VERDE_OLIVA if paso == 16000 else MARRON_OSCURO)
-            nota = Text(f"Loss {loss_v}\nPPL {ppl_v}",
-                        font="Monospace", font_size=14,
-                        color=VERDE_OLIVA if paso == 16000 else MARRON_OSCURO)
-            nota.next_to(d, UR if paso < 10000 else UL, buff=0.15)
-            dots.add(d)
-            anotaciones.add(nota)
+        x_lbl = Text("Pasos", font=FUENTE, font_size=13,
+                     color=MARRON_OSCURO).next_to(ax, DOWN, buff=0.15)
+        y_lbl = Text("Loss", font=FUENTE, font_size=13,
+                     color=MARRON_OSCURO).next_to(ax, LEFT, buff=0.12)
 
-        self.play(Write(lbl_curva))
-        self.play(Create(ax), Write(x_label), Write(y_label))
-        self.play(Create(curva), run_time=2.5)
-        self.play(LaggedStart(
-            *[AnimationGroup(FadeIn(dots[i]), Write(anotaciones[i])) for i in range(3)],
-            lag_ratio=0.4
-        ))
+        curva = ax.plot(curva_loss, x_range=[0, 16000],
+                        color=NARANJA_TERRACOTA, stroke_width=4)
 
-        self.play(FadeOut(lbl_curva), FadeOut(ax), FadeOut(x_label), FadeOut(y_label),
-                  FadeOut(curva), FadeOut(dots), FadeOut(anotaciones))
+        self.play(Create(ax), Write(x_lbl), Write(y_lbl))
+        self.play(Create(curva), run_time=2.0)
 
-        lbl_evol = Text("Lo que ve el Loss, tú lo puedes leer",
-                        font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA).move_to(UP * 1.5)
-        self.play(Write(lbl_evol))
-
-        pasos_info = [
-            ("0",      "8.12", "3 360", ROJO_TOMATE,
-             '"Esta q7e llama8 p0r a#í F0rtun4\nes una muj8r..."'),
-            ("4 000",  "4.45", "85",    PAPEL_TAN,
-             '"Esta que llaman por ahí Fortuna\nes una mujer..."'),
-            ("16 000", "2.85", "17",    VERDE_OLIVA,
-             '"Esta que llaman por ahí Fortuna\nes una mujer borracha y antojadiza."'),
+        checkpoints = [
+            (0,     8.12, "3 360", ROJO_TOMATE,
+             '"q7e llam8n p0r a#í\nF0rtun4 es una muj8r..."'),
+            (4000,  4.45, "85",    PAPEL_TAN,
+             '"Esta que llaman por\nahí Fortuna es una mujer..."'),
+            (16000, 2.85, "17",    VERDE_OLIVA,
+             '"Esta que llaman por ahí\nFortuna es una mujer borracha."'),
         ]
 
-        def hacer_burbuja(paso, loss_v, ppl_v, color, texto):
-            rect = RoundedRectangle(corner_radius=0.18, height=2.0, width=9.5,
-                                    fill_color=PAPEL_CREMA, fill_opacity=1,
-                                    stroke_color=color, stroke_width=2.5)
-            icono_circ = Circle(radius=0.28, fill_color=color,
-                                fill_opacity=1, stroke_width=0)
-            icono_lbl = Text("M", font=FUENTE, font_size=21,
-                             color=BLANCO, weight=BOLD).move_to(icono_circ)
-            icono = VGroup(icono_circ, icono_lbl).next_to(rect, LEFT, buff=0.25).shift(UP * 0.4)
+        dot_actual = None
+        burbuja_actual = None
 
-            contenido = Paragraph(texto, font=FUENTE, font_size=21,
-                                  color=TINTA_NEGRA, line_spacing=1.3, alignment="left")
-            contenido.scale_to_fit_width(rect.width - 1.0).move_to(rect)
+        for paso, loss_v, ppl_v, color, texto in checkpoints:
+            pos_pt = ax.c2p(paso, curva_loss(paso))
+            nuevo_dot = Dot(pos_pt, radius=0.12, color=color,
+                            fill_opacity=1, stroke_color=BLANCO, stroke_width=1.5)
 
-            barra_info = Text(
-                f"Paso {paso}   Loss {loss_v}   PPL {ppl_v}",
-                font="Monospace", font_size=15, color=color
-            ).next_to(rect, DOWN, buff=0.12, aligned_edge=RIGHT)
+            rect_b = RoundedRectangle(corner_radius=0.16, width=4.8, height=1.62,
+                                      fill_color=PAPEL_CREMA, fill_opacity=1,
+                                      stroke_color=color, stroke_width=2.5)
+            txt_b  = Text(texto, font=FUENTE, font_size=17, color=TINTA_NEGRA,
+                          line_spacing=1.2)
+            txt_b.scale_to_fit_width(rect_b.width - 0.55).move_to(rect_b)
+            info_b = Text(f"Paso {paso:,}   Loss {loss_v}   PPL {ppl_v}",
+                          font="Monospace", font_size=13, color=color
+                          ).next_to(rect_b, DOWN, buff=0.1, aligned_edge=RIGHT)
+            nueva_burbuja = VGroup(rect_b, txt_b, info_b).move_to(RIGHT * 3.2 + DOWN * 0.35)
 
-            return VGroup(rect, icono, contenido, barra_info).center().move_to(DOWN * 0.5)
-
-        burbujas = [hacer_burbuja(*d) for d in pasos_info]
-
-        actual = burbujas[0]
-        self.play(FadeIn(actual, scale=0.92))
-        self._siguiente()
-
-        for sig in burbujas[1:]:
-            self.play(FadeTransform(actual, sig), run_time=1.4)
-            actual = sig
+            if dot_actual is None:
+                self.play(FadeIn(nuevo_dot, scale=0.5))
+                self.play(FadeIn(nueva_burbuja, shift=LEFT * 0.2))
+            else:
+                self.play(
+                    ReplacementTransform(dot_actual, nuevo_dot),
+                    FadeTransform(burbuja_actual, nueva_burbuja),
+                    run_time=1.1,
+                )
+            dot_actual = nuevo_dot
+            burbuja_actual = nueva_burbuja
             self._siguiente()
 
+        adornos[1].clear_updaters()
+        self.play(FadeOut(lbl_a3, ax, x_lbl, y_lbl, curva, dot_actual, burbuja_actual))
         self.limpiar_pantalla()
-
 
     def slide_temperature(self):
 

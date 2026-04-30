@@ -389,13 +389,99 @@ class SlidesTensores:
 
 
 
+    def _acto_operaciones_tensoriales(self, linea: Mobject) -> None:
+        """Suma elementwise, multiplicación escalar y broadcasting."""
+
+        def _vec_col(valores, color_fill):
+            celdas = VGroup()
+            for v in valores:
+                rect = RoundedRectangle(corner_radius=0.08, width=0.70, height=0.54,
+                                        fill_color=color_fill, fill_opacity=0.82,
+                                        stroke_color=MARRON_OSCURO, stroke_width=1.5)
+                txt = Text(str(v), font="Monospace", font_size=17,
+                           color=TINTA_NEGRA).move_to(rect)
+                celdas.add(VGroup(rect, txt))
+            return celdas.arrange(DOWN, buff=0.07)
+
+        def _signo(s):
+            return Text(s, font=FUENTE, font_size=32, weight=BOLD, color=MARRON_OSCURO)
+
+        def _card(titulo_str, expr):
+            lbl = Text(titulo_str, font=FUENTE, font_size=20,
+                       weight=BOLD, color=NARANJA_TERRACOTA)
+            fondo = RoundedRectangle(
+                corner_radius=0.18,
+                width=max(expr.width + 0.7, lbl.width + 0.5),
+                height=expr.height + lbl.height + 0.7,
+                fill_color=FONDO_CAJA, fill_opacity=1,
+                stroke_color=MARRON_OSCURO, stroke_width=1.8,
+            )
+            contenido = VGroup(lbl, expr).arrange(DOWN, buff=0.22)
+            contenido.move_to(fondo)
+            return VGroup(fondo, contenido)
+
+        # ── Card 1: Suma elementwise ──────────────────────────────────────────
+        v1a  = _vec_col([1, 2, 3], PAPEL_TAN)
+        v1b  = _vec_col([4, 5, 6], PAPEL_TAN)
+        v1c  = _vec_col([5, 7, 9], NARANJA_TERRACOTA)
+        ex1  = VGroup(v1a, _signo("+"), v1b, _signo("="), v1c
+                      ).arrange(RIGHT, buff=0.20)
+        card1 = _card("Suma Elementwise", ex1)
+
+        # ── Card 2: Broadcasting (escalar → vector) ───────────────────────────
+        rect_esc = RoundedRectangle(corner_radius=0.08, width=0.70, height=0.54,
+                                    fill_color=VERDE_OLIVA, fill_opacity=0.80,
+                                    stroke_color=MARRON_OSCURO, stroke_width=1.5)
+        txt_esc  = Text("10", font="Monospace", font_size=17,
+                        color=PAPEL_CREMA).move_to(rect_esc)
+        escalar2 = VGroup(rect_esc, txt_esc)
+
+        v2a = _vec_col([1, 2, 3], PAPEL_TAN)
+        v2c = _vec_col([11, 12, 13], NARANJA_TERRACOTA)
+        ex2 = VGroup(v2a, _signo("+"), escalar2, _signo("="), v2c
+                     ).arrange(RIGHT, buff=0.18)
+        card2 = _card("Broadcasting", ex2)
+
+        # ── Card 3: Multiplicación escalar ────────────────────────────────────
+        rect_k = RoundedRectangle(corner_radius=0.08, width=0.70, height=0.54,
+                                   fill_color=AZUL_NOCHE, fill_opacity=0.75,
+                                   stroke_color=MARRON_OSCURO, stroke_width=1.5)
+        txt_k  = Text("2", font="Monospace", font_size=17,
+                      color=PAPEL_CREMA).move_to(rect_k)
+        escalar3 = VGroup(rect_k, txt_k)
+
+        v3a = _vec_col([3, 1, 5], PAPEL_TAN)
+        v3c = _vec_col([6, 2, 10], NARANJA_TERRACOTA)
+        ex3 = VGroup(escalar3, _signo("×"), v3a, _signo("="), v3c
+                     ).arrange(RIGHT, buff=0.20)
+        card3 = _card("Multiplicación Escalar", ex3)
+
+        # ── Layout ────────────────────────────────────────────────────────────
+        cards = VGroup(card1, card2, card3).arrange(RIGHT, buff=0.55)
+        cards.set_x(0)
+        if cards.width > 13.2:
+            cards.scale(13.2 / cards.width)
+
+        # Center cards vertically in the available space below the title
+        zona_top = linea.get_bottom()[1] - 0.3
+        zona_bot = -3.6
+        cards.set_y((zona_top + zona_bot) / 2)
+
+        self.play(
+            LaggedStart(*[FadeIn(c, scale=0.92, shift=UP * 0.15) for c in cards],
+                        lag_ratio=0.35),
+            run_time=1.2,
+        )
+
+        self._siguiente()
+        self.play(FadeOut(cards))
+
     def slide_matmul(self):
         """
-        Diapositiva unificada: animación completa de MatMul → importancia / optimización.
+        Diapositiva unificada: Operaciones Tensoriales → MatMul → importancia.
         """
 
         # ── Fondos y decoración ──────────────────────────────────────────────────
-        # FIX 1: sol_fondo eliminado de aquí — viene solo de _crear_adornos_esquinas()
         llanuras_fondo = crear_llanuras_manchegas()
 
         camino_mancha    = FunctionGraph(lambda x: 0.5 * math.sin(x) - 0.5,
@@ -408,18 +494,34 @@ class SlidesTensores:
         adornos = self._crear_adornos_esquinas()
         adornos[1].add_updater(lambda m, dt: m.rotate(dt * 0.15))
 
-        # ── Título ───────────────────────────────────────────────────────────────
+        # ── Título 1: Operaciones Tensoriales ────────────────────────────────────
         titulo, linea = self.crear_titulo(
-            "MatMul: El Corazón del Transformer",
-            palabra_clave="MatMul",
+            "Operaciones Tensoriales",
+            palabra_clave="Tensoriales",
             color_clave=NARANJA_TERRACOTA,
         )
         self._animar_entrada_slide(
             titulo, linea,
             adornos=adornos,
-            # FIX 1: fondo ya no incluye sol_fondo; el sol viene de _crear_adornos_esquinas()
             fondo=VGroup(llanuras_fondo, decoracion_fondo),
         )
+
+        # ── Operaciones básicas ───────────────────────────────────────────────────
+        self._acto_operaciones_tensoriales(linea)
+
+        # ── Transición al título MatMul ───────────────────────────────────────────
+        nuevo_titulo = Text(
+            "MatMul: El Corazón del Transformer",
+            font=FUENTE, font_size=35, color=TINTA_NEGRA,
+            t2c={"MatMul": NARANJA_TERRACOTA},
+        ).to_edge(UP)
+        nueva_linea = Underline(nuevo_titulo, color=NARANJA_TERRACOTA, stroke_width=4)
+        self.play(
+            ReplacementTransform(titulo, nuevo_titulo),
+            ReplacementTransform(linea, nueva_linea),
+            run_time=0.7,
+        )
+        linea = nueva_linea
 
         # ════════════════════════════════════════════════════════════════════════
         # ACTO 1 – Matrices NO cuadradas: A(2×4) × B(4×3) = C(2×3)
@@ -1252,22 +1354,20 @@ class SlidesTensores:
     # ─────────────────────────────────────────────────────────────────────────────
 
     def slide_batched_matmul(self):
-        sol_fondo = crear_sol_cervantino().scale(0.82).to_corner(UR).shift(DOWN * 0.18 + LEFT * 0.18)
         llanuras_fondo = crear_llanuras_manchegas()
 
         titulo, linea = self.crear_titulo(
-            "Batched MatMul: Una Sola Bolsa",
+            "Batched MatMul: Una Llamada Para Ejecutarlos A Todos",
             palabra_clave="Batched",
             color_clave=NARANJA_TERRACOTA
         )
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(
             titulo, linea,
-            fondo=VGroup(llanuras_fondo, sol_fondo),
+            fondo=llanuras_fondo,
             adornos=adornos
         )
 
-        # ── LAYOUT ────────────────────────────────────────────────────────────────
         Y_BOLSAS = DOWN * 0.80
         Y_ANNOT  = DOWN * 2.80
         BUFF_SUB = 0.55
@@ -1275,11 +1375,8 @@ class SlidesTensores:
         colores_cab   = [MARRON_OSCURO, NARANJA_TERRACOTA, MARRON_QUIJOTE]
         offsets_x     = [-3.6, 0.0, 3.6]
         nombres_bolsa = ["Operación A", "Operación B", "Operación C"]
-
-        # Letras siempre en blanco — contrastan tanto sobre fondo crema como coloreado
         COLOR_LETRA = WHITE
 
-        # ── Cada bolsa es VGroup(rect + letra) — viajan siempre juntas ────────────
         unidades = VGroup()
         for i in range(3):
             rect = RoundedRectangle(
@@ -1304,11 +1401,8 @@ class SlidesTensores:
             for i in range(3)
         ])
 
-        # ═══════════════════════════════════════════════════════════════════════════
-        # PANTALLA 1 — tres bolsas, tres viajes
-        # ═══════════════════════════════════════════════════════════════════════════
         sub1 = Text(
-            "Tres operaciones independientes · tres viajes al procesador",
+            "Tres operaciones independientes · múltiples llamadas al procesador",
             font=FUENTE, font_size=18, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=BUFF_SUB)
         self.play(Write(sub1))
@@ -1321,9 +1415,8 @@ class SlidesTensores:
             run_time=1.0
         )
 
-        # Iluminación secuencial + "1 viaje" — el costo se acumula visualmente
         annot_viajes = VGroup(*[
-            Text("1 viaje", font=FUENTE, font_size=13,
+            Text("1 llamada", font=FUENTE, font_size=13,
                 color=ROJO_CONTRA, weight=BOLD)
             .next_to(unidades[i], DOWN, buff=0.18)
             .set_z_index(3)
@@ -1338,13 +1431,12 @@ class SlidesTensores:
             )
 
         lbl_costo = Text(
-            "3 bolsas · 3 viajes · memoria fragmentada",
+            "3 operaciones · 3 llamadas · acceso a memoria ineficiente",
             font=FUENTE, font_size=16, color=ROJO_CONTRA, weight=BOLD
         ).move_to(Y_ANNOT).set_z_index(3)
         self.play(FadeIn(lbl_costo, shift=UP * 0.10))
         self.play(Wiggle(unidades, scale_value=1.05, rotation_angle=0.02))
 
-        # ── PAUSA 1 ───────────────────────────────────────────────────────────────
         self._siguiente()
 
         self.play(
@@ -1355,11 +1447,8 @@ class SlidesTensores:
             run_time=0.50
         )
 
-        # ═══════════════════════════════════════════════════════════════════════════
-        # PANTALLA 2 — convergencia + iluminación simultánea + mensaje final
-        # ═══════════════════════════════════════════════════════════════════════════
         sub2 = Text(
-            "Una sola bolsa · un solo viaje · una sola llamada",
+            "Un batch · una sola llamada · ejecución paralela",
             font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=BUFF_SUB)
         self.play(Write(sub2))
@@ -1386,7 +1475,7 @@ class SlidesTensores:
         div_xs = [-ancho / 6, ancho / 6]
         divisores = VGroup(*[
             DashedLine(
-                contenedor.get_top()    + RIGHT * dx,
+                contenedor.get_top() + RIGHT * dx,
                 contenedor.get_bottom() + RIGHT * dx,
                 color=MARRON_OSCURO, stroke_width=1.6, dash_length=0.11
             ).set_z_index(4)
@@ -1395,36 +1484,35 @@ class SlidesTensores:
         self.play(Create(divisores), run_time=0.45)
 
         annot_contiguo = Text(
-            "A · B · C procesadas juntas · sin múltiples llamadas",
+            "A · B · C se ejecutan juntas en una sola operación",
             font=FUENTE, font_size=14, color=MARRON_OSCURO
         ).move_to(Y_ANNOT).set_z_index(3)
         self.play(FadeIn(annot_contiguo, shift=UP * 0.10))
 
-        # Iluminación simultánea — las letras blancas contrastan en todos los fondos
         self.play(
             *[unidades[i][0].animate.set_fill(colores_cab[i], opacity=1.0)
             for i in range(3)],
             run_time=0.55
         )
+
         self.play(
             *[Flash(unidades[i].get_center(), color=colores_cab[i],
                     line_length=0.30, num_lines=8)
             for i in range(3)],
             run_time=0.60
         )
+
         self.play(Indicate(contenedor, color=NARANJA_TERRACOTA, scale_factor=1.03))
 
-        # Mensaje final — origen común, una sola llamada
         msg_final = Text(
-            "Operaciones del mismo lugar · una sola llamada las agrupa a todas",
+            "Multiplicaciones independientes agrupadas en una sola llamada eficiente",
             font=FUENTE, font_size=16, color=MARRON_OSCURO, weight=BOLD
         ).move_to(Y_ANNOT).set_z_index(3)
+
         self.play(
             FadeTransform(annot_contiguo, msg_final),
             run_time=0.55
         )
 
-        # ── PAUSA 2 ───────────────────────────────────────────────────────────────
         self._siguiente()
         self.limpiar_pantalla()
-

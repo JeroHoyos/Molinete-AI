@@ -513,7 +513,8 @@ class SlidesAtencion:
 
 
     def slide_mha_acto3_formula_y_flujo(self):
-        """Fórmula general limpia y luego el diagrama de flujo original más espaciado."""
+        """Fórmula + diagrama. v7: sin título AP, sin tokens, sin título Y, sin flecha salida."""
+
         # ── 1. TÍTULO Y FONDO ──────────────────────────────────────────────────────
         titulo, linea = self.crear_titulo(
             "Atención: Formula y diagrama de flujo.",
@@ -524,139 +525,281 @@ class SlidesAtencion:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ── 2. LA FÓRMULA (Limpia y centrada) ──────────────────────────────────────
+        # ── 2. FÓRMULA ─────────────────────────────────────────────────────────────
         formula = MathTex(
             r"\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V",
             color=TINTA_NEGRA, font_size=62
         ).move_to(ORIGIN)
-
         self.play(FadeIn(formula, shift=UP, scale=0.9))
         self._siguiente()
+        self.play(FadeOut(formula), run_time=0.8)
+        self.play(FadeOut(adornos), run_time=0.5)
 
-        # ── 3. TRANSICIÓN ──────────────────────────────────────────────────────────
+        # ══════════════════════════════════════════════════════════════════════════
+        # ── 3. DIAGRAMA ──────────────────────────────────────────────────────────
+        # ══════════════════════════════════════════════════════════════════════════
 
-        self.play(
-            FadeOut(formula),
-            run_time=1.0
-        )
+        # ── helpers ───────────────────────────────────────────────────────────────
+        SW       = 2.2
+        TIP      = 0.22
+        C_FLECHA = MARRON_OSCURO
 
-        # ── 4. DIAGRAMA DE FLUJO (Estilo Manhattan original, más espaciado) ───────
-        G = 2.5   # grosor flechas
-
-        def caja(texto, color_bg, ancho=1.4, alto=0.75, math=False):
-            r = RoundedRectangle(
-                corner_radius=0.12, width=ancho, height=alto,
-                fill_color=color_bg, fill_opacity=1,
-                stroke_color=MARRON_OSCURO, stroke_width=1.8
+        def arr(p1, p2):
+            return Arrow(
+                p1, p2, buff=0.07,
+                color=C_FLECHA,
+                stroke_width=SW,
+                max_tip_length_to_length_ratio=TIP
             )
-            lbl = (MathTex(texto, color=TINTA_NEGRA, font_size=26)
-                if math else
-                Text(texto, font=FUENTE, font_size=18, color=TINTA_NEGRA))
-            lbl.move_to(r.get_center())
+
+        def seg(p1, p2):
+            return Line(p1, p2, stroke_color=C_FLECHA, stroke_width=SW)
+
+        def L_up_right(x0, y0, x1, y1):
+            return VGroup(seg([x0, y0, 0], [x0, y1, 0]),
+                          arr([x0, y1, 0], [x1, y1, 0]))
+
+        # ── Cajas W ───────────────────────────────────────────────────────────────
+        COLOR_W     = PAPEL_TAN
+        COLOR_W_STR = MARRON_OSCURO
+        W_W, W_H    = 1.15, 0.65
+
+        def caja_W(letra):
+            r = RoundedRectangle(
+                corner_radius=0.16, width=W_W, height=W_H,
+                fill_color=COLOR_W, fill_opacity=1,
+                stroke_color=COLOR_W_STR, stroke_width=2.2
+            )
+            lbl = MathTex(rf"W_{{{letra}}}", font_size=20, color=MARRON_OSCURO)
+            lbl.move_to(r)
             return VGroup(r, lbl)
 
-        def flecha(origen, destino):
-            return Arrow(origen, destino, buff=0.06,
-                        color=MARRON_OSCURO, stroke_width=G,
-                        max_tip_length_to_length_ratio=0.18)
+        # ── Matrices de bloques ────────────────────────────────────────────────────
+        def mat_bloques(filas, cols, bw, bh, color_fondo=FONDO_CAJA):
+            buff_b = 0.04
+            mat = VGroup()
+            for i in range(filas):
+                fila = VGroup()
+                for j in range(cols):
+                    b = RoundedRectangle(
+                        corner_radius=0.07, width=bw, height=bh,
+                        fill_color=color_fondo, fill_opacity=1,
+                        stroke_color=MARRON_OSCURO, stroke_width=1.4
+                    )
+                    fila.add(b)
+                fila.arrange(RIGHT, buff=buff_b)
+                mat.add(fila)
+            mat.arrange(DOWN, buff=buff_b)
+            return mat
 
-        def linea_bifurc(p1, p2):
-            return Line(p1, p2, stroke_color=MARRON_OSCURO, stroke_width=G)
+        def etiq_math(texto, obj, dir_, buff=0.08, fs=12, col=TINTA_NEGRA):
+            lbl = MathTex(texto, font_size=fs, color=col)
+            lbl.next_to(obj, dir_, buff=buff)
+            return lbl
 
-        # ── POSICIONES (AQUÍ ESTÁ LA MAGIA: MUCHO MÁS SEPARADOS)
-        # Originales: [-5.8, -4.2, -2.8, -1.4, -0.1, 1.2, 2.6, 4.1]
-        # Nuevas: Expandidas para estirar las flechas
-        xs = [-6.2, -4.6, -3.0, -1.4, 0.4, 2.4, 4.4, 5.8]
-        yq, yk, yv = 1.1, 0.0, -1.1
+        # ── Coordenadas ───────────────────────────────────────────────────────────
+        cx_X   = -6.2
+        cx_W   = -4.7
+        cx_QKV = -2.9
+        cx_QKT =  0.2
+        cx_AP  =  2.9
+        cx_Y   =  5.8
 
-        # Nodo X
-        X_lbl = MathTex("X", color=TINTA_NEGRA, font_size=38).move_to([xs[0], 0, 0])
-        dot_x  = Dot(radius=0.07, color=MARRON_OSCURO).next_to(X_lbl, RIGHT, buff=0.12)
+        yq    =  1.5
+        yk    =  0.0
+        yv    = -1.5
+        y_mid =  0.75
+        y_Y   =  0.10    # output sube, queda entre AP y V pero más cerca de AP
 
-        # Matrices W
-        Wq = caja(r"W^Q", LAVANDA, math=True).move_to([xs[1], yq, 0])
-        Wk = caja(r"W^K", LAVANDA, math=True).move_to([xs[1], yk, 0])
-        Wv = caja(r"W^V", LAVANDA, math=True).move_to([xs[1], yv, 0])
+        # ── X ────────────────────────────────────────────────────────────────────
+        X_mat = mat_bloques(8, 2, 0.24, 0.30, FONDO_CAJA).move_to([cx_X, 0, 0])
+        lbl_X = MathTex("X", font_size=22, color=TINTA_NEGRA
+                ).next_to(X_mat, DOWN, buff=0.08)
 
-        # Vectores Q K V
-        Q_lbl = MathTex("Q", color=TINTA_NEGRA, font_size=32).move_to([xs[2], yq, 0])
-        K_lbl = MathTex("K", color=TINTA_NEGRA, font_size=32).move_to([xs[2], yk, 0])
-        V_lbl = MathTex("V", color=TINTA_NEGRA, font_size=32).move_to([xs[2], yv, 0])
+        xbif     = X_mat.get_right()[0] + 0.15
+        dot_bif  = Dot(radius=0.08, color=MARRON_OSCURO).move_to([xbif, 0, 0])
+        ln_x_dot = seg(X_mat.get_right(), dot_bif.get_center())
 
-        # Bloques centrales
-        ymid = (yq + yk) / 2
-        mm1   = caja("mat\nmul", NARANJA_CLARO, ancho=1.1, alto=1.6).move_to([xs[3], ymid, 0])
-        sc    = caja("scale",   AMARILLO_PALIDO, ancho=1.1, alto=1.6).move_to([xs[4], ymid, 0])
-        sm    = caja("softmax",  MENTA_PALIDA, ancho=1.2, alto=1.6).move_to([xs[5], ymid, 0])
-        mm2   = caja("mat\nmul", NARANJA_CLARO, ancho=1.1, alto=2.6).move_to([xs[6], 0,   0])
+        # ── W_Q, W_K, W_V ─────────────────────────────────────────────────────────
+        Wq = caja_W("Q").move_to([cx_W, yq, 0])
+        Wk = caja_W("K").move_to([cx_W, yk, 0])
+        Wv = caja_W("V").move_to([cx_W, yv, 0])
 
-        Y_lbl = MathTex("Y", color=TINTA_NEGRA, font_size=38).move_to([xs[7], 0, 0])
+        # ── Q, K, V matrices (4 × 6) ──────────────────────────────────────────────
+        Q_mat = mat_bloques(4, 6, 0.22, 0.24, FONDO_CAJA  ).move_to([cx_QKV, yq, 0])
+        K_mat = mat_bloques(4, 6, 0.22, 0.24, CREMA_CALIDA).move_to([cx_QKV, yk, 0])
+        V_mat = mat_bloques(4, 6, 0.22, 0.24, SALMON_CLARO).move_to([cx_QKV, yv, 0])
 
-        # ── CONEXIONES
-        ln_x_dot = linea_bifurc(X_lbl.get_right(), dot_x.get_center())
+        eQ = etiq_math(r"Q = XW_Q", Q_mat, DOWN, fs=11)
+        eK = etiq_math(r"K = XW_K", K_mat, DOWN, fs=11)
+        eV = etiq_math(r"V = XW_V", V_mat, DOWN, fs=11)
 
-        def ruta_bifurc(from_pt, to_mobj):
-            mid = [from_pt[0], to_mobj.get_y(), 0]
-            return VGroup(
-                linea_bifurc(from_pt, mid),
-                flecha(mid, to_mobj.get_left())
-            )
+        # ── QK^T (6×6) ────────────────────────────────────────────────────────────
+        QKT = mat_bloques(6, 6, 0.24, 0.24, FONDO_CAJA).move_to([cx_QKT, y_mid, 0])
+        lbl_QKT = etiq_math(r"QK^T", QKT, UP, fs=13)
 
-        rt_q = ruta_bifurc(dot_x.get_center(), Wq)
-        rt_k = flecha(dot_x.get_right(), Wk.get_left())
-        rt_v = ruta_bifurc(dot_x.get_center(), Wv)
+        # ── Attention Pattern (6×6, triangular causal) ────────────────────────────
+        AP_n = 6
+        AP_celdas = VGroup()
+        for i in range(AP_n):
+            fila = VGroup()
+            for j in range(AP_n):
+                mask = j > i
+                b = RoundedRectangle(
+                    corner_radius=0.07, width=0.28, height=0.28,
+                    fill_color=MARRON_OSCURO if mask else FONDO_CAJA,
+                    fill_opacity=0.75 if mask else 1.0,
+                    stroke_color=MARRON_OSCURO,
+                    stroke_width=1.1 if mask else 1.5
+                )
+                fila.add(b)
+            fila.arrange(RIGHT, buff=0.04)
+            AP_celdas.add(fila)
+        AP_celdas.arrange(DOWN, buff=0.04)
+        AP_celdas.move_to([cx_AP, y_mid, 0])
 
-        a_wq = flecha(Wq.get_right(), Q_lbl.get_left())
-        a_wk = flecha(Wk.get_right(), K_lbl.get_left())
-        a_wv = flecha(Wv.get_right(), V_lbl.get_left())
+        # Fórmula softmax — ARRIBA del attention pattern, más pequeña, sin "A ="
+        formula_esquina = MathTex(
+            r"\mathrm{Softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)",
+            color=TINTA_NEGRA, font_size=15
+        ).next_to(AP_celdas, UP, buff=0.10).align_to(AP_celdas, RIGHT)
 
-        a_q_mm1 = flecha([Q_lbl.get_right()[0], Q_lbl.get_y(), 0],
-                        [mm1.get_left()[0],     Q_lbl.get_y(), 0])
-        a_k_mm1 = flecha([K_lbl.get_right()[0], K_lbl.get_y(), 0],
-                        [mm1.get_left()[0],     K_lbl.get_y(), 0])
+        # ── Y (output, 4×6) — sin título encima, sin flecha de salida ─────────────
+        Y_mat    = mat_bloques(4, 6, 0.22, 0.24, FONDO_CAJA).move_to([cx_Y, y_Y, 0])
+        # Fórmula completa debajo de Y
+        lbl_Y_eq = MathTex(
+            r"\mathrm{Softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)V",
+            color=TINTA_NEGRA, font_size=13
+        ).next_to(Y_mat, DOWN, buff=0.10)
 
-        a_mm1_sc = flecha(mm1.get_right(), sc.get_left())
-        a_sc_sm  = flecha(sc.get_right(),  sm.get_left())
+        # ══════════════════════════════════════════════════════════════════════════
+        # CONEXIONES
+        # ══════════════════════════════════════════════════════════════════════════
 
-        a_sm_mm2 = flecha([sm.get_right()[0],    sm.get_y(), 0],
-                        [mm2.get_left()[0],     sm.get_y(), 0])
-        a_v_mm2  = flecha([V_lbl.get_right()[0], yv, 0],
-                        [mm2.get_left()[0],     yv, 0])
+        # X → dot → W_Q, W_K, W_V
+        rt_q = L_up_right(xbif, 0, Wq.get_left()[0] - 0.06, yq)
+        rt_k = arr(dot_bif.get_right(), Wk.get_left())
+        rt_v = L_up_right(xbif, 0, Wv.get_left()[0] - 0.06, yv)
 
-        a_mm2_y = flecha(mm2.get_right(), Y_lbl.get_left())
+        # W → matrices
+        a_Wq_Q = arr(Wq.get_right(), Q_mat.get_left())
+        a_Wk_K = arr(Wk.get_right(), K_mat.get_left())
+        a_Wv_V = arr(Wv.get_right(), V_mat.get_left())
 
-        # ── ANIMACIÓN DEL FLUJO
-        # Etapa 1: X → Q, K, V
+        # Q + K → QKT: Brace real de Manim abrazando Q y K, flecha al centro
+        # Agrupamos Q y K para que el Brace los abarque exactamente
+        QK_group = VGroup(Q_mat, K_mat)
+        brace_obj = Brace(
+            QK_group, direction=RIGHT,
+            color=MARRON_OSCURO,
+            buff=0.10
+        )
+        # La punta del brace (tip) es el punto medio derecho
+        brace_tip = brace_obj.get_tip()   # punto donde sale la flecha
+        flecha_qkt = arr(brace_tip, QKT.get_left())
+
+        brace_QK = VGroup(brace_obj, flecha_qkt)
+
+        # QKT → AP: horizontal directo
+        a_QKT_AP = arr(QKT.get_right(), AP_celdas.get_left())
+
+        # AP + V → Y: brace manual con posiciones exactas
+        # El tip del brace DEBE estar en y_Y para que flecha_Y sea horizontal.
+        # El bottom del brace DEBE estar en yv para que a_V_brace sea horizontal.
+        x_brace_APV  = AP_celdas.get_right()[0] + 0.22
+
+        # Usamos la línea fantasma entre top-AP y yv para generar el brace,
+        # luego lo desplazamos para que su tip quede exactamente en y_Y.
+        y_brace_top = AP_celdas.get_top()[1]
+        y_brace_bot = yv   # llega hasta el nivel de V
+
+        brace_span = Line(
+            [x_brace_APV, y_brace_top, 0],
+            [x_brace_APV, y_brace_bot, 0]
+        )
+        brace_APV = Brace(brace_span, direction=RIGHT, color=MARRON_OSCURO, buff=0.08)
+
+        # Punto exactos que necesitamos
+        tip_x        = brace_APV.get_tip()[0]   # x donde sale la flecha
+        tip_actual_y = brace_APV.get_tip()[1]   # y actual del tip
+
+        # Flecha horizontal exacta: desde tip al nivel y_Y → Y_mat
+        flecha_Y  = arr([tip_x, y_Y, 0], Y_mat.get_left())
+
+        # Flecha horizontal exacta: V → punto inferior del brace al nivel yv — punta pequeña
+        bot_x     = brace_APV.get_bottom()[0]
+        a_V_brace = Arrow(
+            V_mat.get_right(), [bot_x, yv, 0],
+            buff=0.07, color=C_FLECHA,
+            stroke_width=SW,
+            max_tip_length_to_length_ratio=0.04   # punta muy pequeña por ser flecha larga
+        )
+
+        # ══════════════════════════════════════════════════════════════════════════
+        # ANIMACIÓN
+        # ══════════════════════════════════════════════════════════════════════════
+
+        # Etapa 1 — X + bifurcación
         self.play(
-            FadeIn(X_lbl), Create(ln_x_dot), FadeIn(dot_x),
-            run_time=0.6
+            FadeIn(X_mat), FadeIn(lbl_X),
+            Create(ln_x_dot), FadeIn(dot_bif),
+            run_time=0.8
         )
         self.play(
             LaggedStart(Create(rt_q), Create(rt_k), Create(rt_v), lag_ratio=0.15),
             LaggedStart(FadeIn(Wq), FadeIn(Wk), FadeIn(Wv), lag_ratio=0.15),
             run_time=1.0
         )
+
+        # Etapa 2 — W → Q, K, V
         self.play(
-            LaggedStart(Create(a_wq), Create(a_wk), Create(a_wv), lag_ratio=0.1),
-            LaggedStart(FadeIn(Q_lbl), FadeIn(K_lbl), FadeIn(V_lbl), lag_ratio=0.1),
-            run_time=0.9
+            LaggedStart(Create(a_Wq_Q), Create(a_Wk_K), Create(a_Wv_V), lag_ratio=0.12),
+            LaggedStart(
+                AnimationGroup(FadeIn(Q_mat), FadeIn(eQ)),
+                AnimationGroup(FadeIn(K_mat), FadeIn(eK)),
+                AnimationGroup(FadeIn(V_mat), FadeIn(eV)),
+                lag_ratio=0.15
+            ),
+            run_time=1.3
         )
+        self._siguiente()
 
-        # Etapa 2: matmul QKt
-        self.play(Create(a_q_mm1), Create(a_k_mm1), FadeIn(mm1), run_time=0.9)
+        # Etapa 3 — Q y K → QK^T (Brace real + flecha única)
+        self.play(
+            GrowFromCenter(brace_obj),
+            run_time=0.7
+        )
+        self.play(
+            Create(flecha_qkt),
+            run_time=0.5
+        )
+        self.play(FadeIn(QKT), FadeIn(lbl_QKT), run_time=0.8)
 
-        # Etapa 3: scale + softmax
-        self.play(Create(a_mm1_sc), FadeIn(sc), Create(a_sc_sm), FadeIn(sm), run_time=1.0)
+        # Etapa 4 — QK^T → Attention Pattern + fórmula
+        self.play(Create(a_QKT_AP), run_time=0.6)
+        self.play(FadeIn(AP_celdas), run_time=0.9)
+        self.play(FadeIn(formula_esquina, scale=0.9), run_time=0.5)
+        self._siguiente()
 
-        # Etapa 4: matmul V → Y
-        self.play(Create(a_sm_mm2), Create(a_v_mm2), FadeIn(mm2), run_time=0.9)
-        self.play(Create(a_mm2_y), FadeIn(Y_lbl, scale=1.2), run_time=0.7)
-        self.play(Flash(Y_lbl, color=NARANJA_TERRACOTA, line_length=0.25, num_lines=8))
+        # Etapa 5 — AP + V → Y  (Brace + flecha recta desde AP + flecha V al pie del brace)
+        self.play(GrowFromCenter(brace_APV), run_time=0.7)
+        self.play(
+            Create(flecha_Y),
+            Create(a_V_brace),
+            run_time=0.6
+        )
+        self.play(
+            FadeIn(Y_mat), FadeIn(lbl_Y_eq),
+            run_time=0.8
+        )
+        self.play(
+            Flash(Y_mat, color=NARANJA_TERRACOTA, line_length=0.22, num_lines=8),
+            run_time=0.7
+        )
         self._siguiente()
 
         self.limpiar_pantalla()
-
-
+        
     def slide_mha_acto4_multihead(self):
         """¿Por qué múltiples cabezas? Animación centrada demostrando la concatenación y mezcla, ajustada hacia arriba."""
         # ── 1. TÍTULO Y FONDO ──────────────────────────────────────────────────────
@@ -776,4 +919,3 @@ class SlidesAtencion:
         
         self._siguiente()
         self.limpiar_pantalla()
-

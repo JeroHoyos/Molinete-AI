@@ -201,10 +201,16 @@ molineteai/
 
 - [Rust](https://rustup.rs/) 1.75+
 - Python 3.9+
-- `maturin` para compilar los bindings PyO3:
+- [`uv`](https://docs.astral.sh/uv/) (recomendado) o `pip`
+
+Instalar `uv` si no lo tienes:
 
 ```bash
-pip install maturin
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### 1. Clonar el repositorio
@@ -214,7 +220,30 @@ git clone https://github.com/JeroHoyos/Molinete-AI.git
 cd Molinete-AI
 ```
 
-### 2. Preparar el corpus
+### 2. Crear entorno virtual e instalar dependencias
+
+```bash
+# Con uv (recomendado)
+uv venv
+uv pip install maturin
+
+# Activar el entorno
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # Linux / macOS
+```
+
+<details>
+<summary>Usando pip en lugar de uv</summary>
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # Linux / macOS
+pip install maturin
+```
+</details>
+
+### 3. Preparar el corpus
 
 El corpus de Cervantes debe descargarse antes de entrenar. Ver [DATA.md](DATA.md) para instrucciones detalladas y fuentes recomendadas. También puede usarse el menú interactivo del proyecto:
 
@@ -223,13 +252,13 @@ python ejemplos/molineteai.py
 # → Opción 11: Descargar corpus
 ```
 
-### 3. Compilar los bindings Python
+### 4. Compilar los bindings Python
 
 ```bash
 maturin develop --release
 ```
 
-### 4. Ejecutar el modelo
+### 5. Ejecutar el modelo
 
 ```bash
 python ejemplos/molineteai.py
@@ -292,6 +321,10 @@ La carpeta `web/` incluye una interfaz web que permite ejecutar los módulos de 
 ### Requisitos
 
 ```bash
+# Con uv (recomendado)
+uv pip install fastapi uvicorn
+
+# Con pip
 pip install fastapi uvicorn
 ```
 

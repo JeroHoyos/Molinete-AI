@@ -86,9 +86,8 @@ class Presentacion(SlidesInicio, SlidesIntro, SlidesTensores, SlidesTokenizacion
         self.mostrar_snippet("attention.rs")
 
         self.slide_arquitectura_neurona()
-        self.mostrar_snippet("mlp_forward.rs")
-
         self.slide_zoom_neurona()
+        self.mostrar_snippet("mlp_forward.rs")
         self.slide_activacion()
         self.mostrar_snippet("gelu.rs")
 
@@ -104,9 +103,8 @@ class Presentacion(SlidesInicio, SlidesIntro, SlidesTensores, SlidesTokenizacion
         self.mostrar_snippet("compute_loss.rs")
 
         self.slide_descenso_gradiente()
-        self.mostrar_snippet("linear_backward.rs")
-
         self.slide_backpropagation()
+        self.mostrar_snippet("linear_backward.rs")
 
         self.slide_adam()
         self.mostrar_snippet("adamw_update.rs")
