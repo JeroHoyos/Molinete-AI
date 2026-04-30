@@ -27,7 +27,7 @@ class SlidesTensores:
 
         self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
 
-        # ── Etiquetas de columna ────────────────────────────────────────────
+
         lbl_0d = Text("Escalar", font=FUENTE, font_size=22,
                     color=MARRON_OSCURO, weight=BOLD)
         lbl_1d = Text("Vector",  font=FUENTE, font_size=22,
@@ -37,7 +37,7 @@ class SlidesTensores:
         lbl_3d = Text("Tensor",  font=FUENTE, font_size=22,
                     color=MARRON_OSCURO, weight=BOLD)
 
-        # ── Contenido ───────────────────────────────────────────────────────
+
         escalar = self.crear_bloque("7", ancho=1.0, alto=1.0)
 
         vector = VGroup(*[
@@ -76,26 +76,26 @@ class SlidesTensores:
         capa_top.shift(RIGHT * 0.36 + UP * 0.36)
         tensor_3d = VGroup(capa_back, capa_mid, capa_top)
 
-        # ── Notas de forma ───────────────────────────────────────────────────
+
         forma_0d = Text("forma: []",      font=FUENTE, font_size=17, color=PAPEL_TAN)
         forma_1d = Text("forma: [4]",     font=FUENTE, font_size=17, color=PAPEL_TAN)
         forma_2d = Text("forma: [4, 3]",  font=FUENTE, font_size=17, color=PAPEL_TAN)
         forma_3d = Text("forma: [3,3,3]", font=FUENTE, font_size=17, color=PAPEL_TAN)
 
-        # ── Distribuir las cuatro columnas horizontalmente ───────────────────
+
         contenidos = VGroup(escalar, vector, filas_2d, tensor_3d)
         contenidos.arrange(RIGHT, buff=1.2)
 
-        # Calcular la zona central disponible entre linea y nota_ram
-        ZONA_TOP = linea.get_bottom()[1] - 0.5    # justo bajo la línea del título
-        ZONA_BOT = -2.8                            # espacio para la nota RAM
+
+        ZONA_TOP = linea.get_bottom()[1] - 0.5
+        ZONA_BOT = -2.8
         ZONA_MID_Y = (ZONA_TOP + ZONA_BOT) / 2
 
-        # Centrar verticalmente cada contenido dentro de esa zona
+
         for mob in contenidos:
             mob.set_y(ZONA_MID_Y)
 
-        # Poner etiquetas arriba y formas abajo, ancladas a cada contenido
+
         for lbl, mob, forma in zip(
             [lbl_0d, lbl_1d, lbl_2d, lbl_3d],
             contenidos,
@@ -104,12 +104,12 @@ class SlidesTensores:
             lbl.next_to(mob, UP, buff=0.3).set_x(mob.get_x())
             forma.next_to(mob, DOWN, buff=0.25).set_x(mob.get_x())
 
-        # Alinear las etiquetas a la misma altura Y (la más alta de todas)
+
         lbl_top_y = max(lbl.get_top()[1] for lbl in [lbl_0d, lbl_1d, lbl_2d, lbl_3d])
         for lbl in [lbl_0d, lbl_1d, lbl_2d, lbl_3d]:
             lbl.set_y(lbl_top_y - lbl.height / 2)
 
-        # ── Separadores verticales ────────────────────────────────────────────
+
         separadores = VGroup()
         pares = [(escalar, vector), (vector, filas_2d), (filas_2d, tensor_3d)]
         for izq, der in pares:
@@ -121,7 +121,7 @@ class SlidesTensores:
             ).set_x(x_sep)
             separadores.add(sep)
 
-        # ── Nota RAM al pie ───────────────────────────────────────────────────
+
         nota_ram = Text(
             "En RAM: arreglo plano 1D — la forma y los saltos son solo metadatos",
             font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD
@@ -132,7 +132,7 @@ class SlidesTensores:
             corner_radius=0.12, buff=0.15, stroke_width=2,
         )
 
-        # ── Animaciones ───────────────────────────────────────────────────────
+
         self.play(
             LaggedStart(
                 Write(lbl_0d), Write(lbl_1d), Write(lbl_2d), Write(lbl_3d),
@@ -177,9 +177,7 @@ class SlidesTensores:
 
     def slide_softmax(self):
 
-        # ══════════════════════════════════════════
-        # SETUP
-        # ══════════════════════════════════════════
+
         titulo, linea = self.crear_titulo(
             "Softmax", palabra_clave="Probabilidades",
             color_clave=NARANJA_TERRACOTA
@@ -188,9 +186,7 @@ class SlidesTensores:
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo, linea, adornos=adornos, fondo=llanuras_fondo)
 
-        # ══════════════════════════════════════════
-        # HELPERS
-        # ══════════════════════════════════════════
+
         ANC = 1.15
 
         def bloque(v, fondo=FONDO_CAJA, texto=MARRON_OSCURO):
@@ -213,9 +209,7 @@ class SlidesTensores:
             op.next_to(flecha, UP, buff=0.08)
             return VGroup(flecha, op)
 
-        # ══════════════════════════════════════════
-        # ACTO 0 — Softmax grande, luego fade out
-        # ══════════════════════════════════════════
+
         formula_grande = MathTex(
             r"\text{Softmax}(x_i) = \frac{e^{x_i}}{\sum_{j} e^{x_j}}",
             color=TINTA_NEGRA, font_size=64
@@ -225,9 +219,7 @@ class SlidesTensores:
         self._siguiente()
         self.play(FadeOut(formula_grande), run_time=0.7)
 
-        # ══════════════════════════════════════════
-        # ACTO 1 — Flujo normal
-        # ══════════════════════════════════════════
+
         c1 = columna("Logits",  ["2.0", "1.0", "0.1"])
         k1 = conector(r"\exp(x)", es_tex=True)
         c2 = columna("exp(x)", ["7.39", "2.72", "1.10"],
@@ -255,9 +247,7 @@ class SlidesTensores:
 
         self.play(FadeOut(flujo1), run_time=0.7)
 
-        # ══════════════════════════════════════════
-        # ACTO 2 — Overflow
-        # ══════════════════════════════════════════
+
         subtit_2 = Text("Problema: overflow", font=FUENTE, font_size=26,
                          color=NARANJA_TERRACOTA).next_to(linea, DOWN, buff=0.4)
         self.play(FadeIn(subtit_2, shift=UP * 0.15))
@@ -285,9 +275,7 @@ class SlidesTensores:
         self._siguiente()
         self.play(FadeOut(flujo_err), FadeOut(subtit_2), run_time=0.7)
 
-        # ══════════════════════════════════════════
-        # ACTO 3 — El fix: restar el máximo
-        # ══════════════════════════════════════════
+
         subtit_3 = Text("Fix: restar el máximo", font=FUENTE, font_size=26,
                          color=NARANJA_TERRACOTA).next_to(linea, DOWN, buff=0.4)
         self.play(FadeIn(subtit_3, shift=UP * 0.15))
@@ -387,10 +375,7 @@ class SlidesTensores:
         self.limpiar_pantalla()
 
 
-
-
     def _acto_operaciones_tensoriales(self, linea: Mobject) -> None:
-        """Suma elementwise, multiplicación escalar y broadcasting."""
 
         def _vec_col(valores, color_fill):
             celdas = VGroup()
@@ -420,7 +405,7 @@ class SlidesTensores:
             contenido.move_to(fondo)
             return VGroup(fondo, contenido)
 
-        # ── Card 1: Suma elementwise ──────────────────────────────────────────
+
         v1a  = _vec_col([1, 2, 3], PAPEL_TAN)
         v1b  = _vec_col([4, 5, 6], PAPEL_TAN)
         v1c  = _vec_col([5, 7, 9], NARANJA_TERRACOTA)
@@ -428,7 +413,7 @@ class SlidesTensores:
                       ).arrange(RIGHT, buff=0.20)
         card1 = _card("Suma Elementwise", ex1)
 
-        # ── Card 2: Broadcasting (escalar → vector) ───────────────────────────
+
         rect_esc = RoundedRectangle(corner_radius=0.08, width=0.70, height=0.54,
                                     fill_color=VERDE_OLIVA, fill_opacity=0.80,
                                     stroke_color=MARRON_OSCURO, stroke_width=1.5)
@@ -442,7 +427,7 @@ class SlidesTensores:
                      ).arrange(RIGHT, buff=0.18)
         card2 = _card("Broadcasting", ex2)
 
-        # ── Card 3: Multiplicación escalar ────────────────────────────────────
+
         rect_k = RoundedRectangle(corner_radius=0.08, width=0.70, height=0.54,
                                    fill_color=AZUL_NOCHE, fill_opacity=0.75,
                                    stroke_color=MARRON_OSCURO, stroke_width=1.5)
@@ -456,13 +441,13 @@ class SlidesTensores:
                      ).arrange(RIGHT, buff=0.20)
         card3 = _card("Multiplicación Escalar", ex3)
 
-        # ── Layout ────────────────────────────────────────────────────────────
+
         cards = VGroup(card1, card2, card3).arrange(RIGHT, buff=0.55)
         cards.set_x(0)
         if cards.width > 13.2:
             cards.scale(13.2 / cards.width)
 
-        # Center cards vertically in the available space below the title
+
         zona_top = linea.get_bottom()[1] - 0.3
         zona_bot = -3.6
         cards.set_y((zona_top + zona_bot) / 2)
@@ -477,11 +462,8 @@ class SlidesTensores:
         self.play(FadeOut(cards))
 
     def slide_matmul(self):
-        """
-        Diapositiva unificada: Operaciones Tensoriales → MatMul → importancia.
-        """
 
-        # ── Fondos y decoración ──────────────────────────────────────────────────
+
         llanuras_fondo = crear_llanuras_manchegas()
 
         camino_mancha    = FunctionGraph(lambda x: 0.5 * math.sin(x) - 0.5,
@@ -494,7 +476,7 @@ class SlidesTensores:
         adornos = self._crear_adornos_esquinas()
         adornos[1].add_updater(lambda m, dt: m.rotate(dt * 0.15))
 
-        # ── Título 1: Operaciones Tensoriales ────────────────────────────────────
+
         titulo, linea = self.crear_titulo(
             "Operaciones Tensoriales",
             palabra_clave="Tensoriales",
@@ -506,10 +488,10 @@ class SlidesTensores:
             fondo=VGroup(llanuras_fondo, decoracion_fondo),
         )
 
-        # ── Operaciones básicas ───────────────────────────────────────────────────
+
         self._acto_operaciones_tensoriales(linea)
 
-        # ── Transición al título MatMul ───────────────────────────────────────────
+
         nuevo_titulo = Text(
             "MatMul: El Corazón del Transformer",
             font=FUENTE, font_size=35, color=TINTA_NEGRA,
@@ -523,9 +505,6 @@ class SlidesTensores:
         )
         linea = nueva_linea
 
-        # ════════════════════════════════════════════════════════════════════════
-        # ACTO 1 – Matrices NO cuadradas: A(2×4) × B(4×3) = C(2×3)
-        # ════════════════════════════════════════════════════════════════════════
 
         A_rows, A_cols, B_cols = 2, 4, 3
         k = A_cols
@@ -567,9 +546,9 @@ class SlidesTensores:
         calculo_label = Text("", font=FUENTE, font_size=26, color=MARRON_OSCURO).next_to(grupo_matmul, DOWN, buff=0.6)
         self.add(calculo_label)
 
-        # FIX 2: acumular todos los textos de resultado para limpiarlos después
+
         txt_resultados = VGroup()
-        
+
         for i in range(A_rows):
             for j in range(B_cols):
                 fila_i = mat_A[i]
@@ -606,7 +585,7 @@ class SlidesTensores:
 
                 txt_res = Text(str(resultado), font=FUENTE, font_size=20, color=PAPEL_CREMA).move_to(celda_C)
                 self.add(txt_res)
-                txt_resultados.add(txt_res)  # FIX 2: registrar para FadeOut posterior
+                txt_resultados.add(txt_res)
 
                 calculo_label = Text("", font=FUENTE, font_size=26, color=MARRON_OSCURO).next_to(grupo_matmul, DOWN, buff=0.6)
                 self.add(calculo_label)
@@ -619,11 +598,7 @@ class SlidesTensores:
         self._siguiente()
         self.remove(calculo_label)
 
-        # ════════════════════════════════════════════════════════════════════════
-        # ACTO 2 – ¿Por qué importa?
-        # ════════════════════════════════════════════════════════════════════════
 
-        # FIX 2: incluir txt_resultados en el FadeOut para que desaparezcan
         self.play(
             FadeOut(grupo_matmul),
             FadeOut(txt_resultados),
@@ -636,7 +611,7 @@ class SlidesTensores:
         ).next_to(linea, DOWN, buff=0.35)
         self.play(Write(pregunta))
 
-        # ── Gráfica de pastel ────────────────────────────────────────────────
+
         radio = 1.4
         datos_pastel = [
             (0.833, NARANJA_TERRACOTA, "MatMul\n83.3 %"),
@@ -662,7 +637,7 @@ class SlidesTensores:
             direccion    = np.array([np.cos(angulo_medio), np.sin(angulo_medio), 0])
 
             if i == 0:
-                # Sector grande: etiqueta interior
+
                 fs        = 20
                 fw        = BOLD
                 lbl_color = BLANCO
@@ -678,12 +653,12 @@ class SlidesTensores:
                 lbl = Text(nombre, font=FUENTE, font_size=fs, color=lbl_color,
                         weight=fw, line_spacing=0.85)
 
-                # FIX 4: separación mayor al borde (0.55 → 0.75) para evitar solapamiento
+
                 punto_borde    = direccion * radio
                 punto_exterior = direccion * (radio + 0.55)
                 linea_ext      = Line(punto_borde, punto_exterior, color=color, stroke_width=1.5)
 
-                # FIX 4: posicionar según cuadrante (x e y) para etiquetas pequeñas
+
                 if direccion[0] >= 0.2:
                     dir_texto = RIGHT
                 elif direccion[0] <= -0.2:
@@ -702,7 +677,7 @@ class SlidesTensores:
         borde_grafica    = Circle(radius=radio, color=MARRON_OSCURO, stroke_width=2)
         grafica_completa = VGroup(sectores, borde_grafica, lineas_grafica, labels_grafica)
 
-        # ── Razones ─────────────────────────────────────────────────────────
+
         razones_data = [
             (NARANJA_TERRACOTA,
             "83.3 % de los FLOPs",
@@ -725,17 +700,16 @@ class SlidesTensores:
             razones_grupo.add(fila)
         razones_grupo.arrange(DOWN, buff=0.45, aligned_edge=LEFT)
 
-        # FIX 4: centrar verticalmente el contenido del Acto 2
-        # Calculamos el espacio disponible entre la línea del título y el borde inferior
-        y_linea  = linea.get_bottom()[1]      # borde inferior de la línea del título
-        y_fondo  = -3.8                        # borde inferior seguro de pantalla
-        y_centro = (y_linea + y_fondo) / 2    # centro del espacio disponible
+
+        y_linea  = linea.get_bottom()[1]
+        y_fondo  = -3.8
+        y_centro = (y_linea + y_fondo) / 2
 
         contenido_principal = VGroup(grafica_completa, razones_grupo)
         contenido_principal.arrange(RIGHT, buff=0.9)
         contenido_principal.move_to(np.array([0, y_centro, 0]))
 
-        # Ajuste de seguridad: si la pregunta solapa el contenido, bajar ligeramente
+
         margen_bajo_pregunta = pregunta.get_bottom()[1] - 0.3
         if contenido_principal.get_top()[1] > margen_bajo_pregunta:
             contenido_principal.next_to(pregunta, DOWN, buff=0.4)
@@ -762,7 +736,6 @@ class SlidesTensores:
             )
         self._siguiente()
 
-        # FIX 3: eliminado bloque de conclusión "4 técnicas" (concl, Indicate, Flash)
 
         adornos[1].clear_updaters()
         self.limpiar_pantalla()
@@ -779,16 +752,16 @@ class SlidesTensores:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ─── constantes visuales (paleta estándar del proyecto) ──────────────────
+
         CELDA_W  = 1.10
         CELDA_H  = 0.80
         FONT_VAL = 21
         FONT_LBL = 16
 
-        COLOR_A   = MARRON_OSCURO       # fila $s0
-        COLOR_B   = PAPEL_TAN           # fila $s1
-        COLOR_RES = MARRON_QUIJOTE      # fila $s2 resultado
-        COLOR_OP  = NARANJA_TERRACOTA   # resaltado escalar
+        COLOR_A   = MARRON_OSCURO
+        COLOR_B   = PAPEL_TAN
+        COLOR_RES = MARRON_QUIJOTE
+        COLOR_OP  = NARANJA_TERRACOTA
 
         def hacer_fila(vals, bg_color):
             celdas = VGroup(*[
@@ -820,7 +793,7 @@ class SlidesTensores:
         VGroup(celdas_b, etqs_b).move_to(CENTRO_Y + UP * 0.38)
         VGroup(celdas_r, etqs_r).move_to(CENTRO_Y + DOWN * 1.05)
 
-        # etiquetas de registro a la derecha
+
         def reg_label(texto, color, ref):
             return Text(texto, font=FUENTE, font_size=FONT_LBL, color=color, weight=BOLD) \
                        .next_to(ref, RIGHT, buff=0.28)
@@ -829,23 +802,23 @@ class SlidesTensores:
         lbl_s1 = reg_label("$s1", COLOR_B,   celdas_b)
         lbl_s2 = reg_label("$s2", COLOR_RES, celdas_r)
 
-        # signo + a la izquierda de $s1
+
         plus_sign = Text("+", font=FUENTE, font_size=40, color=MARRON_OSCURO, weight=BOLD) \
                         .next_to(celdas_b, LEFT, buff=0.30)
 
-        # línea separadora sobre el resultado
+
         sep_line = Line(
             celdas_r.get_left()  + LEFT  * 0.12 + UP * (CELDA_H / 2 + 0.18),
             celdas_r.get_right() + RIGHT * 0.05 + UP * (CELDA_H / 2 + 0.18),
             stroke_color=MARRON_OSCURO, stroke_width=2.5
         )
 
-        # instrucción monoespaciada
+
         instr = Text("padd8  $s2, $s0, $s1",
                      font="Courier New", font_size=24, color=NARANJA_TERRACOTA) \
                     .next_to(linea, DOWN, buff=0.32)
 
-        # ─── 1. Estructura inicial ────────────────────────────────────────────────
+
         self.play(Write(instr), run_time=0.7)
         self.play(
             LaggedStart(
@@ -862,7 +835,7 @@ class SlidesTensores:
             run_time=0.7
         )
 
-        # ─── 2. MODO ESCALAR: 1 suma por ciclo ───────────────────────────────────
+
         modo_lbl = Text("Modo Escalar — 1 suma por ciclo",
                         font=FUENTE, font_size=19, color=TINTA_NEGRA) \
                        .to_edge(DOWN, buff=0.55)
@@ -903,10 +876,10 @@ class SlidesTensores:
         self.play(FadeOut(modo_lbl), FadeIn(resumen_escalar, shift=UP * 0.12))
         self.wait(1.5)
 
-        # ── PRIMER _siguiente ─────────────────────────────────────────────────────
+
         self._siguiente()
 
-        # ─── 3. Reset para SIMD ───────────────────────────────────────────────────
+
         self.play(
             FadeOut(ciclo_lbl),
             FadeOut(resumen_escalar),
@@ -916,18 +889,18 @@ class SlidesTensores:
             run_time=0.45
         )
 
-        # ─── 4. MODO SIMD: 4 sumas en 1 ciclo ────────────────────────────────────
+
         modo_simd_lbl = Text("Una instrucción vectorial — 4 sumas en paralelo",
                              font=FUENTE, font_size=19, color=NARANJA_TERRACOTA, weight=BOLD) \
                             .to_edge(DOWN, buff=0.55)
         self.play(FadeIn(modo_simd_lbl, shift=UP * 0.15))
 
-        # Un solo rectángulo que envuelve $s0 y $s1 juntos
+
         marco_vec = SurroundingRectangle(
             VGroup(celdas_a, celdas_b),
             color=NARANJA_TERRACOTA, stroke_width=4, buff=0.16, corner_radius=0.14
         )
-        # Label ENCIMA del marco, con suficiente buff para no solaparse con $s0
+
         lbl_vec = Text("Registro vectorial ×4", font=FUENTE, font_size=15,
                        color=NARANJA_TERRACOTA, weight=BOLD) \
                       .next_to(marco_vec, UP, buff=0.20)
@@ -942,7 +915,7 @@ class SlidesTensores:
             run_time=0.35
         )
 
-        # Restaurar opacidad de los textos de resultado antes de FadeIn
+
         for i in range(4):
             etqs_r[i].set_opacity(1)
 
@@ -960,7 +933,7 @@ class SlidesTensores:
         self.play(FadeOut(modo_simd_lbl), FadeIn(resumen_simd, shift=UP * 0.12))
         self.wait(1.5)
 
-        # ── SEGUNDO _siguiente: fin de diapo ─────────────────────────────────────
+
         self._siguiente()
         self.limpiar_pantalla()
 
@@ -976,7 +949,7 @@ class SlidesTensores:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ─── RAM ─────────────────────────────────────────────────────────────────
+
         ram_box = RoundedRectangle(corner_radius=0.15, height=4.0, width=2.6,
                                    stroke_color=MARRON_OSCURO, stroke_width=3,
                                    fill_color=PAPEL_CREMA, fill_opacity=0.85)
@@ -986,7 +959,7 @@ class SlidesTensores:
         sub_ram = Text("Memoria principal", font=FUENTE, font_size=13,
                        color=MARRON_OSCURO).next_to(label_ram, DOWN, buff=0.04)
 
-        # Matriz 6×6 — dos columnas (col 0 y col 1) serán los datos a leer
+
         matriz_ram = VGroup(*[
             Square(side_length=0.33,
                    stroke_color=MARRON_OSCURO, stroke_opacity=0.55,
@@ -994,7 +967,7 @@ class SlidesTensores:
             for _ in range(36)
         ]).arrange_in_grid(6, 6, buff=0.03).next_to(sub_ram, DOWN, buff=0.14)
 
-        # ─── CPU + Caché ──────────────────────────────────────────────────────────
+
         cpu_box = RoundedRectangle(corner_radius=0.18, height=4.0, width=3.6,
                                    stroke_color=MARRON_OSCURO, stroke_width=3,
                                    fill_color=PAPEL_CREMA, fill_opacity=0.25)
@@ -1022,14 +995,14 @@ class SlidesTensores:
         self.play(GrowArrow(flecha_bus), FadeIn(label_bus))
         self.play(DrawBorderThenFill(cache_box), Write(label_cache))
 
-        # ─── PROBLEMA: 2 columnas completas no caben en caché ────────────────────
+
         texto_prob = Text(
             "MatMul necesita datos que no caben completos en caché",
             font=FUENTE, font_size=19, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_prob))
 
-        # columna 0 y columna 1 de la matriz 6×6
+
         col0 = VGroup(*[matriz_ram[i * 6 + 0] for i in range(6)])
         col1 = VGroup(*[matriz_ram[i * 6 + 1] for i in range(6)])
         col0_copy = col0.copy()
@@ -1040,14 +1013,14 @@ class SlidesTensores:
             col1_copy.animate.set_fill(NARANJA_TERRACOTA, opacity=0.70),
         )
 
-        # mover ambas columnas hacia la caché — se ven apiladas y no caben
+
         grupo_cols = VGroup(col0_copy, col1_copy)
         self.play(
             grupo_cols.animate.move_to(cache_box.get_center()).scale(0.70),
             run_time=1.1
         )
 
-        # explicar por qué la RAM es lenta
+
         texto_lento = Text(
             "RAM: ~100 ns de latencia  ·  caché L1: ~1 ns",
             font=FUENTE, font_size=17, color=MARRON_OSCURO
@@ -1067,10 +1040,10 @@ class SlidesTensores:
         self.play(FadeOut(grupo_cols))
         self.wait(1.5)
 
-        # ── PRIMER _siguiente: problema + latencia visible ────────────────────────
+
         self._siguiente()
 
-        # ─── SOLUCIÓN: bloques 2×2 de a poco ─────────────────────────────────────
+
         texto_sol = Text(
             "Solución: llevar bloques 2×2 de a poco a la caché",
             font=FUENTE, font_size=19, color=TINTA_NEGRA
@@ -1080,13 +1053,12 @@ class SlidesTensores:
             FadeTransform(texto_lento, texto_sol)
         )
 
-        # índices de cada bloque 2×2 en la grilla 6×6 (fila*6 + col)
-        # recorremos la matriz en orden: 3 bloques por fila, 3 filas → 9 bloques
+
         bloques_2x2 = [
             [r * 6 + c, r * 6 + c + 1, (r+1) * 6 + c, (r+1) * 6 + c + 1]
             for c in range(0, 6, 2)
             for r in range(0, 6, 2)
-        ]  # 9 bloques en total
+        ]
         colores_ciclo = [NARANJA_TERRACOTA, MARRON_QUIJOTE, MARRON_OSCURO]
 
         for k, indices in enumerate(bloques_2x2):
@@ -1094,22 +1066,22 @@ class SlidesTensores:
             bloque_orig = VGroup(*[matriz_ram[i] for i in indices])
             bloque_copia = bloque_orig.copy()
 
-            # resaltar en la matriz
+
             self.play(
                 bloque_copia.animate.set_fill(color, opacity=0.88),
                 run_time=0.22
             )
-            # viajar a la caché
+
             self.play(
                 bloque_copia.animate.move_to(cache_box.get_center()).scale(0.80),
                 run_time=0.45
             )
-            # procesado — pequeño flash
+
             self.play(
                 Flash(cache_box, color=color, line_length=0.22, num_lines=7),
                 run_time=0.30
             )
-            # desaparecer (procesado, ya no se necesita)
+
             self.play(FadeOut(bloque_copia, shift=RIGHT * 0.4), run_time=0.28)
 
         resumen = Text(
@@ -1120,45 +1092,10 @@ class SlidesTensores:
         self.play(Indicate(cache_box, color=NARANJA_TERRACOTA, scale_factor=1.12))
         self.wait(1.5)
 
-        # ── SEGUNDO _siguiente: fin de diapo ──────────────────────────────────────
+
         self._siguiente()
         self.limpiar_pantalla()
 
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización con Rayon
-    # Mensaje: dividir la carga de trabajo entre núcleos es como repartir filas
-    # de una labranza entre escuderos — cada uno trabaja su parcela, nadie espera.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan fila a fila al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan fila a fila al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan fila a fila al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan fila a fila al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Paralelización
-    # Mensaje: hay núcleos ociosos mientras uno trabaja solo — al repartir cada
-    # núcleo toma su franja y todos avanzan fila a fila al mismo tiempo.
-    # ─────────────────────────────────────────────────────────────────────────────
 
     def slide_parallel(self):
 
@@ -1176,14 +1113,14 @@ class SlidesTensores:
             adornos=adornos
         )
 
-        # ── ACTO 1: un solo núcleo trabaja — los demás están ociosos ─────────────
+
         texto_problema = Text(
             "Un solo núcleo trabaja · los demás están ociosos",
             font=FUENTE, font_size=20, color=TINTA_NEGRA
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_problema))
 
-        # Matriz 6 × 6 desplazada a la derecha para dejar espacio a las bolitas
+
         matriz = VGroup(*[
             Square(side_length=0.54,
                    stroke_color=MARRON_OSCURO, stroke_width=1.5,
@@ -1193,9 +1130,7 @@ class SlidesTensores:
 
         self.play(Create(matriz, lag_ratio=0.03), run_time=0.9)
 
-        # Columna de bolitas a la izquierda:
-        #   • bolita 0  → activa (café oscuro, borde terracota)
-        # Ociosos: vienen desde la derecha y se asientan en el borde izquierdo
+
         ociosos = VGroup(*[
             Circle(
                 radius=0.26,
@@ -1205,7 +1140,7 @@ class SlidesTensores:
             for _ in range(3)
         ]).arrange(DOWN, buff=0.65).move_to(LEFT * 4.8 + DOWN * 0.3)
 
-        # Núcleo activo: también entra desde la derecha, se posa encima de los ociosos
+
         nucleo = Circle(
             radius=0.26,
             fill_color=MARRON_OSCURO, fill_opacity=0.95,
@@ -1218,8 +1153,7 @@ class SlidesTensores:
             run_time=0.8
         )
 
-        # El activo se desplaza horizontalmente hasta quedar pegado a cada fila
-        # (buff=0.18 — cerca de la matriz) mientras los ociosos permanecen quietos.
+
         filas = [VGroup(*[matriz[r * 6 + c] for c in range(6)]) for r in range(6)]
 
         for fila in filas:
@@ -1241,7 +1175,7 @@ class SlidesTensores:
 
         self._siguiente()
 
-        # ── Limpieza parcial ──────────────────────────────────────────────────────
+
         self.play(
             FadeOut(texto_problema), FadeOut(lbl_lento),
             FadeOut(nucleo), FadeOut(ociosos),
@@ -1249,14 +1183,14 @@ class SlidesTensores:
             run_time=0.6
         )
 
-        # ── ACTO 2: dividir la matriz en 3 franjas ────────────────────────────────
+
         texto_solucion = Text(
             "Dividimos la matriz en franjas independientes",
             font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(Write(texto_solucion))
 
-        # Cada franja = 2 filas (12 celdas)
+
         chunk1 = VGroup(*[matriz[i] for i in range(12)])
         chunk2 = VGroup(*[matriz[i] for i in range(12, 24)])
         chunk3 = VGroup(*[matriz[i] for i in range(24, 36)])
@@ -1264,21 +1198,21 @@ class SlidesTensores:
         colores_chunks  = [MARRON_OSCURO, NARANJA_TERRACOTA, MARRON_QUIJOTE]
         strokes_chunks  = [NARANJA_TERRACOTA, MARRON_OSCURO, NARANJA_TERRACOTA]
 
-        # Separar las franjas verticalmente para que el corte sea visible
+
         self.play(
             chunk1.animate.shift(UP * 0.30),
             chunk3.animate.shift(DOWN * 0.30),
             run_time=0.75
         )
 
-        # ── ACTO 3: cada bolita aparece junto a su franja y recorre sus 2 filas ───
+
         texto_paralelo = Text(
             "Cada núcleo avanza en su franja · todos a la vez",
             font=FUENTE, font_size=20, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=0.22)
         self.play(FadeTransform(texto_solucion, texto_paralelo))
 
-        # Crear una bolita activa por franja
+
         bolitas_par = VGroup(*[
             Circle(
                 radius=0.26,
@@ -1293,20 +1227,20 @@ class SlidesTensores:
             run_time=0.6
         )
 
-        # Las 3 franjas tienen 2 filas cada una → animamos fila 0 y fila 1 en paralelo
+
         filas_por_chunk = [
             [VGroup(*[chunks[k][r * 6 + c] for c in range(6)]) for r in range(2)]
             for k in range(3)
         ]
 
-        for paso in range(2):   # paso 0 = primera fila de cada franja, paso 1 = segunda
-            # Mover las 3 bolitas a la fila correspondiente de su franja simultáneamente
+        for paso in range(2):
+
             self.play(
                 *[bolitas_par[k].animate.next_to(filas_por_chunk[k][paso][0], LEFT, buff=2.4)
                   for k in range(3)],
                 run_time=0.40
             )
-            # Iluminar las 3 filas a la vez
+
             self.play(
                 *[filas_por_chunk[k][paso].animate.set_fill(colores_chunks[k], opacity=0.80)
                   for k in range(3)],
@@ -1320,7 +1254,7 @@ class SlidesTensores:
             run_time=0.70
         )
 
-        # ── ACTO 4: conclusión ────────────────────────────────────────────────────
+
         self.play(
             chunk1.animate.shift(DOWN * 0.30),
             chunk3.animate.shift(UP   * 0.30),
@@ -1346,12 +1280,7 @@ class SlidesTensores:
 
         self._siguiente()
         self.limpiar_pantalla()
-    # ─────────────────────────────────────────────────────────────────────────────
-    # SLIDE: Batched MatMul
-    # Mensaje: en Multi-Head Attention cada cabeza es independiente — si las
-    # apilamos en un único tensor [lote × cabezas × seq × seq] la GPU las ejecuta
-    # todas en paralelo con una sola llamada, sin bucles, sin overhead.
-    # ─────────────────────────────────────────────────────────────────────────────
+
 
     def slide_batched_matmul(self):
         llanuras_fondo = crear_llanuras_manchegas()

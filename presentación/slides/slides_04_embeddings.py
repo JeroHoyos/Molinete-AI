@@ -45,9 +45,6 @@ class SlidesEmbeddings:
         "Mujer":  _TokenVector("Mujer",  -142.0, _MAGNITUD_BASE, VERDE_OLIVA,       DL),
     }
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # FACTORIES (reutilizadas)
-    # ──────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _factory_nodo_pipeline(etiqueta, subtexto="", color_borde=NARANJA_TERRACOTA, ancho=2.8):
@@ -117,9 +114,6 @@ class SlidesEmbeddings:
             cajas.add(VGroup(rect, txt))
         return cajas.arrange(RIGHT, buff=0.25)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # SLIDE: Embeddings — El Mapa del Significado
-    # ══════════════════════════════════════════════════════════════════════════
 
     def slide_embeddings(self) -> None:
         t1 = Text("Embeddings: ", font=FUENTE, font_size=40, weight=BOLD, color=TINTA_NEGRA)
@@ -142,9 +136,6 @@ class SlidesEmbeddings:
         self._siguiente()
         self.limpiar_pantalla()
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # SLIDE: Embeddings de Posición
-    # ══════════════════════════════════════════════════════════════════════════
 
     def slide_position_embeddings(self) -> None:
         t1 = Text("Embeddings de ", font=FUENTE, font_size=42, weight=BOLD, color=TINTA_NEGRA)
@@ -166,12 +157,8 @@ class SlidesEmbeddings:
         self._siguiente()
         self.limpiar_pantalla()
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # ACTOS — Embeddings
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _acto_ids_ciegos(self, linea: Mobject) -> None:
-        """Problema: los IDs de tokens son números arbitrarios sin semántica."""
         pregunta = Text("¿Qué recibe el modelo tras tokenizar?",
                         font=FUENTE, font_size=27, weight=BOLD, color=TINTA_NEGRA
                         ).next_to(linea, DOWN, buff=0.45)
@@ -207,7 +194,6 @@ class SlidesEmbeddings:
         self.play(FadeOut(pregunta, filas, nota))
 
     def _acto_mapa_semantico(self, linea: Mobject) -> None:
-        """Solución: cada palabra ocupa un punto en el espacio donde la posición = significado."""
 
         ejes = Axes(
             x_range=[-3.8, 3.8, 1], y_range=[-2.8, 2.8, 1],
@@ -216,7 +202,7 @@ class SlidesEmbeddings:
                          "include_ticks": False, "stroke_opacity": 0.45},
         ).move_to(ORIGIN).shift(UP * 0.3)
 
-        # Axis meaning labels
+
         lbl_x = Text("← femenino  |  masculino →", font="Monospace",
                      font_size=12, color=AZUL_NOCHE
                      ).next_to(ejes.x_axis, DOWN, buff=0.45)
@@ -226,7 +212,7 @@ class SlidesEmbeddings:
         self.play(Create(ejes), run_time=0.7)
         self.play(Write(lbl_x), Write(lbl_y))
 
-        # Build points for all four tokens
+
         coords = {k: ejes.c2p(*v.coordenada[:2]) for k, v in self._TOKENS.items()}
 
         def _punto(nombre, color, dir_lbl):
@@ -244,7 +230,7 @@ class SlidesEmbeddings:
             "Mujer":  _punto("Mujer",  VERDE_OLIVA,       DL),
         }
 
-        # Appear in two pairs to emphasize the structure
+
         self.play(
             LaggedStart(Create(puntos["Hombre"]), Create(puntos["Rey"]), lag_ratio=0.45),
             run_time=0.9,
@@ -254,7 +240,7 @@ class SlidesEmbeddings:
             run_time=0.9,
         )
 
-        # Show the parallel gender arrows (the parallelogram insight)
+
         flecha_g1 = Arrow(coords["Rey"],    coords["Reina"],  color=LAVANDA, stroke_width=2.8,
                           max_tip_length_to_length_ratio=0.10, buff=0.18)
         flecha_g2 = Arrow(coords["Hombre"], coords["Mujer"],  color=LAVANDA, stroke_width=2.8,
@@ -265,7 +251,7 @@ class SlidesEmbeddings:
             run_time=0.9,
         )
 
-        # The analogy formula below the axes
+
         formula_lhs = MathTex(r"\vec{\text{Rey}} - \vec{\text{Hombre}} + \vec{\text{Mujer}}",
                               font_size=30, color=TINTA_NEGRA)
         formula_rhs = MathTex(r"\approx \vec{\text{Reina}}", font_size=30, color=VERDE_OLIVA)
@@ -290,19 +276,18 @@ class SlidesEmbeddings:
         ))
 
     def _acto_lookup_simple(self, linea: Mobject) -> None:
-        """Implementación: la tabla W es el mapa — el lookup selecciona la fila."""
         label = Text("¿Cómo funciona en la práctica? Un lookup en la tabla W.",
                      font=FUENTE, font_size=25, weight=BOLD, color=MARRON_OSCURO
                      ).next_to(linea, DOWN, buff=0.45)
         self.play(FadeIn(label, shift=DOWN * 0.1))
 
-        # Token node
+
         nodo_token = self._factory_nodo_pipeline('"quijote"', "token de entrada",
                                                   NARANJA_TERRACOTA, 2.8)
-        # ID node
+
         nodo_id = self._factory_nodo_pipeline("ID: 1605", "índice entero",
                                                MARRON_OSCURO, 2.2)
-        # Arrows between nodes
+
         fl_tok = Arrow(ORIGIN, RIGHT * 0.9, color=MARRON_OSCURO, stroke_width=2.5,
                        max_tip_length_to_length_ratio=0.22)
         fl_tok_lbl = Text("tokenizar", font=FUENTE, font_size=13, color=MARRON_OSCURO,
@@ -313,17 +298,17 @@ class SlidesEmbeddings:
         fl_look_lbl = Text("lookup", font=FUENTE, font_size=13, color=MARRON_OSCURO,
                            slant=ITALIC).next_to(fl_look, UP, buff=0.08)
 
-        # Matrix W
+
         grupo_W, filas_W = self._factory_matriz_W(fila_activa=self._FILA_ACTIVA_W)
 
-        # Arrow to result
+
         fl_res = Arrow(ORIGIN, RIGHT * 0.75, color=VERDE_OLIVA, stroke_width=2.5,
                        max_tip_length_to_length_ratio=0.22)
 
-        # Result vector
+
         grupo_res, celdas_res = self._factory_vector_resultado(self._VALORES_EMBEDDING)
 
-        # Assemble pipeline
+
         pipeline = VGroup(
             nodo_token,
             VGroup(fl_tok, fl_tok_lbl),
@@ -337,20 +322,20 @@ class SlidesEmbeddings:
             pipeline.scale(12.8 / pipeline.width)
         pipeline.next_to(label, DOWN, buff=0.8).set_x(0)
 
-        # Fix vertical alignment of arrows and labels
+
         for fl_grp, ref in [(VGroup(fl_tok, fl_tok_lbl), nodo_id),
                              (VGroup(fl_look, fl_look_lbl), nodo_id)]:
             fl_grp[0].set_y(ref.get_center()[1])
             fl_grp[1].next_to(fl_grp[0], UP, buff=0.08)
         fl_res.set_y(filas_W.get_center()[1])
 
-        # Brace showing embedding dimension
+
         brace_dims     = Brace(celdas_res, direction=RIGHT, color=VERDE_OLIVA)
         brace_dims_lbl = Text("768", font="Monospace", font_size=13,
                               color=VERDE_OLIVA, weight=BOLD
                               ).next_to(brace_dims, RIGHT, buff=0.08)
 
-        # Animate step by step
+
         self.play(FadeIn(nodo_token, scale=0.92))
         self.play(GrowArrow(fl_tok), FadeIn(fl_tok_lbl, shift=DOWN * 0.1))
         self.play(FadeIn(nodo_id, shift=RIGHT * 0.2))
@@ -373,14 +358,10 @@ class SlidesEmbeddings:
         self.play(Flash(celdas_res.get_center(), color=VERDE_OLIVA,
                         line_length=0.45, num_lines=12))
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # ACTOS — Position Embeddings
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _acto_lectura_simultanea(self, linea: Mobject) -> None:
-        """El transformer lee todos los tokens en paralelo — sin noción de orden."""
- 
-        # Show a sentence where order matters
+
+
         frase_a = self._fila_tokens(["El", "perro", "muerde", "al", "hombre"])
         frase_b = self._fila_tokens(["El", "hombre", "muerde", "al", "perro"])
         lbl_a = Text("Frase A:", font=FUENTE, font_size=19, weight=BOLD, color=MARRON_OSCURO)
@@ -388,11 +369,11 @@ class SlidesEmbeddings:
         grp_a = VGroup(lbl_a, frase_a).arrange(RIGHT, buff=0.3)
         grp_b = VGroup(lbl_b, frase_b).arrange(RIGHT, buff=0.3)
         frases = VGroup(grp_a, grp_b).arrange(DOWN, buff=0.65).move_to(ORIGIN).shift(UP * 0.3)
- 
+
         self.play(FadeIn(grp_a, shift=RIGHT * 0.25))
         self.play(FadeIn(grp_b, shift=RIGHT * 0.25))
- 
-        # Highlight "perro" and "hombre" swapping — but same tokens
+
+
         self.play(
             frase_a[1][0].animate.set_fill(ROJO_TOMATE, opacity=0.85),
             frase_a[1][1].animate.set_color(BLANCO),
@@ -403,18 +384,17 @@ class SlidesEmbeddings:
             frase_b[1][0].animate.set_fill(VERDE_OLIVA, opacity=0.85),
             frase_b[1][1].animate.set_color(BLANCO),
         )
- 
-        # Bags of tokens — identical without position
+
+
         bag_label = Text("Sin posición, el modelo trata la secuencia como un conjunto sin estructura",
                          font=FUENTE, font_size=21, color=NARANJA_TERRACOTA, weight=BOLD
                          ).next_to(frases, DOWN, buff=0.55)
         self.play(Write(bag_label))
- 
+
         self._siguiente()
         self.play(FadeOut(grp_a, grp_b, bag_label))
 
     def _acto_suma_posicion(self, linea: Mobject) -> None:
-        """Solución: sumar un vector de posición único a cada token."""
 
         def _mini_vec(valores, color_fill, color_stroke=None):
             cs = color_stroke or color_fill
@@ -517,7 +497,6 @@ class SlidesEmbeddings:
         self.play(FadeOut(cols, mensaje))
 
     def _acto_ventana_contexto(self, linea: Mobject) -> None:
-        """El context window es el número máximo de posiciones disponibles."""
 
         titulo = Text(
             "Ventana de contexto",
@@ -559,7 +538,7 @@ class SlidesEmbeddings:
         self.play(FadeIn(tabla, shift=UP * 0.2))
         self.play(GrowFromCenter(brace), Write(lbl))
 
-        # --- Token que se sale ---
+
         token_fuera = RoundedRectangle(
             corner_radius=0.06,
             width=1.2,

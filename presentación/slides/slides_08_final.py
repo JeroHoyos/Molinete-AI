@@ -29,12 +29,12 @@ class SlidesFinal:
             adornos=adornos
         )
 
-        # ── LAYOUT FIJO ───────────────────────────────────────────────────────────
-        BUFF_SUB   = 0.42
-        Y_EDITORES = DOWN * 0.55    # ← antes 1.60  (centrado visual)
-        Y_TERMINAL = DOWN * 1.90    # ← antes 2.90
 
-        # ── ACTO 1: dependencia en Cargo.toml ─────────────────────────────────────
+        BUFF_SUB   = 0.42
+        Y_EDITORES = DOWN * 0.55
+        Y_TERMINAL = DOWN * 1.90
+
+
         sub1 = Text(
             "Declaramos PyO3 como dependencia en Cargo",
             font=FUENTE, font_size=18, color=TINTA_NEGRA
@@ -51,7 +51,7 @@ class SlidesFinal:
 
         self.play(FadeIn(editor_cargo, shift=DOWN * 0.18), run_time=0.75)
 
-        # Resaltar la línea de pyo3 — es la clave
+
         borde_pyo3 = SurroundingRectangle(
             editor_cargo, color=NARANJA_TERRACOTA,
             buff=0.12, corner_radius=0.10, stroke_width=2.5
@@ -59,11 +59,11 @@ class SlidesFinal:
         annot_cargo = Text(
             "una línea · PyO3 disponible",
             font=FUENTE, font_size=14, color=NARANJA_TERRACOTA, weight=BOLD
-        ).next_to(editor_cargo, UP, buff=0.38)   # ← UP y más separación
+        ).next_to(editor_cargo, UP, buff=0.38)
 
         self.play(Create(borde_pyo3), FadeIn(annot_cargo, shift=UP * 0.08))
 
-        # ── PAUSA 1 ───────────────────────────────────────────────────────────────
+
         self._siguiente()
 
         self.play(
@@ -71,7 +71,7 @@ class SlidesFinal:
             run_time=0.40
         )
 
-        # ── ACTO 2: bindings Rust — editor cargo se mueve a la izquierda ──────────
+
         sub2 = Text(
             "Marcamos structs y métodos con macros · Rust los expone a Python",
             font=FUENTE, font_size=18, color=TINTA_NEGRA
@@ -92,7 +92,7 @@ class SlidesFinal:
         )
         editor_rust = self._hacer_editor(rust_src, "rust", "python_bindings.rs", escala=0.58)
 
-        # Los dos editores se colocan lado a lado centrados
+
         fila = VGroup(editor_cargo, editor_rust).arrange(RIGHT, buff=0.55)
         if fila.width > 13.0:
             fila.scale_to_fit_width(13.0)
@@ -104,11 +104,11 @@ class SlidesFinal:
             run_time=0.85
         )
 
-        # Flechas de macro → Python encima del editor rust
+
         macro_labels = VGroup(
             Text("#[pyclass]",   font="Monospace", font_size=13, color=NARANJA_TERRACOTA, weight=BOLD),
             Text("#[pymethods]", font="Monospace", font_size=13, color=NARANJA_TERRACOTA, weight=BOLD),
-        ).arrange(RIGHT, buff=0.55).next_to(editor_rust, UP, buff=0.38)   # ← más buff
+        ).arrange(RIGHT, buff=0.55).next_to(editor_rust, UP, buff=0.38)
 
         self.play(
             LaggedStart(*[FadeIn(m, shift=DOWN * 0.10) for m in macro_labels], lag_ratio=0.3),
@@ -116,7 +116,7 @@ class SlidesFinal:
         )
         self.play(Indicate(editor_rust, color=NARANJA_TERRACOTA, scale_factor=1.02))
 
-        # ── PAUSA 2 ───────────────────────────────────────────────────────────────
+
         self._siguiente()
 
         self.play(
@@ -124,14 +124,14 @@ class SlidesFinal:
             run_time=0.40
         )
 
-        # ── ACTO 3: maturin compile → .so listo para importar ────────────────────
+
         sub3 = Text(
             "Un solo comando compila y enlaza · Python ya puede importarlo",
             font=FUENTE, font_size=18, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(linea, DOWN, buff=BUFF_SUB)
         self.play(Write(sub3))
 
-        # Terminal centrada bajo los editores
+
         term_w, term_h = 6.2, 1.05
         term_bg = RoundedRectangle(
             corner_radius=0.12, width=term_w, height=term_h,
@@ -163,7 +163,7 @@ class SlidesFinal:
         terminal = VGroup(term_bg, term_header, term_dots, term_title, linea_cmd)
         terminal.next_to(fila, DOWN, buff=0.40).set_x(0)
 
-        # Ajuste si se sale de pantalla
+
         if terminal.get_bottom()[1] < -3.40:
             shift_up = abs(terminal.get_bottom()[1] + 3.40)
             fila.shift(UP * shift_up * 0.5)
@@ -179,7 +179,7 @@ class SlidesFinal:
             run_time=1.10
         )
 
-        # Flash en ambos editores — el puente está completo
+
         self.play(
             Flash(editor_cargo.get_center(), color=ORO_VIEJO,
                 line_length=0.35, num_lines=10),

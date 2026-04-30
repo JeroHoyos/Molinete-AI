@@ -848,7 +848,7 @@ class SlidesEntrenamiento:
 
         self._animar_entrada_slide(titulo, linea, fondo=VGroup(llanuras_fondo, sol_fondo, herradura_fondo))
 
-        # ── Acto 2: red neuronal + problema + solución dropout ────────────────
+
         tamaños_capas = [4, 5, 5, 5, 4]
         colores_capas = [BLUE_D, NARANJA_TERRACOTA, NARANJA_TERRACOTA, NARANJA_TERRACOTA, GREEN_D]
         nombres_capas = ["Input", "Dense 1", "Dense 2", "Dense 3", "Output"]
@@ -881,7 +881,7 @@ class SlidesEntrenamiento:
         red_grupo = VGroup(conexiones, nodos, etiquetas)
         self.play(FadeIn(red_grupo))
 
-        # — Problema: algunas neuronas dominan, otras quedan ociosas —
+
         txt_problema = Text(
             "Durante el entrenamiento, no todas las neuronas aprenden por igual...",
             font=FUENTE, font_size=20, color=TINTA_NEGRA
@@ -890,7 +890,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(txt_problema))
 
-        # Resaltar neuronas "dominantes"
+
         dominantes = {1: [0, 2], 2: [1, 3], 3: [0, 2]}
         ociosas    = {1: [1, 3, 4], 2: [0, 2, 4], 3: [1, 3, 4]}
 
@@ -910,7 +910,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(txt_dominantes))
 
-        # Resaltar neuronas "ociosas"
+
         anims_oci = []
         for capa_idx, idxs in ociosas.items():
             for idx in idxs:
@@ -927,7 +927,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(txt_ociosas))
 
-        # Consecuencia: overfitting
+
         txt_consecuencia = Text(
             "El modelo deja de aprender patrones… y comienza a memorizar.",
             font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD
@@ -936,7 +936,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(txt_consecuencia))
 
-        # Restaurar todos los nodos antes de aplicar dropout
+
         anims_reset = []
         for capa_idx, color in enumerate(colores_capas):
             for nodo in nodos[capa_idx]:
@@ -946,7 +946,7 @@ class SlidesEntrenamiento:
                 anims_reset.append(linea.animate.set_stroke(opacity=0.3))
         self.play(*anims_reset, run_time=0.8)
 
-        # Solución: dropout
+
         txt_solucion = Text(
             "Dropout: forzar a la red a no depender de nadie en particular.",
             font=FUENTE, font_size=20, color=TINTA_NEGRA, weight=BOLD
@@ -955,7 +955,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(txt_solucion))
 
-        # — Aplicar dropout capa por capa —
+
         def aplicar_dropout_capa(indice_capa, indices_apagar, texto_explicativo):
             animaciones = []
             capa = nodos[indice_capa]
@@ -1013,9 +1013,7 @@ class SlidesEntrenamiento:
         )
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ══════════════════════════════════════════════════════════════════════
-        # ACTO 1 — La sorpresa del modelo
-        # ══════════════════════════════════════════════════════════════════════
+
         lbl_a1 = Text("Loss = sorpresa del modelo ante la palabra correcta",
                       font=FUENTE, font_size=25, weight=BOLD, color=TINTA_NEGRA
                       ).next_to(linea, DOWN, buff=0.38)
@@ -1090,9 +1088,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(lbl_a1, ctx_grp, panel_mal, panel_bien, sep, formula))
 
-        # ══════════════════════════════════════════════════════════════════════
-        # ACTO 2 — PPL: la sorpresa en palabras  (antes era acto 3)
-        # ══════════════════════════════════════════════════════════════════════
+
         lbl_a2 = Text("Perplejidad = ¿cuántas opciones baraja el modelo?",
                       font=FUENTE, font_size=24, weight=BOLD, color=TINTA_NEGRA
                       ).next_to(linea, DOWN, buff=0.38)
@@ -1146,9 +1142,7 @@ class SlidesEntrenamiento:
         self._siguiente()
         self.play(FadeOut(lbl_a2, eq_ppl, card_alto, card_bajo, flecha_t, lbl_flt))
 
-        # ══════════════════════════════════════════════════════════════════════
-        # ACTO 3 — La curva del entrenamiento  (antes era acto 2)
-        # ══════════════════════════════════════════════════════════════════════
+
         lbl_a3 = Text("A medida que el Loss cae, el texto mejora",
                       font=FUENTE, font_size=25, weight=BOLD, color=TINTA_NEGRA
                       ).next_to(linea, DOWN, buff=0.38)

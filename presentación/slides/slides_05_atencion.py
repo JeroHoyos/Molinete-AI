@@ -16,7 +16,7 @@ from objetos import *
 class SlidesAtencion:
     def slide_mha_acto1_intuicion(self):
         titulo, linea = self.crear_titulo(
-            "Atención: aquí está la clave del significado.", 
+            "Atención: aquí está la clave del significado.",
             palabra_clave="Atención",
             color_clave=NARANJA_TERRACOTA
         )
@@ -24,9 +24,7 @@ class SlidesAtencion:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # PARTE 1 — ¿Cómo sabemos el significado de una palabra?
-        # ══════════════════════════════════════════════════════════════════════════
+
         pregunta = Text(
             "¿Cómo sabemos el significado de una palabra?",
             font=FUENTE, font_size=30, color=TINTA_NEGRA
@@ -39,7 +37,7 @@ class SlidesAtencion:
         ).next_to(pregunta, DOWN, buff=0.55)
         self.play(Write(respuesta))
 
-        # Tres tarjetas con "banco"
+
         ejemplos_data = [
             ("banco", "Me senté en el banco\ndel parque.",   NARANJA_TERRACOTA),
             ("banco", "Saqué dinero\ndel banco.",             MARRON_OSCURO),
@@ -77,9 +75,7 @@ class SlidesAtencion:
 
         self.play(FadeOut(VGroup(pregunta, respuesta, tarjetas)))
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # PARTE 2 — Análisis de la frase, bien centrada
-        # ══════════════════════════════════════════════════════════════════════════
+
         palabras = ["El", "hidalgo", "vio", "al", "gigante,", "pero", "este", "era", "un", "molino."]
         oracion = VGroup(*[
             Text(p, font=FUENTE, font_size=30, color=TINTA_NEGRA) for p in palabras
@@ -91,7 +87,7 @@ class SlidesAtencion:
             run_time=1.3
         )
 
-        # Señalar "este"
+
         self.play(oracion[6].animate.set_color(NARANJA_TERRACOTA).scale(1.2), run_time=0.5)
         signo = Text("?", font=FUENTE, font_size=44, color=NARANJA_TERRACOTA, weight=BOLD
         ).next_to(oracion[6], UP, buff=0.1)
@@ -108,8 +104,7 @@ class SlidesAtencion:
             run_time=0.4
         )
 
-        # ── Flecha ARRIBA hacia gigante (codo recto por arriba) ──────────────────
-        # Sale de "este", va horizontal, baja a "gigante"
+
         Y_ARRIBA = oracion[4].get_top()[1] + 0.55
         p_gig_top  = np.array([oracion[4].get_center()[0], Y_ARRIBA, 0])
         p_este_top = np.array([oracion[6].get_center()[0], Y_ARRIBA, 0])
@@ -126,8 +121,7 @@ class SlidesAtencion:
         ).move_to([(oracion[4].get_center()[0] + oracion[6].get_center()[0]) / 2,
                    Y_ARRIBA + 0.28, 0])
 
-        # ── Flecha ABAJO hacia hidalgo (codo recto por abajo) ────────────────────
-        # Sale de "este", va horizontal, sube a "hidalgo"
+
         Y_ABAJO = oracion[1].get_bottom()[1] - 0.55
         p_hid_bot  = np.array([oracion[1].get_center()[0], Y_ABAJO, 0])
         p_este_bot = np.array([oracion[6].get_center()[0], Y_ABAJO, 0])
@@ -146,7 +140,7 @@ class SlidesAtencion:
                    Y_ABAJO - 0.28, 0])
         peso_hid_lbl.set_opacity(0.5)
 
-        # Mostrar hidalgo primero (por abajo, secundario)
+
         self.play(
             Create(seg_hid_baja), Create(seg_horiz_bajo), Create(seg_este_sube),
             FadeIn(peso_hid_lbl),
@@ -154,7 +148,7 @@ class SlidesAtencion:
         )
         self.play(oracion[1].animate.set_color(MARRON_OSCURO).set_opacity(0.6))
 
-        # Luego gigante (por arriba, principal)
+
         self.play(
             Create(seg_gig_sube), Create(seg_horizontal), Create(seg_este_baja),
             FadeIn(peso_gig_lbl),
@@ -167,7 +161,6 @@ class SlidesAtencion:
         )
 
 
-        # ── Barras comparativas ───────────────────────────────────────────────────
         self.play(FadeOut(VGroup(
             flecha_gigante, flecha_hidalgo,
             peso_gig_lbl, peso_hid_lbl
@@ -211,7 +204,6 @@ class SlidesAtencion:
         self.play(GrowFromEdge(barra_hid, LEFT), FadeIn(lbl_hid, shift=LEFT * 0.15), run_time=0.5)
 
 
-        # ── Absorción: partículas de AMBAS fuentes → "este" ──────────────────────
         pts_gig = VGroup(*[
             Dot(
                 point=oracion[4].get_center() + np.array([
@@ -258,7 +250,7 @@ class SlidesAtencion:
             run_time=0.4
         )
 
-        # Nota final
+
         nota = Text(
             '"este" absorbió principalmente el significado de "gigante,"',
             font_size=28, color=MARRON_OSCURO
@@ -280,9 +272,7 @@ class SlidesAtencion:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # PARTE 1 — El embedding de "este"
-        # ══════════════════════════════════════════════════════════════════════════
+
         palabras = ["El", "hidalgo", "vio", "al", "gigante,", "pero", "este", "era", "un", "molino."]
         oracion = VGroup(*[
             Text(p, font=FUENTE, font_size=26, color=TINTA_NEGRA) for p in palabras
@@ -324,9 +314,6 @@ class SlidesAtencion:
         self.play(FadeIn(emb_vec, shift=DOWN * 0.1))
 
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # PARTE 2 — Bifurcación: Q (izquierda) y K (derecha)
-        # ══════════════════════════════════════════════════════════════════════════
         ANCHO_TQK  = 2.6
         ALTO_TQK   = 2.1
         X_Q        = -2.2
@@ -343,21 +330,21 @@ class SlidesAtencion:
                 corner_radius=0.14, width=ANCHO_TQK, height=0.54,
                 fill_color=color, fill_opacity=1, stroke_width=0
             ).align_to(caja, UP)
-            
+
             tapa = Rectangle(
                 width=ANCHO_TQK, height=0.2,
                 fill_color=color, fill_opacity=1, stroke_width=0
             ).next_to(header, DOWN, buff=0)
-            
+
             letra_txt = Text(letra, font=FUENTE, font_size=28, weight=BOLD, color=PAPEL_CREMA
             ).move_to(header.get_center())
-            
+
             nombre_txt = Text(nombre, font=FUENTE, font_size=13, weight=BOLD, color=color
             ).next_to(tapa, DOWN, buff=0.18)
-            
+
             desc_txt = Text(desc, font=FUENTE, font_size=12, color=TINTA_NEGRA, line_spacing=1.3
             ).next_to(nombre_txt, DOWN, buff=0.14)
-            
+
             tarjeta = VGroup(caja, header, tapa, letra_txt, nombre_txt, desc_txt)
             tarjeta.move_to([x, y, 0.0])
             return tarjeta
@@ -403,9 +390,7 @@ class SlidesAtencion:
         )
         self._siguiente()
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # PARTE 3 — W_Q, W_K, W_V ponderan el embedding → Q, K, V
-        # ══════════════════════════════════════════════════════════════════════════
+
         Y_EMB_P3   =  1.6
         Y_TITULO   =  2.08
         Y_PERILLAS =  0.2
@@ -505,7 +490,7 @@ class SlidesAtencion:
                 )
                 for i in range(3)
             ], lag_ratio=0.28),
-            run_time=1.5 
+            run_time=1.5
         )
         self._siguiente()
 
@@ -513,9 +498,8 @@ class SlidesAtencion:
 
 
     def slide_mha_acto3_formula_y_flujo(self):
-        """Fórmula + diagrama. v7: sin título AP, sin tokens, sin título Y, sin flecha salida."""
 
-        # ── 1. TÍTULO Y FONDO ──────────────────────────────────────────────────────
+
         titulo, linea = self.crear_titulo(
             "Atención: Formula y diagrama de flujo.",
             palabra_clave="Atención",
@@ -525,7 +509,7 @@ class SlidesAtencion:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ── 2. FÓRMULA ─────────────────────────────────────────────────────────────
+
         formula = MathTex(
             r"\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V",
             color=TINTA_NEGRA, font_size=62
@@ -535,11 +519,7 @@ class SlidesAtencion:
         self.play(FadeOut(formula), run_time=0.8)
         self.play(FadeOut(adornos), run_time=0.5)
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # ── 3. DIAGRAMA ──────────────────────────────────────────────────────────
-        # ══════════════════════════════════════════════════════════════════════════
 
-        # ── helpers ───────────────────────────────────────────────────────────────
         SW       = 2.2
         TIP      = 0.22
         C_FLECHA = MARRON_OSCURO
@@ -559,7 +539,7 @@ class SlidesAtencion:
             return VGroup(seg([x0, y0, 0], [x0, y1, 0]),
                           arr([x0, y1, 0], [x1, y1, 0]))
 
-        # ── Cajas W ───────────────────────────────────────────────────────────────
+
         COLOR_W     = PAPEL_TAN
         COLOR_W_STR = MARRON_OSCURO
         W_W, W_H    = 1.15, 0.65
@@ -574,7 +554,7 @@ class SlidesAtencion:
             lbl.move_to(r)
             return VGroup(r, lbl)
 
-        # ── Matrices de bloques ────────────────────────────────────────────────────
+
         def mat_bloques(filas, cols, bw, bh, color_fondo=FONDO_CAJA):
             buff_b = 0.04
             mat = VGroup()
@@ -597,7 +577,7 @@ class SlidesAtencion:
             lbl.next_to(obj, dir_, buff=buff)
             return lbl
 
-        # ── Coordenadas ───────────────────────────────────────────────────────────
+
         cx_X   = -6.2
         cx_W   = -4.7
         cx_QKV = -2.9
@@ -609,9 +589,9 @@ class SlidesAtencion:
         yk    =  0.0
         yv    = -1.5
         y_mid =  0.75
-        y_Y   =  0.10    # output sube, queda entre AP y V pero más cerca de AP
+        y_Y   =  0.10
 
-        # ── X ────────────────────────────────────────────────────────────────────
+
         X_mat = mat_bloques(8, 2, 0.24, 0.30, FONDO_CAJA).move_to([cx_X, 0, 0])
         lbl_X = MathTex("X", font_size=22, color=TINTA_NEGRA
                 ).next_to(X_mat, DOWN, buff=0.08)
@@ -620,12 +600,12 @@ class SlidesAtencion:
         dot_bif  = Dot(radius=0.08, color=MARRON_OSCURO).move_to([xbif, 0, 0])
         ln_x_dot = seg(X_mat.get_right(), dot_bif.get_center())
 
-        # ── W_Q, W_K, W_V ─────────────────────────────────────────────────────────
+
         Wq = caja_W("Q").move_to([cx_W, yq, 0])
         Wk = caja_W("K").move_to([cx_W, yk, 0])
         Wv = caja_W("V").move_to([cx_W, yv, 0])
 
-        # ── Q, K, V matrices (4 × 6) ──────────────────────────────────────────────
+
         Q_mat = mat_bloques(4, 6, 0.22, 0.24, FONDO_CAJA  ).move_to([cx_QKV, yq, 0])
         K_mat = mat_bloques(4, 6, 0.22, 0.24, CREMA_CALIDA).move_to([cx_QKV, yk, 0])
         V_mat = mat_bloques(4, 6, 0.22, 0.24, SALMON_CLARO).move_to([cx_QKV, yv, 0])
@@ -634,11 +614,11 @@ class SlidesAtencion:
         eK = etiq_math(r"K = XW_K", K_mat, DOWN, fs=11)
         eV = etiq_math(r"V = XW_V", V_mat, DOWN, fs=11)
 
-        # ── QK^T (6×6) ────────────────────────────────────────────────────────────
+
         QKT = mat_bloques(6, 6, 0.24, 0.24, FONDO_CAJA).move_to([cx_QKT, y_mid, 0])
         lbl_QKT = etiq_math(r"QK^T", QKT, UP, fs=13)
 
-        # ── Attention Pattern (6×6, triangular causal) ────────────────────────────
+
         AP_n = 6
         AP_celdas = VGroup()
         for i in range(AP_n):
@@ -658,60 +638,52 @@ class SlidesAtencion:
         AP_celdas.arrange(DOWN, buff=0.04)
         AP_celdas.move_to([cx_AP, y_mid, 0])
 
-        # Fórmula softmax — ARRIBA del attention pattern, más pequeña, sin "A ="
+
         formula_esquina = MathTex(
             r"\mathrm{Softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)",
             color=TINTA_NEGRA, font_size=15
         ).next_to(AP_celdas, UP, buff=0.10).align_to(AP_celdas, RIGHT)
 
-        # ── Y (output, 4×6) — sin título encima, sin flecha de salida ─────────────
+
         Y_mat    = mat_bloques(4, 6, 0.22, 0.24, FONDO_CAJA).move_to([cx_Y, y_Y, 0])
-        # Fórmula completa debajo de Y
+
         lbl_Y_eq = MathTex(
             r"\mathrm{Softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)V",
             color=TINTA_NEGRA, font_size=13
         ).next_to(Y_mat, DOWN, buff=0.10)
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # CONEXIONES
-        # ══════════════════════════════════════════════════════════════════════════
 
-        # X → dot → W_Q, W_K, W_V
         rt_q = L_up_right(xbif, 0, Wq.get_left()[0] - 0.06, yq)
         rt_k = arr(dot_bif.get_right(), Wk.get_left())
         rt_v = L_up_right(xbif, 0, Wv.get_left()[0] - 0.06, yv)
 
-        # W → matrices
+
         a_Wq_Q = arr(Wq.get_right(), Q_mat.get_left())
         a_Wk_K = arr(Wk.get_right(), K_mat.get_left())
         a_Wv_V = arr(Wv.get_right(), V_mat.get_left())
 
-        # Q + K → QKT: Brace real de Manim abrazando Q y K, flecha al centro
-        # Agrupamos Q y K para que el Brace los abarque exactamente
+
         QK_group = VGroup(Q_mat, K_mat)
         brace_obj = Brace(
             QK_group, direction=RIGHT,
             color=MARRON_OSCURO,
             buff=0.10
         )
-        # La punta del brace (tip) es el punto medio derecho
-        brace_tip = brace_obj.get_tip()   # punto donde sale la flecha
+
+        brace_tip = brace_obj.get_tip()
         flecha_qkt = arr(brace_tip, QKT.get_left())
 
         brace_QK = VGroup(brace_obj, flecha_qkt)
 
-        # QKT → AP: horizontal directo
+
         a_QKT_AP = arr(QKT.get_right(), AP_celdas.get_left())
 
-        # AP + V → Y: brace manual con posiciones exactas
-        # El tip del brace DEBE estar en y_Y para que flecha_Y sea horizontal.
-        # El bottom del brace DEBE estar en yv para que a_V_brace sea horizontal.
+
         x_brace_APV  = AP_celdas.get_right()[0] + 0.22
 
-        # Usamos la línea fantasma entre top-AP y yv para generar el brace,
-        # luego lo desplazamos para que su tip quede exactamente en y_Y.
+
         y_brace_top = AP_celdas.get_top()[1]
-        y_brace_bot = yv   # llega hasta el nivel de V
+        y_brace_bot = yv
 
         brace_span = Line(
             [x_brace_APV, y_brace_top, 0],
@@ -719,27 +691,23 @@ class SlidesAtencion:
         )
         brace_APV = Brace(brace_span, direction=RIGHT, color=MARRON_OSCURO, buff=0.08)
 
-        # Punto exactos que necesitamos
-        tip_x        = brace_APV.get_tip()[0]   # x donde sale la flecha
-        tip_actual_y = brace_APV.get_tip()[1]   # y actual del tip
 
-        # Flecha horizontal exacta: desde tip al nivel y_Y → Y_mat
+        tip_x        = brace_APV.get_tip()[0]
+        tip_actual_y = brace_APV.get_tip()[1]
+
+
         flecha_Y  = arr([tip_x, y_Y, 0], Y_mat.get_left())
 
-        # Flecha horizontal exacta: V → punto inferior del brace al nivel yv — punta pequeña
+
         bot_x     = brace_APV.get_bottom()[0]
         a_V_brace = Arrow(
             V_mat.get_right(), [bot_x, yv, 0],
             buff=0.07, color=C_FLECHA,
             stroke_width=SW,
-            max_tip_length_to_length_ratio=0.04   # punta muy pequeña por ser flecha larga
+            max_tip_length_to_length_ratio=0.04
         )
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # ANIMACIÓN
-        # ══════════════════════════════════════════════════════════════════════════
 
-        # Etapa 1 — X + bifurcación
         self.play(
             FadeIn(X_mat), FadeIn(lbl_X),
             Create(ln_x_dot), FadeIn(dot_bif),
@@ -751,7 +719,7 @@ class SlidesAtencion:
             run_time=1.0
         )
 
-        # Etapa 2 — W → Q, K, V
+
         self.play(
             LaggedStart(Create(a_Wq_Q), Create(a_Wk_K), Create(a_Wv_V), lag_ratio=0.12),
             LaggedStart(
@@ -764,7 +732,7 @@ class SlidesAtencion:
         )
         self._siguiente()
 
-        # Etapa 3 — Q y K → QK^T (Brace real + flecha única)
+
         self.play(
             GrowFromCenter(brace_obj),
             run_time=0.7
@@ -775,13 +743,13 @@ class SlidesAtencion:
         )
         self.play(FadeIn(QKT), FadeIn(lbl_QKT), run_time=0.8)
 
-        # Etapa 4 — QK^T → Attention Pattern + fórmula
+
         self.play(Create(a_QKT_AP), run_time=0.6)
         self.play(FadeIn(AP_celdas), run_time=0.9)
         self.play(FadeIn(formula_esquina, scale=0.9), run_time=0.5)
         self._siguiente()
 
-        # Etapa 5 — AP + V → Y  (Brace + flecha recta desde AP + flecha V al pie del brace)
+
         self.play(GrowFromCenter(brace_APV), run_time=0.7)
         self.play(
             Create(flecha_Y),
@@ -799,10 +767,9 @@ class SlidesAtencion:
         self._siguiente()
 
         self.limpiar_pantalla()
-        
+
     def slide_mha_acto4_multihead(self):
-        """¿Por qué múltiples cabezas? Animación centrada demostrando la concatenación y mezcla, ajustada hacia arriba."""
-        # ── 1. TÍTULO Y FONDO ──────────────────────────────────────────────────────
+
         titulo, linea = self.crear_titulo(
             "Multi-Head Self-Attention",
             palabra_clave="Multi-Head",
@@ -812,31 +779,31 @@ class SlidesAtencion:
         adornos = self._crear_adornos_esquinas()
         self._animar_entrada_slide(titulo, linea, fondo=llanuras_fondo, adornos=adornos)
 
-        # ── 2. SUBTÍTULO (Subimos los elementos reduciendo el buff) ────────────────
+
         subtitulo = Text(
             "¿Por qué multi-head?",
             font=FUENTE, font_size=28, color=MARRON_OSCURO
-        ).next_to(linea, DOWN, buff=0.4) 
-        
+        ).next_to(linea, DOWN, buff=0.4)
+
         self.play(FadeIn(subtitulo, shift=DOWN))
 
-        # ── 3. EL VECTOR ORIGINAL (768 dims) ───────────────────────────────────────
+
         etiqueta_vec = Text(
             "Vector de Embedding (768 dimensiones)",
             font=FUENTE, font_size=22, color=MARRON_OSCURO
-        ).next_to(subtitulo, DOWN, buff=0.4) 
-        
+        ).next_to(subtitulo, DOWN, buff=0.4)
+
         vector = Rectangle(
             width=10, height=0.75,
             fill_color=PAPEL_CREMA, fill_opacity=1,
             stroke_color=MARRON_OSCURO, stroke_width=2
         ).next_to(etiqueta_vec, DOWN, buff=0.2)
-        
+
         self.play(FadeIn(etiqueta_vec), FadeIn(vector))
 
-        # ── 4. DIVISIÓN EN CABEZAS ─────────────────────────────────────────────────
+
         colores_h = [NARANJA_TERRACOTA, MARRON_OSCURO, PAPEL_TAN, NARANJA_CLARO] * 3
-        
+
         cabezas = VGroup(*[
             Rectangle(
                 width=10/12, height=1.1,
@@ -858,13 +825,13 @@ class SlidesAtencion:
             run_time=1.5
         )
 
-        # ── 5. EJEMPLOS LIMPIOS (Solo indicando Q, K, V distintos) ─────────────────
+
         textos_ejemplos = [
             ("Cabeza 1\n(Q1, K1, V1)", NARANJA_TERRACOTA),
             ("Cabeza 2\n(Q2, K2, V2)", MARRON_OSCURO),
-            ("Cabeza h\n(Qh, Kh, Vh)", PAPEL_TAN) 
+            ("Cabeza h\n(Qh, Kh, Vh)", PAPEL_TAN)
         ]
-        
+
         tarjetas_ej = VGroup()
         for texto, color in textos_ejemplos:
             c = RoundedRectangle(
@@ -877,33 +844,33 @@ class SlidesAtencion:
             tarjetas_ej.add(VGroup(c, t))
 
         puntos = Text("...", font=FUENTE, font_size=32, color=MARRON_OSCURO, weight=BOLD)
-        
+
         fila_ejemplos = VGroup(tarjetas_ej[0], tarjetas_ej[1], puntos, tarjetas_ej[2])
-        fila_ejemplos.arrange(RIGHT, buff=0.6).next_to(cabezas, DOWN, buff=0.6) 
-        fila_ejemplos.set_x(0) 
+        fila_ejemplos.arrange(RIGHT, buff=0.6).next_to(cabezas, DOWN, buff=0.6)
+        fila_ejemplos.set_x(0)
 
         self.play(
             LaggedStart(*[FadeIn(t, shift=UP, scale=0.9) for t in fila_ejemplos], lag_ratio=0.2),
             run_time=1.5
         )
-        
+
         self._siguiente()
 
-        # ── 6. CONCATENACIÓN Y MEZCLA LINEAL ───────────────────────────────────────
+
         self.play(FadeOut(fila_ejemplos), FadeOut(etiqueta_vec))
-        
+
         etiqueta_mezcla = Text(
             "Primero se combinan (concatenan) las cabezas, luego una transformación lineal las mezcla.",
             font=FUENTE, font_size=20, color=MARRON_OSCURO
-        ).next_to(cabezas, DOWN, buff=0.6) 
-        
+        ).next_to(cabezas, DOWN, buff=0.6)
+
         formula_mezcla = MathTex(
             r"\text{MultiHead}(Q, K, V) = \underbrace{\text{Concat}(head_1, \dots, head_h)}_{\text{operación estructural}} \xrightarrow{W^O} \underbrace{\text{proyección lineal}}_{\text{mezcla}}",
             color=TINTA_NEGRA, font_size=34
         ).next_to(etiqueta_mezcla, DOWN, buff=0.4)
 
         self.play(FadeIn(etiqueta_mezcla, shift=UP), FadeIn(formula_mezcla, shift=UP))
-        
+
         vector_final = Rectangle(
             width=10, height=0.75,
             fill_color=PAPEL_CREMA, fill_opacity=1,
@@ -916,6 +883,6 @@ class SlidesAtencion:
         )
         self.play(ReplacementTransform(cabezas, vector_final))
         self.wait(0.5)
-        
+
         self._siguiente()
         self.limpiar_pantalla()

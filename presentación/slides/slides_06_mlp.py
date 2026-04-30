@@ -16,9 +16,7 @@ from objetos import *
 class SlidesMLP:
     def slide_layer_normalization(self):
 
-        # ══════════════════════════════════════════
-        # HELPERS
-        # ══════════════════════════════════════════
+
         def crear_cajita(texto, bg_color, borde_color=MARRON_OSCURO, w=2.6, h=0.7, tam_fuente=20):
             caja = RoundedRectangle(corner_radius=0.1, width=w, height=h,
                                     fill_color=bg_color, fill_opacity=1,
@@ -32,9 +30,7 @@ class SlidesMLP:
                 for num in numeros
             ]).arrange(DOWN, buff=0.1)
 
-        # ══════════════════════════════════════════
-        # SETUP
-        # ══════════════════════════════════════════
+
         titulo_p1 = Text("Layer ", font_size=42, weight=BOLD, color=TINTA_NEGRA)
         titulo_p2 = Text("Normalization", font_size=42, weight=BOLD, color=NARANJA_TERRACOTA)
         titulo_completo = VGroup(titulo_p1, titulo_p2).arrange(RIGHT, buff=0.1)
@@ -45,9 +41,7 @@ class SlidesMLP:
         llanuras_fondo = crear_llanuras_manchegas()
         self._animar_entrada_slide(titulo_completo, linea, adornos=adornos, fondo=llanuras_fondo)
 
-        # ══════════════════════════════════════════
-        # ACTO 1 — Motivación: transformación numérica
-        # ══════════════════════════════════════════
+
         lbl_antes   = Text("Sin norma",     font=FUENTE, font_size=20,
                             color=NARANJA_TERRACOTA, weight=BOLD)
         lbl_despues = Text("Con LayerNorm", font=FUENTE, font_size=20,
@@ -70,7 +64,7 @@ class SlidesMLP:
             estables, bg_color=CREMA_CALIDA, borde_color=MARRON_OSCURO
         )
 
-        # — Layout: etiqueta encima, vector debajo, centrado en pantalla —
+
         lbl_antes.next_to(vec_inestable, UP, buff=0.3)
         lbl_despues.next_to(vec_estable, UP, buff=0.3)
 
@@ -89,7 +83,7 @@ class SlidesMLP:
             font=FUENTE, font_size=17, color=MARRON_OSCURO, weight=BOLD
         ).next_to(vec_estable, DOWN, buff=0.3)
 
-        # — Animación —
+
         self.play(
             FadeIn(lbl_antes, shift=UP * 0.1),
             LaggedStart(*[FadeIn(c, shift=UP * 0.15) for c in vec_inestable],
@@ -117,9 +111,7 @@ class SlidesMLP:
             run_time=0.7
         )
 
-        # ══════════════════════════════════════════
-        # ACTO 2 — Fórmula
-        # ══════════════════════════════════════════
+
         formula = MathTex(
             r"\text{output} = \frac{\text{input} - \mu}{\sqrt{\sigma^2 + \epsilon}} \times \gamma + \beta",
             substrings_to_isolate=[r"\epsilon", r"\times \gamma + \beta"],
@@ -458,24 +450,24 @@ class SlidesMLP:
             adornos=adornos,
         )
 
-        # ── COORDENADAS BASE ──────────────────────────────────────────────────────
-        X_RES  = -3.0   # columna izquierda: eje residual
-        X_BLOQ =  2.2   # columna derecha: bloques LN/Attn/MLP
+
+        X_RES  = -3.0
+        X_BLOQ =  2.2
         G = 2.0 * escala
 
-        # Y separados para que el diagrama quepa centrado sin tocar el título
+
         Y_INPUT  =  2.8
-        Y_BIF1   =  1.8   # punto donde sale la rama hacia LN1
+        Y_BIF1   =  1.8
         Y_ADD1   =  0.9
-        Y_LN1    =  1.8   # misma Y que BIF1 → bifurcación puramente horizontal
-        Y_ATTN   =  0.9   # misma Y que ADD1 → retorno puramente horizontal
-        Y_BIF2   = -0.1   # punto donde sale la rama hacia LN2
+        Y_LN1    =  1.8
+        Y_ATTN   =  0.9
+        Y_BIF2   = -0.1
         Y_ADD2   = -1.0
-        Y_LN2    = -0.1   # misma Y que BIF2
-        Y_MLP    = -1.0   # misma Y que ADD2 → retorno puramente horizontal
+        Y_LN2    = -0.1
+        Y_MLP    = -1.0
         Y_OUTPUT = -2.2
 
-        # ── NODOS ─────────────────────────────────────────────────────────────────
+
         nodo_input  = crear_nodo("Input") .move_to([X_RES, Y_INPUT,  0])
         nodo_output = crear_nodo("Output").move_to([X_RES, Y_OUTPUT, 0])
 
@@ -496,19 +488,17 @@ class SlidesMLP:
         nodo_ln2  = crear_nodo("Layer Norm")                  .move_to([X_BLOQ, Y_LN2,  0])
         nodo_mlp  = crear_nodo("MLP", resaltado=True)         .move_to([X_BLOQ, Y_MLP,  0])
 
-        # ── EJE RESIDUAL: 3 flechas verticales hacia abajo ────────────────────────
-        # Input → (pasa por bif1) → add_1
-        # Segmento Input → bif1
+
         seg_input_bif1 = Line(
             nodo_input.get_bottom(), [X_RES, Y_BIF1, 0],
             stroke_color=MARRON_OSCURO, stroke_width=G
         )
-        # Segmento bif1 → add_1
+
         f_bif1_add1 = Arrow(
             [X_RES, Y_BIF1, 0], add_1.get_top(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
-        # add_1 → (pasa por bif2) → add_2
+
         seg_add1_bif2 = Line(
             add_1.get_bottom(), [X_RES, Y_BIF2, 0],
             stroke_color=MARRON_OSCURO, stroke_width=G
@@ -517,30 +507,29 @@ class SlidesMLP:
             [X_RES, Y_BIF2, 0], add_2.get_top(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
-        # add_2 → output
+
         f_add2_out = Arrow(
             add_2.get_bottom(), nodo_output.get_top(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
 
-        # ── RAMA 1: bif1 → LN1 (horizontal) → Attn (↓) → add_1 (horizontal ←) ──
-        # bif1 → LN1: puramente horizontal
+
         f_bif1_ln1 = Arrow(
             [X_RES, Y_BIF1, 0], nodo_ln1.get_left(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
-        # LN1 → Attn: vertical hacia abajo
+
         f_ln1_attn = Arrow(
             nodo_ln1.get_bottom(), nodo_attn.get_top(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
-        # Attn → add_1: puramente horizontal (misma Y)
+
         f_attn_add1 = Arrow(
             nodo_attn.get_left(), add_1.get_right(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
 
-        # ── RAMA 2: bif2 → LN2 (horizontal) → MLP (↓) → add_2 (horizontal ←) ───
+
         f_bif2_ln2 = Arrow(
             [X_RES, Y_BIF2, 0], nodo_ln2.get_left(), buff=0,
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
@@ -554,7 +543,7 @@ class SlidesMLP:
             color=MARRON_OSCURO, stroke_width=G, max_tip_length_to_length_ratio=0.15
         )
 
-        # ── AGRUPA, CENTRA, MUESTRA ───────────────────────────────────────────────
+
         diagrama = VGroup(
             nodo_input, nodo_output,
             add_1, add_2,
@@ -569,7 +558,7 @@ class SlidesMLP:
 
         self.play(FadeIn(diagrama))
 
-        # ── RESALTADO 1: Residual Stream ──────────────────────────────────────────
+
         caja1 = SurroundingRectangle(
             VGroup(seg_input_bif1, f_bif1_add1, add_1,
                 seg_add1_bif2, f_bif2_add2, add_2, f_add2_out),
@@ -578,7 +567,7 @@ class SlidesMLP:
         self.play(Create(caja1))
         self.play(FadeOut(caja1))
 
-        # ── RESALTADO 2: Layer Norm ───────────────────────────────────────────────
+
         caja2 = VGroup(
             SurroundingRectangle(nodo_ln1, color=MARRON_OSCURO, buff=0.1, stroke_width=3),
             SurroundingRectangle(nodo_ln2, color=MARRON_OSCURO, buff=0.1, stroke_width=3),
@@ -586,7 +575,7 @@ class SlidesMLP:
         self.play(Create(caja2))
         self.play(FadeOut(caja2))
 
-        # ── RESALTADO 3: Bloques de Cómputo ──────────────────────────────────────
+
         caja3 = VGroup(
             SurroundingRectangle(nodo_attn, color=NARANJA_TERRACOTA, buff=0.15, stroke_width=3),
             SurroundingRectangle(nodo_mlp,  color=NARANJA_TERRACOTA, buff=0.15, stroke_width=3),
@@ -596,10 +585,6 @@ class SlidesMLP:
 
         self._siguiente()
         self.limpiar_pantalla()
-
-        # ══════════════════════════════════════════════════════════════════════════
-    # DATOS SEMÁNTICOS — TokenVector
-    # ══════════════════════════════════════════════════════════════════════════
 
 
     def slide_residual(self):

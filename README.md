@@ -172,14 +172,13 @@ molineteai/
 │       ├── tensores.py         ← Operaciones tensoriales básicas
 │       ├── tokenizadores.py    ← Entrenamiento y uso del tokenizador BPE
 │       └── ui.py               ← Interfaz de usuario y utilidades de consola
-├── presentation/               ← Animaciones Manim de la arquitectura
+├── presentación/               ← Animaciones Manim de la arquitectura
 │   ├── main.py                 ← Clase Presentacion; compone todas las diapositivas
 │   ├── colores.py              ← Constantes de color y tipografía (tema Cervantes)
 │   ├── objetos.py              ← Fábricas de Mobjects reutilizables
 │   ├── snippets.py             ← Fragmentos de código Rust para las diapositivas
 │   ├── slides/                 ← Módulos individuales de diapositivas (00–08)
-│   ├── README.md               ← Instrucciones de compilación y presentación
-│   └── requirements.txt
+│   └── README.md               ← Instrucciones de compilación y presentación
 ├── web/                        ← Interfaz web (FastAPI + WebSocket)
 │   ├── server.py               ← Servidor con streaming de salida en tiempo real
 │   ├── runner.py               ← Gestor de subprocesos de los ejemplos
@@ -187,6 +186,7 @@ molineteai/
 ├── Cargo.toml
 ├── Cargo.lock
 ├── pyproject.toml
+├── requirements.txt            ← Dependencias Python del proyecto
 ├── DATA.md                     ← Guía del corpus de datos
 └── README.md
 ```
@@ -225,7 +225,7 @@ cd Molinete-AI
 ```bash
 # Con uv (recomendado)
 uv venv
-uv pip install maturin
+uv pip install -r requirements.txt
 
 # Activar el entorno
 .venv\Scripts\activate          # Windows
@@ -239,7 +239,7 @@ source .venv/bin/activate       # Linux / macOS
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 source .venv/bin/activate       # Linux / macOS
-pip install maturin
+pip install -r requirements.txt
 ```
 </details>
 
@@ -318,17 +318,7 @@ print(tok.decodificar(ids_out))
 
 La carpeta `web/` incluye una interfaz web que permite ejecutar los módulos de ejemplo y chatear con el modelo directamente desde el navegador, sin necesidad de abrir una terminal.
 
-### Requisitos
-
-```bash
-# Con uv (recomendado)
-uv pip install fastapi uvicorn
-
-# Con pip
-pip install fastapi uvicorn
-```
-
-> El modelo debe estar compilado primero (`maturin develop --release`).
+> El modelo debe estar compilado primero (`maturin develop --release`). Las dependencias web ya están incluidas en `requirements.txt`.
 
 ### Iniciar el servidor
 
@@ -350,18 +340,19 @@ PORT=8000 python web/server.py
 
 ## Presentación
 
-La carpeta `presentation/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
+La carpeta `presentación/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
 
 ```bash
-cd presentation
-uv venv .env
-uv pip install -r requirements.txt
-# Activar: .env\Scripts\activate (Windows) / source .env/bin/activate (Linux/Mac)
+# Desde la raíz del proyecto
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # Linux / Mac
+
+cd presentación
 py -m manim_slides render main.py Presentacion
 py -m manim_slides present Presentacion
 ```
 
-Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
+Ver [presentación/README.md](presentación/README.md) para instrucciones detalladas y controles de la presentación.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 

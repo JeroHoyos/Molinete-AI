@@ -340,9 +340,7 @@ class SlidesTokenizacion:
 
         frase = "Confía en el tiempo que suele dar dulces salidas"
 
-        # ══════════════════════════════════════════
-        # TOKENS
-        # ══════════════════════════════════════════
+
         tokens_palabra  = frase.split(" ")
         tokens_caracter = [c if c != ' ' else '·' for c in frase]
         tokens_bpe      = [
@@ -364,11 +362,8 @@ class SlidesTokenizacion:
         bloques_1 = hacer_bloques(tokens_palabra,  lambda t: max(0.65, len(t) * 0.22))
         bloques_2 = hacer_bloques(tokens_caracter, lambda t: 0.28, buff_b=0.04)
         bloques_3 = hacer_bloques(tokens_bpe, lambda t: max(0.5, len(t) * 0.25))
-        
 
-        # ══════════════════════════════════════════
-        # ETIQUETAS
-        # ══════════════════════════════════════════
+
         lbl_1 = Text(
             "1. Por palabra",
             font=FUENTE, font_size=19, color=TINTA_NEGRA, weight=BOLD,
@@ -385,9 +380,7 @@ class SlidesTokenizacion:
             t2c={"BPE": NARANJA_TERRACOTA}
         )
 
-        # ══════════════════════════════════════════
-        # LAYOUT — grupos centrados
-        # ══════════════════════════════════════════
+
         grupo_1 = VGroup(lbl_1, bloques_1).arrange(DOWN, buff=0.15)
         grupo_2 = VGroup(lbl_2, bloques_2).arrange(DOWN, buff=0.15)
         grupo_3 = VGroup(lbl_3, bloques_3).arrange(DOWN, buff=0.15)
@@ -397,9 +390,7 @@ class SlidesTokenizacion:
             .next_to(linea, DOWN, buff=0.35)\
             .move_to(UP * 0.1)
 
-        # ══════════════════════════════════════════
-        # ANIMACIÓN
-        # ══════════════════════════════════════════
+
         self.play(FadeIn(lbl_1, shift=RIGHT * 0.15))
         self.play(
             LaggedStart(*[GrowFromCenter(b) for b in bloques_1], lag_ratio=0.07),

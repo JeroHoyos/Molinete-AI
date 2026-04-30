@@ -16,6 +16,23 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
+[project.optional-dependencies]
+web = [
+    "fastapi",
+    "uvicorn",
+    "python-dotenv",
+    "websockets",
+]
+presentation = [
+    "manim>=0.20.0",
+    "manim-slides>=5.5.0",
+    "manim-code-blocks",
+    "scipy",
+    "PySide6",
+    "manimpango",
+    "xlsxwriter",
+]
+
 [tool.maturin]
 module-name = "molineteai"
 features = ["python"]

@@ -415,7 +415,7 @@ class SlidesIntro:
         self.play(FadeIn(grupo_veredicto, shift=UP * 0.2), run_time=0.7)
         self._siguiente()
 
-        # ── ACTO 2: Python como interfaz, Rust como motor ─────────────────────
+
         self.play(
             FadeOut(tabla_completa),
             FadeOut(Group(logo_py, logo_cpp, logo_rs)),
@@ -426,7 +426,7 @@ class SlidesIntro:
         ANCHO_PANEL = 7.0
         ALTO_PANEL  = 1.6
 
-        # ── Panel Python ──────────────────────────────────────────────────────
+
         py_bg = RoundedRectangle(
             corner_radius=0.18, width=ANCHO_PANEL, height=ALTO_PANEL,
             fill_color=FONDO_CAJA, fill_opacity=1,
@@ -438,14 +438,14 @@ class SlidesIntro:
                         color=MARRON_OSCURO, weight=BOLD)
         Group(py_logo, py_lbl).arrange(RIGHT, buff=0.35).move_to(py_bg)
 
-        # ── Conector ──────────────────────────────────────────────────────────
+
         flecha = Arrow(
             py_bg.get_bottom(), py_bg.get_bottom() + DOWN * 0.7,
             color=NARANJA_TERRACOTA, stroke_width=4,
             max_tip_length_to_length_ratio=0.45, buff=0,
         ).set_x(0)
 
-        # ── Panel Rust ────────────────────────────────────────────────────────
+
         rs_bg = RoundedRectangle(
             corner_radius=0.18, width=ANCHO_PANEL, height=ALTO_PANEL,
             fill_color=FONDO_CAJA, fill_opacity=1,
@@ -457,7 +457,7 @@ class SlidesIntro:
                         color=MARRON_OSCURO, weight=BOLD)
         Group(rs_logo, rs_lbl).arrange(RIGHT, buff=0.35).move_to(rs_bg)
 
-        # ── Animación ─────────────────────────────────────────────────────────
+
         self.play(FadeIn(py_bg, shift=DOWN * 0.15), FadeIn(py_logo, shift=DOWN * 0.15),
                   FadeIn(py_lbl, shift=DOWN * 0.15), run_time=0.6)
         self.play(GrowArrow(flecha), run_time=0.45)

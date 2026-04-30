@@ -1,62 +1,48 @@
 # Presentación — Molinete AI
 
-Instrucciones para preparar el entorno, instalar dependencias, compilar las diapositivas y ejecutar la presentación animada de la arquitectura Transformer.
+Instrucciones para activar el entorno unificado del proyecto, compilar las diapositivas y ejecutar la presentación animada de la arquitectura Transformer.
 
 ---
 
 ## Tabla de contenidos
 
-- [1. Instalar dependencias](#1-instalar-dependencias)
-- [2. Activar el entorno virtual](#2-activar-el-entorno-virtual)
-- [3. Compilar las diapositivas](#3-compilar-las-diapositivas)
-- [4. Presentar las diapositivas](#4-presentar-las-diapositivas)
-- [5. Ver en el navegador](#5-ver-en-el-navegador)
-- [6. Controles durante la presentación](#6-controles-durante-la-presentación)
-- [7. Flujo típico de trabajo](#7-flujo-típico-de-trabajo)
+- [1. Activar el entorno virtual](#1-activar-el-entorno-virtual)
+- [2. Compilar las diapositivas](#2-compilar-las-diapositivas)
+- [3. Presentar las diapositivas](#3-presentar-las-diapositivas)
+- [4. Ver en el navegador](#4-ver-en-el-navegador)
+- [5. Controles durante la presentación](#5-controles-durante-la-presentación)
+- [6. Flujo típico de trabajo](#6-flujo-típico-de-trabajo)
 - [Notas](#notas)
 
 ---
 
-## 1. Instalar dependencias
+## 1. Activar el entorno virtual
 
-Se recomienda usar [`uv`](https://docs.astral.sh/uv/) para gestionar el entorno virtual e instalar dependencias.
+La presentación usa el entorno virtual unificado del proyecto (`.venv/` en la raíz). Si todavía no lo tienes creado, ve a la sección [Inicio rápido](../README.md#inicio-rápido) del README principal.
 
-### Instalar uv (si no lo tienes)
-
-```bash
-pip install uv
-```
-
-### Crear entorno e instalar dependencias
-
-```bash
-uv venv .env
-uv pip install -r requirements.txt
-```
-
-Esto crea el entorno en `.env/` e instala todo en un solo paso.
-
-<div align="right"><a href="#presentación--molinete-ai">↑ Volver arriba</a></div>
-
----
-
-## 2. Activar el entorno virtual
+Activa el entorno desde la **raíz del repositorio**:
 
 **Windows**
 ```bash
-.env\Scripts\activate
+.venv\Scripts\activate
 ```
 
 **Linux / Mac**
 ```bash
-source .env/bin/activate
+source .venv/bin/activate
+```
+
+Una vez activado, navega a esta carpeta:
+
+```bash
+cd presentación
 ```
 
 <div align="right"><a href="#presentación--molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
-## 3. Compilar las diapositivas
+## 2. Compilar las diapositivas
 
 Para generar el video de las diapositivas:
 
@@ -70,7 +56,7 @@ Los videos renderizados se guardan en la carpeta `media/`.
 
 ---
 
-## 4. Presentar las diapositivas
+## 3. Presentar las diapositivas
 
 Una vez renderizadas, inicia la presentación en escritorio:
 
@@ -82,9 +68,9 @@ py -m manim_slides present Presentacion
 
 ---
 
-## 5. Ver en el navegador
+## 4. Ver en el navegador
 
-Puedes exportar las diapositivas a un archivo HTML autocontenido y abrirlo en cualquier navegador, sin necesidad de PyQt ni de tener Manim instalado en el equipo receptor.
+Puedes exportar las diapositivas a un archivo HTML autocontenido y abrirlo en cualquier navegador, sin necesidad de PySide6 ni de tener Manim instalado en el equipo receptor.
 
 ### Exportar a HTML
 
@@ -119,7 +105,7 @@ Luego abre **http://localhost:8080/presentacion.html** en tu navegador.
 
 ---
 
-## 6. Controles durante la presentación
+## 5. Controles durante la presentación
 
 | Tecla | Acción |
 |:---|:---|
@@ -132,16 +118,15 @@ Luego abre **http://localhost:8080/presentacion.html** en tu navegador.
 
 ---
 
-## 7. Flujo típico de trabajo
+## 6. Flujo típico de trabajo
 
 ```bash
-# 1. Crear entorno e instalar
-uv venv .env
-uv pip install -r requirements.txt
+# 1. Desde la raíz del proyecto, activar el entorno unificado
+.venv\Scripts\activate                        # Windows
+# source .venv/bin/activate                   # Linux / Mac
 
-# 2. Activar entorno
-.env\Scripts\activate                        # Windows
-# source .env/bin/activate                   # Linux / Mac
+# 2. Ir a la carpeta de la presentación
+cd presentación
 
 # 3. Compilar
 py -m manim_slides render main.py Presentacion
@@ -184,7 +169,6 @@ media/                      — Videos generados (creados al renderizar, no en e
 
 - Los métodos de diapositiva llaman a `self._siguiente()` para marcar puntos de pausa interactivos.
 - `self.limpiar_pantalla()` hace fade out de todos los mobjects antes de la siguiente diapositiva.
-- Para habilitar una diapositiva, descomenta su llamada en `Presentacion.construct()` en `main.py`.
 - Los videos renderizados se guardan en la carpeta `media/`.
 
 ### Compatibilidad de rutas entre Windows y Linux
