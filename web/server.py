@@ -31,13 +31,13 @@ except ImportError:
     print("       pip install fastapi uvicorn\n")
     sys.exit(1)
 
-ROOT         = Path(__file__).parent.parent
-EXAMPLES_DIR = ROOT / "ejemplos"
-WEB_DIR      = Path(__file__).parent
-DATA_DIR     = ROOT / "data"
+ROOT     = Path(__file__).parent.parent
+WEB_DIR  = Path(__file__).parent
+DATA_DIR = ROOT / "data"
 
 app = FastAPI(title="Molinete AI")
-app.mount("/assets", StaticFiles(directory=str(WEB_DIR / "assets")), name="assets")
+app.mount("/css", StaticFiles(directory=str(WEB_DIR / "css")), name="css")
+app.mount("/js", StaticFiles(directory=str(WEB_DIR / "js")), name="js")
 
 
 @app.get("/")
@@ -124,7 +124,7 @@ async def ws_endpoint(websocket: WebSocket):
                 env["PYTHONUNBUFFERED"]  = "1"
                 env["PYTHONIOENCODING"] = "utf-8"
                 env["PYTHONPATH"] = (
-                    str(EXAMPLES_DIR) + os.pathsep + env.get("PYTHONPATH", "")
+                    str(WEB_DIR) + os.pathsep + env.get("PYTHONPATH", "")
                 )
 
                 process = await asyncio.create_subprocess_exec(
@@ -134,7 +134,7 @@ async def ws_endpoint(websocket: WebSocket):
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.STDOUT,
-                    cwd=str(EXAMPLES_DIR),
+                    cwd=str(ROOT),
                     env=env,
                 )
                 stream_task = asyncio.create_task(stream_output(process))

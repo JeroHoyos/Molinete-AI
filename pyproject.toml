@@ -7,8 +7,8 @@ name = "molineteai"
 version = "0.1.0"
 description = "Implementación educativa de GPT-2 en Rust con bindings para Python"
 readme = "README.md"
-license = { text = "MIT" }
-requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
 keywords = ["llm", "gpt2", "transformer", "nlp", "machine-learning", "educativo"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -16,7 +16,10 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
+dev = [
+    "maturin>=1.4,<2.0",
+]
 web = [
     "fastapi",
     "uvicorn",
@@ -36,3 +39,13 @@ presentation = [
 [tool.maturin]
 module-name = "molineteai"
 features = ["python"]
+
+[tool.uv]
+# "uv sync" instala todos los grupos (dev + web + presentation)
+default-groups = ["dev", "web", "presentation"]
+# Recompilar los bindings cuando cambien las fuentes Rust
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "Cargo.toml" },
+    { file = "src/**/*.rs" },
+]

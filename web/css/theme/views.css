@@ -1,0 +1,71 @@
+    /* ════════════════ BOTONES ════════════════ */
+    .btn {
+      font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: .03em;
+      border-radius: 9px; background: var(--bg-2); border: 1px solid var(--border);
+      box-shadow: none; color: var(--text-2); text-transform: none;
+    }
+    .btn:hover:not(:disabled) { background: var(--gold-bg); border-color: var(--gold-brd); color: var(--gold-2); transform: none; box-shadow: none; }
+    .btn-danger { background: var(--red-bg); border-color: var(--red-brd); color: var(--red); }
+    .btn-danger:hover:not(:disabled) { background: #f3d5c8; border-color: var(--red); color: var(--red); }
+
+    /* ════════════════ BARRAS DE MÓDULO ════════════════ */
+    .mod-header-bar { background: var(--bg); border-bottom: 1px solid var(--border-2); box-shadow: none; }
+    .mod-header-name { font-size: 22px; color: var(--ink); }
+    .mod-header-desc { color: var(--text-3); }
+
+    /* ════════════════ CHAT ════════════════ */
+    #chat-messages { background: var(--bg); }
+    .bubble { box-shadow: 0 1px 3px rgba(60,40,20,.06); border-radius: 16px; }
+    .bubble-model { background: var(--bg-2); border: 1px solid var(--border); color: var(--text); }
+    .bubble-user  { background: var(--gold-bg); border: 1px solid var(--gold-brd); color: var(--text-2); }
+    .bubble-info  { color: var(--muted); font-style: italic; }
+    .avatar-user  { background: var(--gold-bg); color: var(--gold-2); border: 1px solid var(--gold-brd); }
+    .bubble-avatar.avatar-model { background: var(--gold); color: #fff; border: none; }
+    .chat-welcome-icon { background: var(--gold); border-radius: 14px; border: none; box-shadow: 0 4px 14px -4px rgba(191,90,42,.5); }
+    .chat-welcome h3 { color: var(--ink); }
+    .chat-welcome p { color: var(--text-3); }
+    .ck-picker-heading { color: var(--gold); }
+    .ck-model-card { background: var(--bg-2); border: 1px solid var(--border); border-top: 1px solid var(--border); box-shadow: 0 1px 3px rgba(60,40,20,.05); }
+    .ck-model-card:hover { background: var(--bg-2); border-color: #dcc9a8; transform: translateY(-3px); box-shadow: 0 10px 26px -10px rgba(60,40,20,.28); }
+    .ck-model-card.ck-has-mejor { border-top-color: var(--green); }
+    .ck-model-idx { color: var(--muted); }
+    .ck-model-display { color: var(--ink); }
+    .ck-stat-k { color: var(--text-3); }
+    .ck-stat-v { color: var(--text-2); }
+    .ck-select-btn { background: var(--gold-bg); border: 1px solid var(--gold-brd); color: var(--gold-2); }
+    .ck-model-card:hover .ck-select-btn { background: var(--gold); border-color: var(--gold); color: #fff; }
+    .ck-tag-mejor { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-brd); }
+
+    /* ════════════════ ENTRENAMIENTO ════════════════ */
+    #train-left { background: var(--bg); border-right: 1px solid var(--border-2); }
+    #train-right { background: var(--bg-3); }
+    .train-right-header { background: var(--bg); border-bottom: 1px solid var(--border-2); }
+    .train-right-title { color: var(--muted); }
+    .train-dashboard { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; }
+    .train-meta-label { color: var(--muted); }
+    .train-meta-value { color: var(--ink); }
+    .train-meta-value.gold { color: var(--gold); }
+    .metric-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; }
+    .metric-label { color: var(--muted); }
+    .metric-value.train { color: var(--gold); }
+    .metric-value.val   { color: var(--oliva); }
+    .metric-value.lr    { color: #b8932f; }
+    .metric-sub { color: var(--text-3); }
+    .progress-track { background: var(--tan); border: 1px solid var(--border); box-shadow: none; }
+    .progress-fill { background: var(--gold); box-shadow: none; position: relative; overflow: hidden; }
+    .progress-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); animation: shimmer 1.8s infinite; }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    .train-progress-label { color: var(--text-3); }
+    .loss-chart-card { background: var(--bg-2); border: 1px solid var(--border); }
+    .loss-chart-header { background: var(--bg-3); border-bottom: 1px solid var(--border-2); }
+    .loss-chart-title { color: var(--muted); }
+    .legend-item { color: var(--text-3); }
+    .sample-card { background: var(--bg-2); border: 1px solid var(--border); border-left: 4px solid var(--gold); border-radius: 12px; }
+    .sample-prompt { color: var(--gold); }
+    .sample-text { color: var(--text); }
+    .samples-empty { color: var(--text-3); }
+    .vocab-log { background: var(--bg-3); border: 1px solid var(--border); color: var(--text-2); }
+    .checkpoint-badge { background: var(--green-bg); border: 1px solid var(--green-brd); }
+    .checkpoint-badge-icon { color: var(--green); }
+    .checkpoint-badge-text strong { color: var(--green); }
+

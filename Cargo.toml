@@ -11,10 +11,6 @@ crate-type = ["cdylib", "rlib"]
 default = []
 python = ["pyo3/extension-module"]
 
-[[bin]]
-name = "molineteai"
-path = "src/main.rs" 
-
 [dependencies]
 rayon = "1.10"
 serde = { version = "1", features = ["derive"] }

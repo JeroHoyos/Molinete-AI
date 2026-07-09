@@ -2,33 +2,25 @@
 """
 web/runner.py — Ejecutor de ejemplos en subproceso.
 
-El servidor lo lanza con: python runner.py <id>  (cwd=examples/)
+El servidor lo lanza con: python web/runner.py <id>  (cwd=raíz del repo)
 stdout/stderr se capturan y retransmiten al frontend via WebSocket.
 stdin se conecta al pipe del servidor para que los input() funcionen.
 """
 
 import sys
-import os
-from pathlib import Path
-
-# Mismo fix que molineteai.py: evitar que "import molineteai" resuelva
-# al archivo .py del proyecto en lugar del módulo Rust compilado.
-_examples = str(Path(__file__).parent.parent / "ejemplos")
-sys.path = [p for p in sys.path if os.path.abspath(p) != os.path.abspath(_examples)]
-sys.path.append(_examples)
 
 EJEMPLOS = {
-    "1":  ("modulos.tokenizadores",   "run_01_tokenizadores"),
-    "2":  ("modulos.tensores",        "run_02_tensores"),
-    "3":  ("modulos.arquitectura",    "run_03_arquitectura"),
-    "4":  ("modulos.infraestructura", "run_04_infraestructura"),
-    "5":  ("modulos.entrenamiento",   "run_05_diminuto"),
-    "6":  ("modulos.entrenamiento",   "run_06_pequeno"),
-    "7":  ("modulos.entrenamiento",   "run_07_mediano"),
-    "8":  ("modulos.entrenamiento",   "run_08_gpt2"),
-    "9":  ("modulos.entrenamiento",   "run_entrenar_presets"),
-    "10": ("modulos.chat",            "run_chat"),
-    "11": ("modulos.datos",           "run_descargar_datos"),
+    "1":  ("modules.tokenizadores",   "run_01_tokenizadores"),
+    "2":  ("modules.tensores",        "run_02_tensores"),
+    "3":  ("modules.arquitectura",    "run_03_arquitectura"),
+    "4":  ("modules.infraestructura", "run_04_infraestructura"),
+    "5":  ("modules.entrenamiento",   "run_05_diminuto"),
+    "6":  ("modules.entrenamiento",   "run_06_pequeno"),
+    "7":  ("modules.entrenamiento",   "run_07_mediano"),
+    "8":  ("modules.entrenamiento",   "run_08_gpt2"),
+    "9":  ("modules.entrenamiento",   "run_entrenar_presets"),
+    "10": ("modules.chat",            "run_chat"),
+    "11": ("modules.datos",           "run_descargar_datos"),
 }
 
 

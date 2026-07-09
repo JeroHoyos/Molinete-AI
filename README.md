@@ -44,9 +44,9 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 
 [![Licencia](https://img.shields.io/badge/licencia-Apache_2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![PyO3](https://img.shields.io/badge/PyO3-maturin-red.svg)](https://github.com/PyO3/maturin)
-[![Corpus](https://img.shields.io/badge/corpus-Cervantes-gold.svg)](DATA.md)
+[![Corpus](https://img.shields.io/badge/corpus-Cervantes-gold.svg)](docs/DATA.md)
 
 **Autor:** Jerónimo Hoyos Botero  
 **Basado en:** [tag1consulting/feste](https://github.com/tag1consulting/feste)
@@ -59,7 +59,6 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 
 - [¿Qué es Molinete AI?](#qué-es-molinete-ai)
 - [¿Por qué "Molinete"?](#por-qué-molinete)
-- [Sobre el proyecto](#sobre-el-proyecto)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Inicio rápido](#inicio-rápido)
 - [Módulos Python](#módulos-python)
@@ -81,7 +80,6 @@ Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **M
 | **Feste** | Shakespeare | Inglés isabelino |
 | **Molinete AI** | Cervantes | Español del Siglo de Oro |
 
-El objetivo no es solo replicar el experimento original, sino reinterpretarlo en español y convertirlo en una guía técnica rigurosa y accesible.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
@@ -95,101 +93,19 @@ Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete A
 
 ---
 
-## Sobre el proyecto
-
-Un modelo Transformer completamente entrenable, implementado desde cero en Rust, **sin depender de frameworks de deep learning** como PyTorch o TensorFlow.
-
-El propósito central es comprender cómo funcionan los modelos de lenguaje implementando cada componente explícitamente:
-
-- **Tokenización BPE** (Byte-Pair Encoding)
-- **Implementación manual de tensores**
-- **Multi-Head Self-Attention y máscara causal**
-- **Feed Forward Networks**
-- **Normalización y conexiones residuales**
-- **Infraestructura de entrenamiento completa** (warmup, gradient clipping, early stopping)
-- **Generación autoregresiva de texto**
-
-### Arquitectura Molinete (~4M params)
-
-```rust
-Config {
-    vocab_size: 1536,
-    n_embd: 256,
-    n_layers: 4,
-    n_heads: 4,       // head_dim = 64
-    block_size: 256,
-}
-```
-
-| Hiperparámetro | Valor por defecto |
-|:---|:---|
-| Pasos | `8000` |
-| Tasa de aprendizaje | `0.0003` |
-| Fracción de calentamiento (warmup) | `0.1` |
-| Recorte de gradiente (gradient clipping) | `1.0` |
-| Paciencia de early stopping | `3000` |
-| Acumulación de gradientes | `8 mini-batches` |
-| Datos de entrenamiento | Primeros 2M de caracteres |
-| Tiempo estimado (local) | ~4–6 horas |
-
-<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
-
----
-
 ## Estructura del repositorio
 
 ```
 molineteai/
-├── src/                        ← Implementación del modelo en Rust
-│   ├── layers/
-│   │   ├── activation.rs
-│   │   ├── attention.rs
-│   │   ├── block.rs
-│   │   ├── dropout.rs
-│   │   ├── layer_norm.rs
-│   │   ├── linear.rs
-│   │   ├── mlp.rs
-│   │   └── mod.rs
-│   ├── entrenamiento.rs
-│   ├── gpt2_entrenable.rs
-│   ├── gradientes.rs
-│   ├── lib.rs
-│   ├── modelo.rs
-│   ├── optimizador.rs
-│   ├── python_bindings.rs
-│   ├── registrador_entrenamiento.rs
-│   ├── tensor.rs
-│   └── tokenizador.rs
-├── ejemplos/                   ← Scripts de exploración en Python
-│   ├── molineteai.py           ← Punto de entrada principal Python
-│   ├── REFERENCIA.md           ← Documentación completa de la API
-│   └── modulos/
-│       ├── arquitectura.py     ← Exploración de la arquitectura del modelo
-│       ├── chat.py             ← Interfaz de chat con el modelo entrenado
-│       ├── datos.py            ← Descarga y preprocesamiento del corpus
-│       ├── entrenamiento.py    ← Bucle de entrenamiento paso a paso
-│       ├── infraestructura.py  ← Warmup, clipping y utilidades de entrenamiento
-│       ├── tensores.py         ← Operaciones tensoriales básicas
-│       ├── tokenizadores.py    ← Entrenamiento y uso del tokenizador BPE
-│       └── ui.py               ← Interfaz de usuario y utilidades de consola
-├── presentación/               ← Animaciones Manim de la arquitectura
-│   ├── main.py                 ← Clase Presentacion; compone todas las diapositivas
-│   ├── colores.py              ← Constantes de color y tipografía (tema Cervantes)
-│   ├── objetos.py              ← Fábricas de Mobjects reutilizables
-│   ├── snippets.py             ← Fragmentos de código Rust para las diapositivas
-│   ├── slides/                 ← Módulos individuales de diapositivas (00–08)
-│   └── README.md               ← Instrucciones de compilación y presentación
-├── web/                        ← Interfaz web (FastAPI + WebSocket)
-│   ├── server.py               ← Servidor con streaming de salida en tiempo real
-│   ├── runner.py               ← Gestor de subprocesos de los ejemplos
-│   └── index.html              ← UI de pergamino en una sola página
-├── Cargo.toml
-├── Cargo.lock
-├── pyproject.toml
-├── requirements.txt            ← Dependencias Python del proyecto
-├── DATA.md                     ← Guía del corpus de datos
-└── README.md
+├── src/             ← Implementación del modelo en Rust (tensores, capas, entrenamiento)
+├── docs/            ← Documentación: corpus (DATA.md) y API Python (REFERENCIA.md)
+├── presentation/    ← Presentación con animaciones Manim
+├── web/             ← Interfaz web: servidor FastAPI, módulos Python y frontend
+├── Cargo.toml       ← Proyecto Rust
+└── pyproject.toml   ← Proyecto Python (gestionado con uv)
 ```
+
+Cada carpeta tiene su propia documentación: ver [docs/README.md](docs/README.md), [presentation/README.md](presentation/README.md) y las secciones siguientes.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
@@ -200,18 +116,7 @@ molineteai/
 ### Requisitos
 
 - [Rust](https://rustup.rs/) 1.75+
-- Python 3.9+
-- [`uv`](https://docs.astral.sh/uv/) (recomendado) o `pip`
-
-Instalar `uv` si no lo tienes:
-
-```bash
-# Windows (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# Linux / macOS
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+- [`uv`](https://docs.astral.sh/uv/)
 
 ### 1. Clonar el repositorio
 
@@ -220,75 +125,44 @@ git clone https://github.com/JeroHoyos/Molinete-AI.git
 cd Molinete-AI
 ```
 
-### 2. Crear entorno virtual e instalar dependencias
+### 2. Instalar dependencias y compilar
+
+El proyecto está gestionado por `uv`: un solo comando crea el entorno virtual (`.venv/`), instala todas las dependencias (con versiones fijadas en `uv.lock`) y compila los bindings Rust:
 
 ```bash
-# Con uv (recomendado)
-uv venv
-uv pip install -r requirements.txt
-
-# Activar el entorno
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate       # Linux / macOS
+uv sync
 ```
 
-<details>
-<summary>Usando pip en lugar de uv</summary>
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate       # Linux / macOS
-pip install -r requirements.txt
-```
-</details>
 
 ### 3. Preparar el corpus
 
-El corpus de Cervantes debe descargarse antes de entrenar. Ver [DATA.md](DATA.md) para instrucciones detalladas y fuentes recomendadas. También puede usarse el menú interactivo del proyecto:
+El corpus de Cervantes debe descargarse antes de entrenar. Ver [docs/DATA.md](docs/DATA.md) para instrucciones detalladas y fuentes recomendadas. La descarga se hace desde la interfaz web.
+
+### 4. Ejecutar el modelo
+
+Todo el proyecto se usa desde la interfaz web:
 
 ```bash
-python ejemplos/molineteai.py
-# → Opción 11: Descargar corpus
+uv run web/server.py
+# Abrir http://localhost:7860
 ```
 
-### 4. Compilar los bindings Python
-
-```bash
-maturin develop --release
-```
-
-### 5. Ejecutar el modelo
-
-```bash
-python ejemplos/molineteai.py
-```
+Ver la sección [Interfaz web](#interfaz-web) para más detalles.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
-## Módulos Python
+## Librería de Python
 
-Una vez compilados los bindings con `maturin develop --release`, los módulos en `ejemplos/modulos/` permiten explorar cada componente del sistema de forma aislada:
+El siguiente es un ejemplo de uso de la librería:
 
-| Módulo | Descripción |
-|:---|:---|
-| `tensores.py` | Operaciones tensoriales: multiplicación de matrices, strides, broadcasting |
-| `tokenizadores.py` | Entrenamiento del tokenizador BPE y exploración del vocabulario |
-| `arquitectura.py` | Inspección de la arquitectura: capas, parámetros, flujo de datos |
-| `infraestructura.py` | Warmup, gradient clipping y utilidades del bucle de entrenamiento |
-| `entrenamiento.py` | Entrenamiento completo con registro de métricas |
-| `datos.py` | Carga, preprocesamiento y exploración del corpus |
-| `chat.py` | Chat interactivo con un modelo ya entrenado |
-| `ui.py` | Arte ASCII, barras de progreso y utilidades de consola compartidas por todos los módulos |
-
-Para la documentación completa de la API Python, ver [ejemplos/REFERENCIA.md](ejemplos/REFERENCIA.md).
-
-### Ejemplo de uso desde Python
 
 ```python
 import molineteai
+
+# Corpus
+texto = open("cervantes.txt", encoding="utf-8").read()
 
 # Tokenizador
 tok = molineteai.TokenizadorBPE(1536)
@@ -314,16 +188,18 @@ print(tok.decodificar(ids_out))
 
 ---
 
+Para la documentación completa de la API Python, ver [docs/REFERENCIA.md](docs/REFERENCIA.md).
+
 ## Interfaz web
 
-La carpeta `web/` incluye una interfaz web que permite ejecutar los módulos de ejemplo y chatear con el modelo directamente desde el navegador, sin necesidad de abrir una terminal.
+La carpeta `web/` contiene la interfaz del proyecto: desde el navegador se descarga el corpus, se exploran los módulos de aprendizaje, se entrenan modelos y se chatea con los checkpoints entrenados. El servidor (FastAPI) lanza cada módulo en un subproceso y retransmite su salida en tiempo real por WebSocket, incluyendo los `input()` interactivos.
 
-> El modelo debe estar compilado primero (`maturin develop --release`). Las dependencias web ya están incluidas en `requirements.txt`.
+> El proyecto debe estar instalado primero (`uv sync`), que también compila el modelo e incluye las dependencias web.
 
 ### Iniciar el servidor
 
 ```bash
-python web/server.py
+uv run web/server.py
 ```
 
 Luego abre **http://localhost:7860** en tu navegador.
@@ -331,7 +207,7 @@ Luego abre **http://localhost:7860** en tu navegador.
 ### Puerto personalizado
 
 ```bash
-PORT=8000 python web/server.py
+PORT=8000 uv run web/server.py
 ```
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
@@ -340,19 +216,15 @@ PORT=8000 python web/server.py
 
 ## Presentación
 
-La carpeta `presentación/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
+La carpeta `presentation/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
 
 ```bash
-# Desde la raíz del proyecto
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux / Mac
-
-cd presentación
-py -m manim_slides render main.py Presentacion
-py -m manim_slides present Presentacion
+cd presentation
+uv run manim-slides render main.py Presentacion
+uv run manim-slides present Presentacion
 ```
 
-Ver [presentación/README.md](presentación/README.md) para instrucciones detalladas y controles de la presentación.
+Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
@@ -362,8 +234,9 @@ Ver [presentación/README.md](presentación/README.md) para instrucciones detall
 
 | Aporte | Descripción |
 |:---|:---|
-| **Corpus en español** | Cervantes en lugar de Shakespeare, con guía de descarga en [DATA.md](DATA.md) |
-| **Módulos de exploración** | Scripts Python que aíslan y demuestran el comportamiento de cada componente |
+| **Corpus en español** | Cervantes en lugar de Shakespeare, con guía de descarga en [docs/DATA.md](docs/DATA.md) |
+| **Módulos de exploración** | Módulos Python que aíslan y demuestran el comportamiento de cada componente |
+| **Interfaz web** | Todo el proyecto se usa desde el navegador: aprendizaje, entrenamiento y chat |
 | **Bindings Python** | API completa con PyO3/maturin para usar el modelo desde Python |
 | **Presentación Manim** | Animaciones de la arquitectura Transformer para uso pedagógico |
 | **Documentación en español** | Explicaciones adicionales orientadas a la comprensión del código |
