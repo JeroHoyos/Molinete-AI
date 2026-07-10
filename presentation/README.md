@@ -1,6 +1,6 @@
 # Presentación de Molinete AI
 
-Diapositivas animadas de la arquitectura Transformer, hechas con [Manim Slides](https://manim-slides.eertmans.be/).
+Diapositivas animadas hechas con [Manim Slides](https://manim-slides.eertmans.be/).
 
 ## Uso
 
@@ -21,3 +21,4 @@ uv run manim-slides present Presentacion
 
 - Los métodos de diapositiva llaman a `self._siguiente()` para marcar puntos de pausa interactivos.
 - `self.limpiar_pantalla()` hace fade out de todos los mobjects antes de la siguiente diapositiva.
+

@@ -5,8 +5,14 @@ import numpy as np
 import random
 import math
 import os
+import manimpango
 
-FUENTE = "Goudy Old Style"
+_FUENTES_PREFERIDAS = ["Goudy Old Style", "Palatino Linotype", "Georgia"]
+_FUENTES_DISPONIBLES = set(manimpango.list_fonts())
+FUENTE = next(
+    (f for f in _FUENTES_PREFERIDAS if f in _FUENTES_DISPONIBLES),
+    "Georgia",
+)
 
 MARRON_OSCURO      = "#3D3834"
 NARANJA_TERRACOTA  = "#A36536"
@@ -45,6 +51,7 @@ ARENA_DORADA       = "#C2B280"
 NARANJA_CLARO      = "#FFCC99"
 AMARILLO_PALIDO    = "#FFFFCC"
 MENTA_PALIDA       = "#CCFFCC"
+CELESTE_PALIDO     = "#C9E4F5"
 PERGAMINO_CLARO    = "#F4EBD0"
 ROJO_MAC           = "#FF5F56"
 AMARILLO_MAC       = "#FFBD2E"
