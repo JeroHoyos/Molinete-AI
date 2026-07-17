@@ -1,9 +1,6 @@
 from manim import *
-from manim_slides import Slide
 from manim_code_blocks import *
 import numpy as np
-import random
-import math
 import os
 from colores import *
 
@@ -245,23 +242,6 @@ def crear_herradura():
     herradura = VGroup(cuerpo, borde_interior, brillo_metal, agujeros).rotate(-PI*0.2)
     return herradura
 
-def crear_rueda_carreta():
-    aro_hierro = Circle(radius=0.6, stroke_color=HIERRO, stroke_width=8)
-    aro_madera = Circle(radius=0.54, stroke_color=MADERA_CLARA, stroke_width=12)
-    aro_madera_interior = Circle(radius=0.48, stroke_color=MADERA_OSCURA, stroke_width=1, stroke_opacity=0.6)
-
-    centro_madera = Circle(radius=0.15, fill_color=MADERA_OSCURA, stroke_color=HIERRO, stroke_width=3)
-    eje = Dot(radius=0.05, color=HIERRO)
-
-    radios = VGroup(*[
-        Polygon([-0.03, 0.15, 0], [0.03, 0.15, 0], [0.02, 0.5, 0], [-0.02, 0.5, 0], fill_color=MADERA_CLARA, stroke_color=MADERA_OSCURA, stroke_width=1).rotate(i * PI/6, about_point=ORIGIN)
-        for i in range(12)
-    ])
-
-    remaches = VGroup(*[Dot(radius=0.02, color=ACERO).move_to(aro_hierro.point_at_angle(i * PI/6)) for i in range(12)])
-
-    return VGroup(radios, aro_madera, aro_madera_interior, aro_hierro, remaches, centro_madera, eje)
-
 def crear_pergamino():
     cuerpo = Polygon(
         [-0.4, 0.6, 0], [0.4, 0.6, 0], [0.35, -0.6, 0], [-0.45, -0.6, 0],
@@ -338,6 +318,8 @@ try:
             Operator:        TINTA_NEGRA,
             Punctuation:     TINTA_NEGRA,
             Comment:         f'italic {CAJA_INFERIOR}',
+            Comment.Preproc: PAPEL_TAN,  # atributos de Rust: #[derive], #[pyclass], ...
+            String.Doc:      f'italic {MARRON_OSCURO}',  # comentarios /// de los snippets
         }
 except ImportError:
     EstiloCervantino = None

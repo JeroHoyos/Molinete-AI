@@ -1,10 +1,3 @@
-from manim import *
-from manim_slides import Slide
-from manim_code_blocks import *
-import numpy as np
-import random
-import math
-import os
 import manimpango
 
 _FUENTES_PREFERIDAS = ["Goudy Old Style", "Palatino Linotype", "Georgia"]
@@ -65,12 +58,3 @@ METAL_OSCURO = "#546E7A"
 MADERA_VIEJA = "#4E4039"
 CUERO_GASTADO = "#2E1E18"
 TELA_DESLAVADA = "#6D4C41"
-
-BUFF_S   = 0.15
-BUFF_M   = 0.25
-BUFF_L   = 0.4
-
-FONT_TITULO  = 35
-FONT_CUERPO  = 24
-FONT_SMALL   = 20
-FONT_TINY    = 16
