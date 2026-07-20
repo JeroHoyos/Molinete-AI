@@ -41,6 +41,12 @@ def main() -> None:
         destino_video.unlink(missing_ok=True)
         shutil.move(str(VIDEO), str(destino_video))
 
+    # Deja el JSON con rutas / para que funcione tambien en Linux/Mac
+    subprocess.run(
+        [sys.executable, str(PORTABLE / "normalizar_rutas.py")],
+        check=True,
+    )
+
     print(f"Listo: presentacion portable en {PORTABLE}")
 
 
