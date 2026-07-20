@@ -206,16 +206,15 @@ La interfaz del proyecto reúne todo el flujo de trabajo en el navegador. Desde 
 *La pantalla de inicio: cuatro presets de GPT-2, de 50K a 163M de parámetros, listos para entrenar.*
 </div>
 
-<table>
-<tr>
-<td width="50%"><img src="docs/img/web_chat.png" alt="Chat con Molinete entrenado."></td>
-<td width="50%"><img src="docs/img/web_entrenamiento.png" alt="Dashboard del entrenamiento de Molinete."></td>
-</tr>
-<tr>
-<td align="center"><em>Chat con Molinete entrenado.</em></td>
-<td align="center"><em>Dashboard del entrenamiento de Molinete.</em></td>
-</tr>
-</table>
+<div align="center">
+<img src="docs/img/web_chat.png" width="850" alt="Chat con Molinete entrenado.">
+
+*Conversando con un Molinete ya entrenado..*
+
+<img src="docs/img/web_entrenamiento.png" width="850" alt="Dashboard del entrenamiento de Molinete.">
+
+*El dashboard de entrenamiento, con métricas y curva de pérdida en vivo..*
+</div>
 
 
 ### Iniciar el servidor
