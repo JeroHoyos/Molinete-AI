@@ -10,12 +10,18 @@ Requiere haber instalado el proyecto con `uv sync` (ver [Inicio rápido](../READ
 # 1. Entrar a esta carpeta
 cd presentation
 
-# 2. Compilar (los videos se guardan en media/)
-uv run python -m manim_slides render main.py Presentacion
+# 2. Compilar (renderiza y deja todo listo en portable/)
+uv run python compilar.py
 
-# 3. Presentar en escritorio
+# 3. Presentar en escritorio (desde portable/)
+cd portable
 uv run python -m manim_slides present Presentacion
 ```
+
+La carpeta `portable/` es autocontenida: contiene la presentacion renderizada
+(`slides/` + `Presentacion.mp4` como respaldo) y se puede copiar tal cual a un
+USB para presentar en otro PC (ver `portable/LEEME.md`). La cache de manim se
+queda en `media/`, asi que no hace falta llevarla.
 
 > Se invoca como `python -m manim_slides` (y no `manim-slides` a secas) porque
 > Smart App Control de Windows puede bloquear el lanzador `.exe` del entorno
