@@ -22,12 +22,25 @@ function appendLearnOutput(chunk) {
     const cut = S.outputBuf.indexOf('\n', S.outputBuf.length - MAX * 0.8);
     S.outputBuf = '… [salida truncada] …\n' + S.outputBuf.slice(cut + 1);
   }
-  $outputPre.textContent = stripAnsi(S.outputBuf);
-  const lc = $('learn-content');
-  if (lc) lc.scrollTop = lc.scrollHeight;
+  // En el módulo de descarga la salida cruda vive en el desplegable de la tarjeta
+  if (S.currentId === '11') {
+    $dlLog.textContent = stripAnsi(S.outputBuf);
+    $dlLog.scrollTop = $dlLog.scrollHeight;
+  } else {
+    $outputPre.textContent = stripAnsi(S.outputBuf);
+    const lc = $('learn-content');
+    if (lc) lc.scrollTop = lc.scrollHeight;
+  }
 }
 
 function showNote(text, ok) {
+  if (S.currentId === '11') {
+    // Los eventos de la descarga ya pintaron su propio desenlace
+    if ($dlNote.dataset.final === '1') return;
+    $dlNote.textContent = text;
+    $dlNote.className = ok ? 'ok' : 'err';
+    return;
+  }
   $terminalNote.textContent = text;
   $terminalNote.className = ok ? 'ok' : 'err';
 }

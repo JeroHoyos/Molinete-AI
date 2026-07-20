@@ -1,16 +1,18 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f9f4e8">
   <title>Molinete AI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 32'%3E%3Cg fill='%23bf5a2a'%3E%3Cpath d='M10 32V18L12 14H16L18 18V32H10Z' opacity='0.85'/%3E%3Cpath d='M11 14 Q14 9 17 14 Z'/%3E%3Ccircle cx='14' cy='13' r='2.4'/%3E%3Cpath d='M15.5 11.5 L23 4 Q25 3 25 5 L18 13 Z'/%3E%3Cpath d='M15.5 14.5 L23 22 Q25 24 23 25 L16 16 Z'/%3E%3Cpath d='M12.5 14.5 L5 22 Q3 24 3 22 L10 14 Z'/%3E%3Cpath d='M12.5 11.5 L5 4 Q3 3 5 1 L13.5 10 Z'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/theme/core.css">
-  <link rel="stylesheet" href="css/theme/home.css">
-  <link rel="stylesheet" href="css/theme/views.css">
-  <link rel="stylesheet" href="css/theme/output.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css?v=7">
+  <link rel="stylesheet" href="css/theme/home.css?v=7">
+  <link rel="stylesheet" href="css/theme/views.css?v=7">
+  <link rel="stylesheet" href="css/theme/output.css?v=7">
 </head>
 
 <body>
@@ -19,7 +21,7 @@
 <!-- ══════ MAIN ══════ -->
 <div id="main">
 
-  <!-- Shared header -->
+  <!-- Cabecera compartida (solo visible en vistas de módulo) -->
   <header id="header">
     <div id="hdr-home">
       <div class="logo-icon" id="windmill-logo">
@@ -35,7 +37,7 @@
       </div>
       <div class="hdr-brand">
         <h1>Molinete AI</h1>
-        <p>GPT-2 desde cero en Rust, entrenado en Cervantes — elige un módulo</p>
+        <p>GPT-2 desde cero en Rust, entrenado en Cervantes</p>
       </div>
       <div class="hdr-status">
         <div id="status-dot"></div>
@@ -59,23 +61,29 @@
   ══════════════════════════════ -->
   <div id="home-view">
 
-    <!-- Hero: paisaje de molinos dibujado en CSS + wordmark -->
+    <!-- Héroe: paisaje de molinos dibujado en CSS + wordmark -->
     <div class="nd-hero">
       <div class="nd-sun"></div>
 
       <div class="nd-mill nd-mill-far">
         <div class="body"></div><div class="eave"></div><div class="cap"></div>
-        <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        <div class="nd-rotor">
+          <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        </div>
         <div class="hub"></div>
       </div>
       <div class="nd-mill nd-mill-right">
         <div class="body"></div><div class="eave"></div><div class="cap"></div>
-        <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        <div class="nd-rotor">
+          <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        </div>
         <div class="hub"></div>
       </div>
       <div class="nd-mill nd-mill-main">
         <div class="body"></div><div class="eave"></div><div class="door"></div><div class="cap"></div>
-        <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        <div class="nd-rotor">
+          <div class="sail s1"></div><div class="sail s2"></div><div class="sail s3"></div><div class="sail s4"></div>
+        </div>
         <div class="hub"></div>
       </div>
 
@@ -84,7 +92,7 @@
 
       <div class="nd-wordmark">
         <h1 class="parch-title">Molinete AI</h1>
-        <div class="nd-tagline">GPT-2 desde cero en Rust entrenado con el corpus de Cervantes</div>
+        <div class="nd-tagline">GPT-2 implementado desde cero y entrenado<br>con las obras de Miguel de Cervantes</div>
       </div>
     </div>
 
@@ -97,9 +105,11 @@
     <!-- Tarjetas de modelo -->
     <div class="model-grid">
 
-      <button class="model-card" data-id="5" data-name="GPT-2 Diminuto" data-sub="~50K parámetros · 2–5 minutos">
+      <div class="model-card" role="button" tabindex="0" data-id="5" data-name="GPT-2 50K"
+           data-params="~50K" data-embd="64" data-capas="2" data-cabezas="1" data-ctx="64" data-vocab="512">
         <div class="model-card-top">
           <span class="model-roman">I</span>
+          <button type="button" class="model-info-btn" aria-label="Ver arquitectura de GPT-2 50K">info</button>
         </div>
         <h3 class="model-name">
           <span class="mc-kicker">GPT-2</span>
@@ -113,13 +123,16 @@
           <div class="spec-row"><span class="spec-k">Vocab</span><span class="spec-lead"></span><span class="spec-v">512</span></div>
           <div class="spec-row"><span class="spec-k">Pasos</span><span class="spec-lead"></span><span class="spec-v">3 000</span></div>
           <div class="spec-row"><span class="spec-k">LR</span><span class="spec-lead"></span><span class="spec-v">3e-3</span></div>
+          <div class="spec-row"><span class="spec-k">Peso</span><span class="spec-lead"></span><span class="spec-v">~0.2 MB</span></div>
         </div>
         <div class="model-time">2 – 5 minutos</div>
-      </button>
+      </div>
 
-      <button class="model-card" data-id="6" data-name="GPT-2 Pequeño" data-sub="~200K parámetros · 15–20 minutos">
+      <div class="model-card" role="button" tabindex="0" data-id="6" data-name="GPT-2 200K"
+           data-params="~200K" data-embd="128" data-capas="3" data-cabezas="1" data-ctx="128" data-vocab="1024">
         <div class="model-card-top">
           <span class="model-roman">II</span>
+          <button type="button" class="model-info-btn" aria-label="Ver arquitectura de GPT-2 200K">info</button>
         </div>
         <h3 class="model-name">
           <span class="mc-kicker">GPT-2</span>
@@ -133,13 +146,16 @@
           <div class="spec-row"><span class="spec-k">Vocab</span><span class="spec-lead"></span><span class="spec-v">1 024</span></div>
           <div class="spec-row"><span class="spec-k">Pasos</span><span class="spec-lead"></span><span class="spec-v">100 000</span></div>
           <div class="spec-row"><span class="spec-k">LR</span><span class="spec-lead"></span><span class="spec-v">2e-3</span></div>
+          <div class="spec-row"><span class="spec-k">Peso</span><span class="spec-lead"></span><span class="spec-v">~0.8 MB</span></div>
         </div>
         <div class="model-time">15 – 20 minutos</div>
-      </button>
+      </div>
 
-      <button class="model-card" data-id="7" data-name="GPT-2 Mediano" data-sub="~4M parámetros · 1–3 horas">
+      <div class="model-card" role="button" tabindex="0" data-id="7" data-name="GPT-2 4M"
+           data-params="~4M" data-embd="256" data-capas="4" data-cabezas="4" data-ctx="256" data-vocab="1536">
         <div class="model-card-top">
           <span class="model-roman">III</span>
+          <button type="button" class="model-info-btn" aria-label="Ver arquitectura de GPT-2 4M">info</button>
         </div>
         <h3 class="model-name">
           <span class="mc-kicker">GPT-2</span>
@@ -153,13 +169,16 @@
           <div class="spec-row"><span class="spec-k">Vocab</span><span class="spec-lead"></span><span class="spec-v">1 536</span></div>
           <div class="spec-row"><span class="spec-k">Pasos</span><span class="spec-lead"></span><span class="spec-v">100 000</span></div>
           <div class="spec-row"><span class="spec-k">LR</span><span class="spec-lead"></span><span class="spec-v">3e-4</span></div>
+          <div class="spec-row"><span class="spec-k">Peso</span><span class="spec-lead"></span><span class="spec-v">~17 MB</span></div>
         </div>
         <div class="model-time">1 – 3 horas</div>
-      </button>
+      </div>
 
-      <button class="model-card" data-id="8" data-name="GPT-2 Small completo" data-sub="~163M parámetros · toda la noche">
+      <div class="model-card" role="button" tabindex="0" data-id="8" data-name="GPT-2 163M"
+           data-params="~163M" data-embd="768" data-capas="12" data-cabezas="12" data-ctx="1024" data-vocab="20534">
         <div class="model-card-top">
           <span class="model-roman">IV</span>
+          <button type="button" class="model-info-btn" aria-label="Ver arquitectura de GPT-2 163M">info</button>
         </div>
         <h3 class="model-name">
           <span class="mc-kicker">GPT-2</span>
@@ -173,19 +192,24 @@
           <div class="spec-row"><span class="spec-k">Vocab</span><span class="spec-lead"></span><span class="spec-v">20 534</span></div>
           <div class="spec-row"><span class="spec-k">Pasos</span><span class="spec-lead"></span><span class="spec-v">200 000</span></div>
           <div class="spec-row"><span class="spec-k">LR</span><span class="spec-lead"></span><span class="spec-v">1e-4</span></div>
+          <div class="spec-row"><span class="spec-k">Peso</span><span class="spec-lead"></span><span class="spec-v">~650 MB</span></div>
         </div>
         <div class="model-time">Toda la noche</div>
-      </button>
+      </div>
 
     </div>
 
     <!-- Acciones -->
     <div class="nd-actions">
-      <button class="opt-btn" data-id="10" data-name="Chat con modelo" data-sub="Carga un checkpoint y genera texto">
+      <button class="opt-btn" data-id="10">
         <span class="opt-num">❝</span>
         <span class="opt-label">Conversar con un modelo<span class="opt-tag">Interactivo · generación libre</span></span>
       </button>
-      <button class="opt-btn" data-id="11" data-name="Descargar Corpus de Cervantes" data-sub="Obras completas · Project Gutenberg · ~7 MB">
+      <button class="opt-btn" data-id="12">
+        <span class="opt-num">⇄</span>
+        <span class="opt-label">Comparar modelos<span class="opt-tag">El mismo prompt · hasta 4 a la vez</span></span>
+      </button>
+      <button class="opt-btn" data-id="11">
         <span class="opt-num">↓</span>
         <span class="opt-label">Descargar el corpus<span class="opt-tag">≈ 7 MB · Project Gutenberg</span></span>
       </button>
@@ -199,18 +223,12 @@
   ══════════════════════════════ -->
   <div id="module-view" class="hidden">
 
-    <!-- Thin description bar -->
-    <div class="mod-header-bar">
-      <div class="mod-header-name" id="mod-header-name"></div>
-      <div class="mod-header-desc" id="mod-header-desc"></div>
-    </div>
-
-    <!-- ── CHAT VIEW (module 10) ── -->
+    <!-- ── CHAT VIEW (módulo 10) ── -->
     <div id="chat-view" class="hidden">
       <div id="chat-messages">
         <div class="chat-wrap">
 
-          <!-- Welcome / loading state -->
+          <!-- Bienvenida / estado de carga -->
           <div id="chat-welcome" class="chat-welcome">
             <div class="chat-welcome-icon">
               <svg width="22" height="25" viewBox="0 0 28 32" fill="white">
@@ -224,7 +242,7 @@
               </svg>
             </div>
             <h3>Chat con modelo</h3>
-            <p id="chat-welcome-text">Cargando modelo… selecciona un checkpoint cuando aparezca el prompt.</p>
+            <p id="chat-welcome-text">Buscando checkpoints entrenados…</p>
             <div class="chat-loading" id="chat-loading">
               <span class="run-dot"></span>
               <span class="run-dot"></span>
@@ -233,10 +251,13 @@
             </div>
           </div>
 
-          <!-- Message list (appended here) -->
+          <!-- Lista de mensajes -->
           <div id="chat-bubble-list"></div>
 
-          <!-- Thinking indicator -->
+          <!-- Sugerencias de prompt (aparecen bajo la tarjeta del modelo) -->
+          <div id="chat-suggest" class="hidden"></div>
+
+          <!-- Indicador de pensando -->
           <div id="chat-thinking">
             <div class="bubble-avatar avatar-model">
               <svg width="14" height="16" viewBox="0 0 28 32" fill="currentColor"><path d="M10 32V18L12 14H16L18 18V32H10Z" opacity="0.85"/><path d="M11 14 Q14 9 17 14 Z"/><circle cx="14" cy="13" r="2.4"/><path d="M15.5 11.5 L23 4 Q25 3 25 5 L18 13 Z"/><path d="M15.5 14.5 L23 22 Q25 24 23 25 L16 16 Z"/><path d="M12.5 14.5 L5 22 Q3 24 3 22 L10 14 Z"/><path d="M12.5 11.5 L5 4 Q3 3 5 1 L13.5 10 Z"/></svg>
@@ -252,9 +273,31 @@
       </div>
 
       <div id="input-bar" class="hidden">
+        <!-- Controles: modelo cargado, temperatura y máximo de tokens -->
+        <div id="chat-toolbar" class="hidden">
+          <span class="chat-model-chip"><span id="chat-model-name">Modelo</span></span>
+          <button type="button" class="chat-tokens-btn" id="chat-tokens-btn" aria-pressed="false">Ver tokens</button>
+          <span class="chat-ctl">
+            <span class="chat-ctl-label">Temperatura</span>
+            <span class="stepper">
+              <button id="temp-minus" type="button" aria-label="Bajar temperatura">−</button>
+              <output id="temp-value">0.8</output>
+              <button id="temp-plus" type="button" aria-label="Subir temperatura">+</button>
+            </span>
+          </span>
+          <span class="chat-ctl">
+            <span class="chat-ctl-label">Máx. tokens</span>
+            <span class="stepper">
+              <button id="max-minus" type="button" aria-label="Bajar máximo de tokens">−</button>
+              <output id="max-value">100</output>
+              <button id="max-plus" type="button" aria-label="Subir máximo de tokens">+</button>
+            </span>
+          </span>
+        </div>
+
         <div class="input-inner">
           <textarea id="user-input" rows="1" placeholder="Escribe un prompt al estilo Cervantes… (Enter para enviar)" disabled></textarea>
-          <button id="send-btn" disabled>
+          <button id="send-btn" disabled aria-label="Enviar">
             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/></svg>
           </button>
         </div>
@@ -262,11 +305,59 @@
     </div><!-- /chat-view -->
 
 
-    <!-- ── TRAINING VIEW (modules 5-9) — 2-column split ── -->
+    <!-- ── COMPARADOR (módulo 12) ── -->
+    <div id="comp-view" class="hidden">
+      <div id="comp-messages">
+        <div class="comp-wrap">
+
+          <div id="comp-welcome" class="chat-welcome">
+            <div class="chat-welcome-icon">
+              <svg width="22" height="25" viewBox="0 0 28 32" fill="white">
+                <path d="M10 32V18L12 14H16L18 18V32H10Z" opacity="0.85"/>
+                <path d="M11 14 Q14 9 17 14 Z"/>
+                <circle cx="14" cy="13" r="2.4"/>
+                <path d="M15.5 11.5 L23 4 Q25 3 25 5 L18 13 Z"/>
+                <path d="M15.5 14.5 L23 22 Q25 24 23 25 L16 16 Z"/>
+                <path d="M12.5 14.5 L5 22 Q3 24 3 22 L10 14 Z"/>
+                <path d="M12.5 11.5 L5 4 Q3 3 5 1 L13.5 10 Z"/>
+              </svg>
+            </div>
+            <h3>Comparar modelos</h3>
+            <p id="comp-welcome-text">Buscando checkpoints entrenados…</p>
+            <div class="chat-loading" id="comp-loading">
+              <span class="run-dot"></span>
+              <span class="run-dot"></span>
+              <span class="run-dot"></span>
+              <span>Iniciando…</span>
+            </div>
+          </div>
+
+          <div id="comp-prompt-line" class="comp-prompt-line hidden"></div>
+          <div id="comp-grid"></div>
+
+        </div>
+      </div>
+
+      <div id="comp-input-bar" class="hidden">
+        <div id="comp-toolbar">
+          <span class="chat-model-chip"><span id="comp-count">Modelos</span></span>
+          <button type="button" class="chat-tokens-btn" id="comp-tokens-btn" aria-pressed="false" title="Alterna la vista de tokens; haz clic en un token para ver su ID">Ver tokens</button>
+        </div>
+        <div class="input-inner">
+          <textarea id="comp-input" rows="1" placeholder="Escribe un prompt para todos los modelos… (Enter para enviar)" disabled></textarea>
+          <button id="comp-send" disabled aria-label="Enviar">
+            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div><!-- /comp-view -->
+
+
+    <!-- ── TRAINING VIEW (módulos 5-9) ── -->
     <div id="train-view" class="hidden">
       <div id="train-split">
 
-        <!-- LEFT: stats + chart -->
+        <!-- IZQUIERDA: métricas y gráfica -->
         <div id="train-left">
 
           <!-- Dashboard -->
@@ -292,6 +383,10 @@
                 <span class="train-meta-label">Vocab</span>
                 <span class="train-meta-value" id="tm-vocab">—</span>
               </div>
+              <div class="train-meta-item">
+                <span class="train-meta-label">Corpus</span>
+                <span class="train-meta-value" id="tm-corpus">—</span>
+              </div>
             </div>
 
             <div class="train-progress-label">
@@ -301,47 +396,62 @@
             <div class="progress-track">
               <div class="progress-fill" id="progress-fill"></div>
             </div>
-
-            <div class="metrics-row">
-              <div class="metric-card">
-                <div class="metric-label">Pérdida entren.</div>
-                <div class="metric-value train" id="metric-train">—</div>
-                <div class="metric-sub">cross-entropy</div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-label">Pérdida val.</div>
-                <div class="metric-value val" id="metric-val">—</div>
-                <div class="metric-sub">validación</div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-label">LR actual</div>
-                <div class="metric-value lr" id="metric-lr">—</div>
-                <div class="metric-sub">learning rate</div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-label">Perplejidad</div>
-                <div class="metric-value" style="color:var(--purple)" id="metric-perp">—</div>
-                <div class="metric-sub">e^pérdida val.</div>
-              </div>
+            <div class="train-time-row">
+              <span>Transcurrido <b id="tt-elapsed">—</b></span>
+              <span>Velocidad <b id="tt-speed">—</b></span>
+              <span>Restante <b id="tt-eta">—</b></span>
             </div>
           </div>
 
-          <!-- Loss chart -->
+          <!-- Métricas -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-label"><span class="serie-dot train"></span>Pérdida entren.</div>
+              <div class="metric-value" id="metric-train">—</div>
+              <div class="metric-sub">cross-entropy</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label"><span class="serie-dot val"></span>Pérdida val.</div>
+              <div class="metric-value" id="metric-val">—</div>
+              <div class="metric-sub" id="metric-val-best">mejor: —</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">LR actual</div>
+              <div class="metric-value" id="metric-lr">—</div>
+              <div class="metric-sub">learning rate</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Perplejidad</div>
+              <div class="metric-value" id="metric-perp">—</div>
+              <div class="metric-sub">e^pérdida val.</div>
+            </div>
+          </div>
+
+          <!-- Gráfica de pérdida -->
           <div class="loss-chart-card" id="loss-chart-card">
             <div class="loss-chart-header">
               <span class="loss-chart-title">Curva de pérdida</span>
+              <div class="lc-scale" id="lc-scale" role="group" aria-label="Escala del eje de pasos">
+                <button type="button" class="lc-scale-btn active" data-fit="0">Total</button>
+                <button type="button" class="lc-scale-btn" data-fit="1">Zoom</button>
+              </div>
               <div class="loss-legend">
-                <span class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>Train</span>
-                <span class="legend-item"><span class="legend-dot" style="background:var(--oliva)"></span>Validación</span>
+                <span class="legend-item"><span class="legend-key train"></span>Entrenamiento</span>
+                <span class="legend-item"><span class="legend-key val"></span>Validación</span>
               </div>
             </div>
-            <div class="loss-chart-body">
+            <div class="loss-chart-body" id="loss-chart-body" tabindex="0" aria-label="Curva de pérdida. Usa las flechas para recorrer los puntos.">
               <div class="loss-chart-empty" id="loss-chart-empty">Esperando datos del entrenamiento…</div>
               <svg id="loss-chart" width="100%" height="100%"></svg>
+              <div class="lc-tip" id="lc-tip">
+                <div class="lc-tip-step" id="lc-tip-step"></div>
+                <div class="lc-tip-row"><span class="lc-tip-key" style="background:var(--serie-train)"></span><span class="lc-tip-val" id="lc-tip-train">—</span><span class="lc-tip-name">entrenamiento</span></div>
+                <div class="lc-tip-row"><span class="lc-tip-key" style="background:var(--serie-val)"></span><span class="lc-tip-val" id="lc-tip-val">—</span><span class="lc-tip-name">validación</span></div>
+              </div>
             </div>
           </div>
 
-          <!-- Checkpoint badge -->
+          <!-- Aviso de checkpoint -->
           <div id="checkpoint-badge" class="checkpoint-badge hidden">
             <span class="checkpoint-badge-icon">✓</span>
             <div>
@@ -352,7 +462,7 @@
 
         </div><!-- /train-left -->
 
-        <!-- RIGHT: live text predictions -->
+        <!-- DERECHA: predicciones en vivo -->
         <div id="train-right">
           <div class="train-right-header">
             <span class="train-right-title">Predicciones en vivo</span>
@@ -361,7 +471,21 @@
             </span>
           </div>
           <div id="train-right-scroll">
-            <div class="vocab-log" id="vocab-log" style="display:none"></div>
+
+            <!-- Tarjeta de preparación (eventos "prep" del backend) -->
+            <div class="prep-card hidden" id="prep-card">
+              <div class="prep-title">Preparación</div>
+              <div class="prep-list" id="prep-list"></div>
+              <div class="tok-examples hidden" id="tok-examples">
+                <div class="prep-title">Ejemplos de tokenización</div>
+                <div id="tok-examples-list"></div>
+              </div>
+              <details class="prep-raw" id="prep-raw">
+                <summary>registro completo</summary>
+                <div class="vocab-log" id="vocab-log"></div>
+              </details>
+            </div>
+
             <div class="samples-empty" id="samples-empty">
               El modelo irá generando texto aquí durante el entrenamiento.<br>
               <em>Cada muestra representa un checkpoint de aprendizaje.</em>
@@ -376,12 +500,12 @@
     </div><!-- /train-view -->
 
 
-    <!-- ── LEARN/DATA VIEW (modules 1-4, 11) ── -->
+    <!-- ── LEARN/DATA VIEW (módulos 1-4, 11) ── -->
     <div id="learn-view" class="hidden">
       <div id="learn-content">
         <div class="learn-wrap">
 
-          <!-- Architecture table (for module 3) -->
+          <!-- Tabla de arquitecturas (módulo 3) -->
           <div id="arch-table-wrap" class="arch-table-card hidden">
             <div class="arch-table-title">Comparación de arquitecturas GPT-2</div>
             <table class="arch-table" id="arch-table">
@@ -394,7 +518,41 @@
             </table>
           </div>
 
-          <!-- Terminal output card -->
+          <!-- Tarjeta de descarga del corpus (módulo 11) -->
+          <div class="dl-card hidden" id="dl-card">
+            <div class="dl-head">
+              <span class="prep-title">Descarga del corpus de Cervantes</span>
+              <span class="dl-dest" id="dl-dest">cervantes.txt</span>
+            </div>
+
+            <div class="dl-confirm hidden" id="dl-confirm">
+              <p id="dl-confirm-text"></p>
+              <div class="dl-confirm-btns">
+                <button type="button" class="btn" id="dl-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="dl-overwrite">Sobrescribir</button>
+              </div>
+            </div>
+
+            <div class="dl-list" id="dl-list"></div>
+
+            <div class="progress-track dl-progress hidden" id="dl-progress">
+              <div class="progress-fill" id="dl-progress-fill"></div>
+            </div>
+
+            <div class="dl-done hidden" id="dl-done">
+              <span class="checkpoint-badge-icon">✓</span>
+              <span id="dl-done-text"></span>
+            </div>
+
+            <div id="dl-note"></div>
+
+            <details class="prep-raw" id="dl-raw">
+              <summary>registro completo</summary>
+              <div class="vocab-log" id="dl-log"></div>
+            </details>
+          </div>
+
+          <!-- Terminal -->
           <div class="learn-terminal-card">
             <div class="learn-terminal-bar">
               <div class="t-dots"><div class="t-dot td-r"></div><div class="t-dot td-y"></div><div class="t-dot td-g"></div></div>
@@ -415,16 +573,30 @@
 </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- Modal: arquitectura del modelo -->
+<div id="arch-modal" class="arch-modal hidden" role="dialog" aria-modal="true" aria-labelledby="arch-name">
+  <div class="arch-backdrop" id="arch-backdrop"></div>
+  <div class="arch-dialog">
+    <button type="button" class="arch-close" id="arch-close" aria-label="Cerrar">×</button>
+    <div class="arch-kicker">Arquitectura</div>
+    <div class="arch-name" id="arch-name"></div>
+    <div class="arch-sub" id="arch-sub"></div>
+    <div id="arch-diagram"></div>
+  </div>
+</div>
+
 <!-- JS modular (scripts clásicos en orden de dependencia) -->
-<script src="js/config.js"></script>
-<script src="js/dom.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/views.js"></script>
-<script src="js/ws.js"></script>
-<script src="js/render.js"></script>
-<script src="js/train.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/learn.js"></script>
-<script src="js/main.js"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/dom.js?v=7"></script>
+<script src="js/utils.js?v=7"></script>
+<script src="js/views.js?v=7"></script>
+<script src="js/ws.js?v=7"></script>
+<script src="js/render.js?v=7"></script>
+<script src="js/train.js?v=7"></script>
+<script src="js/chat.js?v=7"></script>
+<script src="js/comp.js?v=7"></script>
+<script src="js/learn.js?v=7"></script>
+<script src="js/arch.js?v=7"></script>
+<script src="js/main.js?v=7"></script>
 </body>
 </html>

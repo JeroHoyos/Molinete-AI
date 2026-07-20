@@ -25,10 +25,10 @@ def run_03_arquitectura():
 
     TAM_VOCAB = 512
     configs = [
-        ("Diminuto",    molineteai.Config.diminuta(TAM_VOCAB)),
-        ("Pequeño",     molineteai.Config.pequena(TAM_VOCAB)),
-        ("Mediano",     molineteai.Config.mediana(TAM_VOCAB)),
-        ("GPT-2 Small", molineteai.Config.gpt2_small(TAM_VOCAB)),
+        ("GPT-2 50K",   molineteai.Config.diminuta(TAM_VOCAB)),
+        ("GPT-2 200K",  molineteai.Config.pequena(TAM_VOCAB)),
+        ("GPT-2 4M",    molineteai.Config.mediana(TAM_VOCAB)),
+        ("GPT-2 163M",  molineteai.Config.gpt2_small(TAM_VOCAB)),
     ]
 
     # ── 1. Tabla de configuraciones (Rust) ───────────────────────────────────
@@ -52,7 +52,7 @@ def run_03_arquitectura():
     emit("arch_table", rows=tabla_filas)
 
     # ── 2. Forward pass real (Rust) ──────────────────────────────────────────
-    print("\nForward pass con modelo Diminuto (lote=2, long_sec=8)...")
+    print("\nForward pass con el modelo de 50K (lote=2, long_sec=8)...")
     cfg = molineteai.Config.diminuta(TAM_VOCAB)
     modelo = molineteai.GPT2(cfg)
     tokens = [[1, 2, 3, 4, 5, 6, 7, 8], [10, 20, 30, 40, 50, 60, 70, 80]]

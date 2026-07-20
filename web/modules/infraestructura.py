@@ -73,9 +73,9 @@ def run_04_infraestructura():
     print(f"  {'Config':<12} {'Params':>12} {'Mem MB':>8}")
     print("  " + "─" * 35)
     for nombre, cfg_fn in [
-        ("Diminuto", molineteai.Config.diminuta),
-        ("Pequeño",  molineteai.Config.pequena),
-        ("Mediano",  molineteai.Config.mediana),
+        ("GPT-2 50K",  molineteai.Config.diminuta),
+        ("GPT-2 200K", molineteai.Config.pequena),
+        ("GPT-2 4M",   molineteai.Config.mediana),
     ]:
         cfg = cfg_fn(tok.tam_vocabulario())
         n = molineteai.contar_parametros_config(cfg)

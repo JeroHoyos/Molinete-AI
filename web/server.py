@@ -33,37 +33,26 @@ except ImportError:
 
 ROOT     = Path(__file__).parent.parent
 WEB_DIR  = Path(__file__).parent
-DATA_DIR = ROOT / "data"
 
 app = FastAPI(title="Molinete AI")
 app.mount("/css", StaticFiles(directory=str(WEB_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(WEB_DIR / "js")), name="js")
 
 
+@app.middleware("http")
+async def sin_cache(request, call_next):
+    """El navegador debe revalidar siempre HTML, JS y CSS (app en desarrollo)."""
+    respuesta = await call_next(request)
+    ruta = request.url.path
+    if ruta == "/" or ruta.startswith(("/js", "/css")):
+        respuesta.headers["Cache-Control"] = "no-cache"
+    return respuesta
+
+
 @app.get("/")
 async def serve_index():
     html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(html)
-
-
-@app.get("/api/checkpoints")
-async def list_checkpoints():
-    results = []
-    if DATA_DIR.exists():
-        for sub in sorted(DATA_DIR.iterdir(), reverse=True):
-            if sub.is_dir():
-                bin_f = sub / "punto_control_mejor.bin"
-                tok_f = sub / "tokenizador.json"
-                csv_f = sub / "registro_entrenamiento.csv"
-                if bin_f.exists():
-                    results.append({
-                        "name":          sub.name,
-                        "path":          str(bin_f),
-                        "has_tokenizer": tok_f.exists(),
-                        "has_log":       csv_f.exists(),
-                        "size_mb":       round(bin_f.stat().st_size / 1e6, 2),
-                    })
-    return {"checkpoints": results}
 
 
 @app.websocket("/ws")

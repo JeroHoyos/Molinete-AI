@@ -21,6 +21,7 @@ EJEMPLOS = {
     "9":  ("modules.entrenamiento",   "run_entrenar_presets"),
     "10": ("modules.chat",            "run_chat"),
     "11": ("modules.datos",           "run_descargar_datos"),
+    "12": ("modules.comparar",        "run_comparar"),
 }
 
 

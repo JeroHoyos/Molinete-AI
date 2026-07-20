@@ -47,8 +47,8 @@ function handleMsg(msg) {
       } else if (S.cat === 'train') {
         if (msg.code !== 0) {
           const note = document.createElement('div');
-          note.style.cssText = 'background:var(--red-bg);border:1px solid var(--red-brd);color:var(--red);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;';
-          note.textContent = `Proceso terminó con código ${msg.code}`;
+          note.className = 'train-note';
+          note.textContent = `El proceso terminó con código ${msg.code}`;
           $('train-dashboard').after(note);
         }
       }

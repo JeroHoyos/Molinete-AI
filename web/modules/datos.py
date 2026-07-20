@@ -17,7 +17,7 @@ import os
 import time
 import urllib.request
 
-from modules.ui import titulo, pedir_input, barra_progreso, imprimir_lento
+from modules.ui import titulo, pedir_input, barra_progreso, imprimir_lento, emit
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus de Cervantes — obras descargables desde Project Gutenberg
@@ -113,21 +113,26 @@ def _descargar_cervantes(ruta_salida: str):
     print(f"Destino: {ruta_salida}\n")
 
     with open(ruta_salida, "w", encoding="utf-8") as archivo_final:
-        for obra in OBRAS_CERVANTES:
+        for i, obra in enumerate(OBRAS_CERVANTES):
             print(f"  Descargando: {obra['titulo']}...")
+            emit("descarga_obra", idx=i, titulo=obra["titulo"], estado="run")
             contenido = _descargar_obra(obra)
             if contenido is None:
+                emit("descarga_obra", idx=i, titulo=obra["titulo"], estado="err")
                 continue
             archivo_final.write(f"\n\n{'='*50}\n")
             archivo_final.write(f"--- {obra['titulo'].upper()} ---\n")
             archivo_final.write(f"{'='*50}\n\n")
             archivo_final.write(contenido)
             print(f"  ✓ '{obra['titulo']}' añadido.")
+            emit("descarga_obra", idx=i, titulo=obra["titulo"], estado="ok",
+                 mb=round(len(contenido.encode("utf-8")) / 1e6, 2))
             if obra is not OBRAS_CERVANTES[-1]:
                 time.sleep(2)   # Pausa cortés con los servidores de Gutenberg
 
     tam = os.path.getsize(ruta_salida)
     print(f"\n✅ Descarga completada. {ruta_salida}  ({tam/1e6:.2f} MB)")
+    emit("descarga_fin", ruta=ruta_salida, mb=round(tam / 1e6, 2))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -141,14 +146,19 @@ def run_descargar_datos():
     obras_str = ", ".join(o["titulo"] for o in OBRAS_CERVANTES)
     print(f"Se descargarán {len(OBRAS_CERVANTES)} obras y se concatenarán en '{ARCHIVO_CERVANTES}':")
     print(f"  {obras_str}\n")
+    emit("descarga_obras",
+         obras=[o["titulo"] for o in OBRAS_CERVANTES],
+         destino=ARCHIVO_CERVANTES)
 
     if os.path.exists(ARCHIVO_CERVANTES):
         tam_mb = os.path.getsize(ARCHIVO_CERVANTES) / 1e6
+        emit("descarga_confirmar", ruta=ARCHIVO_CERVANTES, mb=round(tam_mb, 2))
         confirmar = pedir_input(
             f"⚠️  '{ARCHIVO_CERVANTES}' ya existe ({tam_mb:.2f} MB). ¿Sobreescribir? (s/n): ", "n"
         )
         if confirmar.lower() != "s":
             print("Operación cancelada.")
+            emit("descarga_cancelada")
             return
 
     barra_progreso("Preparando descarga", segundos=0.5)

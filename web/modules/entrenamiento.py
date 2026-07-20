@@ -15,12 +15,10 @@ Exporta:
     run_entrenar_presets()
 """
 
-import glob
 import os
-import shutil
 import time
 
-from modules.ui    import titulo, pedir_input, barra_progreso, verificar_molineteai, SEPARADOR, emit
+from modules.ui    import titulo, pedir_input, barra_progreso, verificar_molineteai, emit
 from modules.datos import elegir_corpus, verificar_corpus, es_corpus_cervantes
 
 # Prompts de generación según el corpus
@@ -44,6 +42,7 @@ PROMPTS_CUSTOM = [
 
 def _entrenar_modelo(
     nombre_modelo: str,
+    nombre_display: str,
     config_nombre: str,
     vocab: int,
     max_chars: int | None,
@@ -79,39 +78,51 @@ def _entrenar_modelo(
 
     es_cervantes = es_corpus_cervantes(ruta_corpus)
 
-    for d in glob.glob(f"data/{nombre_modelo}_*"):
-        shutil.rmtree(d, ignore_errors=True)
-        print(f"Eliminado run anterior: {d}/")
-
+    # Cada entrenamiento crea su propia carpeta con marca de tiempo;
+    # los runs anteriores se conservan para poder compararlos en el chat.
     marca = int(time.time())
     dir_s = f"data/{nombre_modelo}_{marca}"
     os.makedirs(dir_s, exist_ok=True)
     print(f"\nDirectorio de salida: {dir_s}/\n")
+    emit("prep", paso="salida", label="Directorio de salida", value=f"{dir_s}/")
 
     # ── Cargar corpus ────────────────────────────────────────────────────────
     with open(ruta_corpus, encoding="utf-8") as f:
         texto_completo = f.read()
     texto = texto_completo[:max_chars] if max_chars else texto_completo
     print(f"Corpus: {len(texto):,} bytes ({len(texto)/1e6:.2f} MB)")
+    base = os.path.basename(ruta_corpus)
+    if max_chars and len(texto_completo) > max_chars:
+        valor_corpus = f"{base} · {len(texto)/1e6:.2f} MB de {len(texto_completo)/1e6:.2f} MB"
+    else:
+        valor_corpus = f"{base} · {len(texto)/1e6:.2f} MB"
+    emit("prep", paso="corpus", label="Corpus", value=valor_corpus)
 
     # ── Tokenizador BPE (Rust) ────────────────────────────────────────────────
     print(f"\nEntrenando BPE (vocab={vocab})...")
+    emit("prep", paso="bpe", label="Tokenizador BPE", value=f"entrenando (vocab={vocab})…", estado="run")
     barra_progreso("Tokenizador", segundos=0.5)
     tok = molineteai.TokenizadorBPE(vocab)
     tok.entrenar(texto, vocab)
     n_vocab = tok.tam_vocabulario()
     print(f"✓ Vocabulario: {n_vocab} tokens", flush=True)
     tok.guardar(f"{dir_s}/tokenizador.json")
+    emit("prep", paso="bpe", label="Tokenizador BPE", value=f"{n_vocab} tokens")
 
     ids = tok.codificar(texto)
     print(f"Tokens: {len(ids):,}  (compresión {len(texto)/len(ids):.2f}x)", flush=True)
+    emit("prep", paso="tokens", label="Corpus tokenizado",
+         value=f"{len(ids):,} tokens · compresión {len(texto)/len(ids):.2f}x")
 
     # Ejemplos de tokenización con frases del Quijote (flush por línea → tiempo real)
     print("\nEjemplos de tokenización:", flush=True)
+    ejemplos = []
     for frase in ["En un lugar de la Mancha", "el ingenioso hidalgo don Quijote", "Sancho Panza respondió"]:
         ids_f = tok.codificar(frase)
         tokens_f = [tok.decodificar([i]) for i in ids_f]
         print(f'  "{frase}" → {len(ids_f)} tokens: [{"|".join(tokens_f)}]', flush=True)
+        ejemplos.append({"frase": frase, "tokens": tokens_f})
+    emit("tok_examples", ejemplos=ejemplos)
 
     # ── Modelo (Rust) ─────────────────────────────────────────────────────────
     cfg = config_fn(tok.tam_vocabulario())
@@ -119,10 +130,12 @@ def _entrenar_modelo(
     n = molineteai.contar_parametros_config(cfg)
     print(f"\nModelo: {repr(modelo)}")
     print(f"Parámetros: {n:,} ({n/1e6:.2f}M) — Memoria estimada: ~{n*4/1e6:.0f} MB")
+    emit("prep", paso="modelo", label="Modelo construido",
+         value=f"{n:,} parámetros · ~{n*4/1e6:.0f} MB")
 
     # Notificar al frontend los metadatos del entrenamiento
     emit("train_meta",
-         model_name=nombre_modelo,
+         model_name=nombre_display,
          params=n,
          params_m=round(n / 1e6, 2),
          total_steps=pasos,
@@ -170,37 +183,37 @@ def _entrenar_modelo(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run_05_diminuto():
-    titulo("05 — GPT-2 Diminuto")
+    titulo("05 — GPT-2 50K")
     print("~50K parámetros | Tiempo estimado: 3-8 minutos\n")
     _entrenar_modelo(
-        "diminuto", "diminuta",
+        "diminuto", "GPT-2 50K", "diminuta",
         vocab=512, max_chars=200_000,
         pasos=3000, lr=3e-3, paciencia=3000,
     )
 
 
 def run_06_pequeno():
-    titulo("06 — GPT-2 Pequeño")
+    titulo("06 — GPT-2 200K")
     print("~200K parámetros | Tiempo estimado: 10-20 minutos\n")
     _entrenar_modelo(
-        "pequeno", "pequena",
+        "pequeno", "GPT-2 200K", "pequena",
         vocab=1024, max_chars=500_000,
         pasos=100_000, lr=2e-3, paciencia=5000,
     )
 
 
 def run_07_mediano():
-    titulo("07 — GPT-2 Mediano")
+    titulo("07 — GPT-2 4M")
     print("~4M parámetros | Tiempo estimado: 1-3 horas\n")
     _entrenar_modelo(
-        "mediano", "mediana",
+        "mediano", "GPT-2 4M", "mediana",
         vocab=1536, max_chars=None,
         pasos=100_000, lr=3e-4, paciencia=5000,
     )
 
 
 def run_08_gpt2():
-    titulo("08 — GPT-2 Small Completo")
+    titulo("08 — GPT-2 163M")
     print("~163M parámetros | Tiempo estimado: 4-12 horas\n")
     print("⚠️  Requiere mucha RAM. Considera usar nohup para ejecución en segundo plano.\n")
     confirmar = pedir_input("¿Continuar? (s/n): ", "n")
@@ -208,7 +221,7 @@ def run_08_gpt2():
         print("Cancelado.")
         return
     _entrenar_modelo(
-        "gpt2_small", "gpt2_small",
+        "gpt2_small", "GPT-2 163M", "gpt2_small",
         vocab=20534, max_chars=None,
         pasos=200_000, lr=1e-4, paciencia=10000,
     )
@@ -276,25 +289,26 @@ def run_entrenar_presets():
         print(f"⚠️  n_embd ({embd}) no es divisible por n_cabezas ({cab})")
         return
 
-    for d in glob.glob(f"data/{preset.replace('-', '_')}_*"):
-        shutil.rmtree(d, ignore_errors=True)
-        print(f"Eliminado run anterior: {d}/")
-
     marca = int(time.time())
     dir_s = f"data/{preset.replace('-', '_')}_{marca}"
     os.makedirs(dir_s, exist_ok=True)
     print(f"\nDirectorio de salida: {dir_s}/\n")
+    emit("prep", paso="salida", label="Directorio de salida", value=f"{dir_s}/")
 
     with open(ruta_corpus, encoding="utf-8") as f:
         texto = f.read()
     print(f"Corpus: {len(texto)/1e6:.2f} MB")
+    emit("prep", paso="corpus", label="Corpus",
+         value=f"{os.path.basename(ruta_corpus)} · {len(texto)/1e6:.2f} MB")
 
     # Tokenizador BPE (Rust)
+    emit("prep", paso="bpe", label="Tokenizador BPE", value=f"entrenando (vocab={vocab})…", estado="run")
     barra_progreso(f"Tokenizador (vocab={vocab})", segundos=0.5)
     tok = molineteai.TokenizadorBPE(vocab)
     tok.entrenar(texto, vocab)
     print(f"✓ {tok.tam_vocabulario()} tokens")
     tok.guardar(f"{dir_s}/tokenizador.json")
+    emit("prep", paso="bpe", label="Tokenizador BPE", value=f"{tok.tam_vocabulario()} tokens")
 
     # Modelo (Rust)
     cfg = molineteai.Config(
@@ -305,6 +319,8 @@ def run_entrenar_presets():
     modelo = molineteai.GPT2Entrenable(cfg)
     n = molineteai.contar_parametros_config(cfg)
     print(f"Parámetros: {n:,} ({n/1e6:.2f}M)")
+    emit("prep", paso="modelo", label="Modelo construido",
+         value=f"{n:,} parámetros · ~{n*4/1e6:.0f} MB")
 
     emit("train_meta",
          model_name=preset,

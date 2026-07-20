@@ -99,6 +99,7 @@ Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete A
 molineteai/
 ├── src/             ← Implementación del modelo en Rust (tensores, capas, entrenamiento)
 ├── docs/            ← Documentación: corpus (DATA.md) y API Python (REFERENCIA.md)
+├── examples/        ← Ejemplos mínimos de la librería Python
 ├── presentation/    ← Presentación con animaciones Manim
 ├── web/             ← Interfaz web: servidor FastAPI, módulos Python y frontend
 ├── Cargo.toml       ← Proyecto Rust
@@ -136,7 +137,12 @@ uv sync
 
 ### 3. Preparar el corpus
 
-El corpus de Cervantes debe descargarse antes de entrenar. Ver [docs/DATA.md](docs/DATA.md) para instrucciones detalladas y fuentes recomendadas. La descarga se hace desde la interfaz web.
+El corpus de Cervantes debe descargarse antes de entrenar. Se puede hacer de dos formas:
+
+- Desde la interfaz web (opción "Descargar el corpus").
+- Con el script de ejemplo: `uv run python examples/00_descargar_corpus.py`
+
+Ver [docs/DATA.md](docs/DATA.md) para más detalles y fuentes recomendadas.
 
 ### 4. Ejecutar el modelo
 
@@ -189,10 +195,11 @@ print(tok.decodificar(ids_out))
 ---
 
 Para la documentación completa de la API Python, ver [docs/REFERENCIA.md](docs/REFERENCIA.md).
+En [examples/](examples/) hay ejemplos ejecutables y comentados: descargar el corpus, entrenar los dos presets más pequeños y construir una arquitectura personalizada.
 
 ## Interfaz web
 
-La carpeta `web/` contiene la interfaz del proyecto: desde el navegador se descarga el corpus, se exploran los módulos de aprendizaje, se entrenan modelos y se chatea con los checkpoints entrenados. El servidor (FastAPI) lanza cada módulo en un subproceso y retransmite su salida en tiempo real por WebSocket, incluyendo los `input()` interactivos.
+La carpeta `web/` contiene la interfaz del proyecto: desde el navegador se descarga el corpus, se exploran los módulos de aprendizaje, se entrenan modelos (con dashboard de métricas y curva de pérdida en vivo), se chatea con los checkpoints entrenados y se comparan hasta 4 modelos respondiendo al mismo prompt. El servidor (FastAPI) lanza cada módulo en un subproceso y retransmite su salida en tiempo real por WebSocket, incluyendo los `input()` interactivos.
 
 > El proyecto debe estar instalado primero (`uv sync`), que también compila el modelo e incluye las dependencias web.
 
@@ -220,8 +227,8 @@ La carpeta `presentation/` contiene una charla con **animaciones desarrolladas e
 
 ```bash
 cd presentation
-uv run manim-slides render main.py Presentacion
-uv run manim-slides present Presentacion
+uv run python -m manim_slides render main.py Presentacion
+uv run python -m manim_slides present Presentacion
 ```
 
 Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
@@ -238,6 +245,7 @@ Ver [presentation/README.md](presentation/README.md) para instrucciones detallad
 | **Módulos de exploración** | Módulos Python que aíslan y demuestran el comportamiento de cada componente |
 | **Interfaz web** | Todo el proyecto se usa desde el navegador: aprendizaje, entrenamiento y chat |
 | **Bindings Python** | API completa con PyO3/maturin para usar el modelo desde Python |
+| **Ejemplos de la librería** | Scripts mínimos y comentados en [examples/](examples/): corpus, presets y arquitectura a medida |
 | **Presentación Manim** | Animaciones de la arquitectura Transformer para uso pedagógico |
 | **Documentación en español** | Explicaciones adicionales orientadas a la comprensión del código |
 
