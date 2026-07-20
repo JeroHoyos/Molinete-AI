@@ -113,6 +113,14 @@ $('windmill-logo').addEventListener('click', () => {
   }, 16);
 });
 
+// ── QR del repositorio ──
+$('qr-btn').addEventListener('click',      () => $('qr-modal').classList.remove('hidden'));
+$('qr-close').addEventListener('click',    () => $('qr-modal').classList.add('hidden'));
+$('qr-backdrop').addEventListener('click', () => $('qr-modal').classList.add('hidden'));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('qr-modal').classList.add('hidden');
+});
+
 // ─────────────────────────────────────────────────
 // Boot
 // ─────────────────────────────────────────────────

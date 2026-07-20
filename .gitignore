@@ -34,7 +34,9 @@ env/
 ENV/
 
 # Manim output directories
-presentation/portable/
+presentation/portable/*
+!presentation/portable/README.md
+!presentation/portable/normalizar_rutas.py
 media/
 videos/
 images/

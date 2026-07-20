@@ -35,3 +35,5 @@ minutos): sirven para ver la API completa en acción, no para obtener un
 buen modelo. Los checkpoints se guardan en `data/ejemplo_*`.
 
 Para la referencia completa de la API, ver [docs/REFERENCIA.md](../docs/REFERENCIA.md).
+Los detalles del corpus (qué obras incluye y de dónde se descargan) están en
+[docs/DATA.md](../docs/DATA.md).

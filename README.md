@@ -50,6 +50,12 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 **Autor:** Jerónimo Hoyos Botero  
 **Basado en:** [tag1consulting/feste](https://github.com/tag1consulting/feste)
 
+<br>
+
+<img src="docs/img/ferris_quijote_sancho.png" width="560" alt="Don Ferris de la Mancha y su escudero Sancho en un páramo con molinos">
+
+*El ingenioso hidalgo Don Ferris de la Mancha y su fiel escudero*
+
 </div>
 
 ---
@@ -60,7 +66,7 @@ __        {|\ \'  / )  / __  \\O| ______________________________________________
 - [¿Por qué "Molinete"?](#por-qué-molinete)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Inicio rápido](#inicio-rápido)
-- [Módulos Python](#módulos-python)
+- [Librería de Python](#librería-de-python)
 - [Interfaz web](#interfaz-web)
 - [Presentación](#presentación)
 - [Diferencias frente al repositorio original](#diferencias-frente-al-repositorio-original)
@@ -87,7 +93,11 @@ Mientras que Feste entrena el modelo con las obras completas de Shakespeare, **M
 
 ## ¿Por qué "Molinete"?
 
-Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes — una metáfora perfecta para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
+Si Feste toma su identidad del bufón ingenioso de *Twelfth Night*, **Molinete AI** rinde homenaje a los famosos molinos de viento que el ingenioso hidalgo Don Quijote confundió con fieros gigantes, una metáfora para un modelo de lenguaje que intenta imitar la grandeza de algo mucho más vasto que él mismo.
+
+<div align="center">
+<img src="presentation/assets/quijote_vs_molinos.png" width="340" alt="General Quixote">
+</div>
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
@@ -106,7 +116,7 @@ molineteai/
 └── pyproject.toml   ← Proyecto Python (gestionado con uv)
 ```
 
-Cada carpeta tiene su propia documentación: ver [docs/README.md](docs/README.md), [presentation/README.md](presentation/README.md) y las secciones siguientes.
+Cada carpeta tiene su propio README.md, donde se encuentra su documentación.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
@@ -128,7 +138,7 @@ cd Molinete-AI
 
 ### 2. Instalar dependencias y compilar
 
-El proyecto está gestionado por `uv`: un solo comando crea el entorno virtual (`.venv/`), instala todas las dependencias (con versiones fijadas en `uv.lock`) y compila los bindings Rust:
+El proyecto está gestionado por `uv`.
 
 ```bash
 uv sync
@@ -142,20 +152,9 @@ El corpus de Cervantes debe descargarse antes de entrenar. Se puede hacer de dos
 - Desde la interfaz web (opción "Descargar el corpus").
 - Con el script de ejemplo: `uv run python examples/00_descargar_corpus.py`
 
-Ver [docs/DATA.md](docs/DATA.md) para más detalles y fuentes recomendadas.
+Ver [docs/DATA.md](docs/DATA.md) para más detalles .
 
 ### 4. Ejecutar el modelo
-
-Todo el proyecto se usa desde la interfaz web:
-
-```bash
-uv run web/server.py
-# Abrir http://localhost:7860
-```
-
-Ver la sección [Interfaz web](#interfaz-web) para más detalles.
-
-<div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 
 ---
 
@@ -194,14 +193,30 @@ print(tok.decodificar(ids_out))
 
 ---
 
-Para la documentación completa de la API Python, ver [docs/REFERENCIA.md](docs/REFERENCIA.md).
-En [examples/](examples/) hay ejemplos ejecutables y comentados: descargar el corpus, entrenar los dos presets más pequeños y construir una arquitectura personalizada.
+Para la documentación completa de la API de Python, consulta [docs/REFERENCIA.md](docs/REFERENCIA.md).
+En [examples/](examples/) encontrarás ejemplos ejecutables y comentados: descargar el corpus, entrenar los dos *presets* más pequeños y construir una arquitectura personalizada.
 
 ## Interfaz web
 
-La carpeta `web/` contiene la interfaz del proyecto: desde el navegador se descarga el corpus, se exploran los módulos de aprendizaje, se entrenan modelos (con dashboard de métricas y curva de pérdida en vivo), se chatea con los checkpoints entrenados y se comparan hasta 4 modelos respondiendo al mismo prompt. El servidor (FastAPI) lanza cada módulo en un subproceso y retransmite su salida en tiempo real por WebSocket, incluyendo los `input()` interactivos.
+La interfaz del proyecto reúne todo el flujo de trabajo en el navegador. Desde ahí puedes descargar el corpus, explorar los módulos de aprendizaje, entrenar modelos con métricas en vivo, chatear con los checkpoints entrenados y comparar hasta 4 modelos respondiendo al mismo prompt.
 
-> El proyecto debe estar instalado primero (`uv sync`), que también compila el modelo e incluye las dependencias web.
+<div align="center">
+<img src="docs/img/web_inicio.png" width="850" alt="Pantalla de inicio de la interfaz web">
+
+*La pantalla de inicio: cuatro presets de GPT-2, de 50K a 163M de parámetros, listos para entrenar.*
+</div>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/web_chat.png" alt="Chat con Molinete entrenado."></td>
+<td width="50%"><img src="docs/img/web_entrenamiento.png" alt="Dashboard del entrenamiento de Molinete."></td>
+</tr>
+<tr>
+<td align="center"><em>Chat con Molinete entrenado.</em></td>
+<td align="center"><em>Dashboard del entrenamiento de Molinete.</em></td>
+</tr>
+</table>
+
 
 ### Iniciar el servidor
 
@@ -225,13 +240,20 @@ PORT=8000 uv run web/server.py
 
 La carpeta `presentation/` contiene una charla con **animaciones desarrolladas en Manim** que explora visualmente cómo se construye un Transformer desde cero: tokenización, embeddings, mecanismos de self-attention, redes feed forward, conexiones residuales y generación autoregresiva.
 
+<div align="center">
+<img src="docs/img/presentation_portada.png" width="850" alt="Comparativa de arquitecturas de LLMs modernos">
+
+*Presentado en Medellín AI y en Pycon Colombia 2026*
+</div>
+
 ```bash
 cd presentation
-uv run python -m manim_slides render main.py Presentacion
+uv run python compilar.py       # renderiza y deja todo listo en portable/
+cd portable
 uv run python -m manim_slides present Presentacion
 ```
 
-Ver [presentation/README.md](presentation/README.md) para instrucciones detalladas y controles de la presentación.
+La carpeta `portable/` que genera la compilación es autocontenida y se puede llevar a otro PC (incluso Linux o Mac). Ver [presentation/README.md](presentation/README.md) para el detalle, y [presentation/portable/README.md](presentation/portable/README.md) para los controles y cómo presentar fuera del repositorio.
 
 <div align="right"><a href="#molinete-ai">↑ Volver arriba</a></div>
 

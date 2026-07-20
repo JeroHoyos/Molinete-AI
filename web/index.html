@@ -9,10 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/base.css?v=7">
-  <link rel="stylesheet" href="css/theme/home.css?v=7">
-  <link rel="stylesheet" href="css/theme/views.css?v=7">
-  <link rel="stylesheet" href="css/theme/output.css?v=7">
+  <link rel="stylesheet" href="css/base.css?v=9">
+  <link rel="stylesheet" href="css/theme/home.css?v=9">
+  <link rel="stylesheet" href="css/theme/views.css?v=9">
+  <link rel="stylesheet" href="css/theme/output.css?v=9">
 </head>
 
 <body>
@@ -573,6 +573,24 @@
 </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- Botón flotante y modal: QR del repositorio -->
+<button type="button" id="qr-btn" aria-label="Ver el QR del repositorio" title="Código del proyecto en GitHub">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm11-2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-4-4h2v2h-2v-2Zm0 4h2v2h-2v-2Z"/>
+  </svg>
+</button>
+
+<div id="qr-modal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+  <div class="qr-backdrop" id="qr-backdrop"></div>
+  <div class="qr-card">
+    <button type="button" class="qr-close" id="qr-close" aria-label="Cerrar">×</button>
+    <div class="qr-kicker">Escanea el código</div>
+    <div class="qr-title" id="qr-title">Molinete AI en GitHub</div>
+    <img class="qr-img" src="img/qr_github.png" alt="QR del repositorio en GitHub">
+    <a class="qr-link" href="https://github.com/JeroHoyos/Molinete-AI" target="_blank" rel="noopener">github.com/JeroHoyos/Molinete-AI</a>
+  </div>
+</div>
+
 <!-- Modal: arquitectura del modelo -->
 <div id="arch-modal" class="arch-modal hidden" role="dialog" aria-modal="true" aria-labelledby="arch-name">
   <div class="arch-backdrop" id="arch-backdrop"></div>
@@ -586,17 +604,17 @@
 </div>
 
 <!-- JS modular (scripts clásicos en orden de dependencia) -->
-<script src="js/config.js?v=7"></script>
-<script src="js/dom.js?v=7"></script>
-<script src="js/utils.js?v=7"></script>
-<script src="js/views.js?v=7"></script>
-<script src="js/ws.js?v=7"></script>
-<script src="js/render.js?v=7"></script>
-<script src="js/train.js?v=7"></script>
-<script src="js/chat.js?v=7"></script>
-<script src="js/comp.js?v=7"></script>
-<script src="js/learn.js?v=7"></script>
-<script src="js/arch.js?v=7"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/dom.js?v=9"></script>
+<script src="js/utils.js?v=9"></script>
+<script src="js/views.js?v=9"></script>
+<script src="js/ws.js?v=9"></script>
+<script src="js/render.js?v=9"></script>
+<script src="js/train.js?v=9"></script>
+<script src="js/chat.js?v=9"></script>
+<script src="js/comp.js?v=9"></script>
+<script src="js/learn.js?v=9"></script>
+<script src="js/arch.js?v=9"></script>
+<script src="js/main.js?v=9"></script>
 </body>
 </html>

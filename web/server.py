@@ -37,6 +37,7 @@ WEB_DIR  = Path(__file__).parent
 app = FastAPI(title="Molinete AI")
 app.mount("/css", StaticFiles(directory=str(WEB_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(WEB_DIR / "js")), name="js")
+app.mount("/img", StaticFiles(directory=str(WEB_DIR / "img")), name="img")
 
 
 @app.middleware("http")

@@ -139,6 +139,25 @@ def _emitir_checkpoints(modelos):
     ])
 
 
+def _borrar_carpeta_modelo(carpeta):
+    """Borra la carpeta de un modelo, con reintentos.
+
+    En Windows el borrado de archivos es asincrono: rmtree puede vaciar la
+    carpeta pero fallar en el rmdir final porque el sistema aun la ve como
+    no vacia. Reintentar un instante despues completa el borrado.
+    """
+    for intento in range(5):
+        try:
+            shutil.rmtree(carpeta)
+            return
+        except FileNotFoundError:
+            return
+        except OSError:
+            if intento == 4:
+                raise
+            time.sleep(0.2 * (intento + 1))
+
+
 def run_chat():
     if not verificar_molineteai():
         return
@@ -164,7 +183,7 @@ def run_chat():
                 if arg.isdigit() and 1 <= int(arg) <= len(modelos):
                     m = modelos[int(arg) - 1]
                     try:
-                        shutil.rmtree(m["carpeta"])
+                        _borrar_carpeta_modelo(m["carpeta"])
                         print(f"Borrado: {m['carpeta']}/")
                         emit("chat_info", text=f"Modelo '{m['nombre']}' borrado.")
                     except Exception as e:
