@@ -11,11 +11,16 @@ Requiere haber instalado el proyecto con `uv sync` (ver [Inicio rápido](../READ
 cd presentation
 
 # 2. Compilar (los videos se guardan en media/)
-uv run manim-slides render main.py Presentacion
+uv run python -m manim_slides render main.py Presentacion
 
 # 3. Presentar en escritorio
-uv run manim-slides present Presentacion
+uv run python -m manim_slides present Presentacion
 ```
+
+> Se invoca como `python -m manim_slides` (y no `manim-slides` a secas) porque
+> Smart App Control de Windows puede bloquear el lanzador `.exe` del entorno
+> con el error "An Application Control policy has blocked this file".
+> La forma con `python -m` hace exactamente lo mismo.
 
 ## Notas
 

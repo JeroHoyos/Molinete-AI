@@ -75,16 +75,16 @@ class SlideFinal:
             return cuerpo, aspas, eje, aspas.get_center()
 
         def construir_qr():
-            qr_real = ImageMobject(os.path.join("assets", "qr_github_molineteai.png")).scale(0.85)
+            qr_real = ImageMobject(os.path.join("assets", "Jerónimo Hoyos Botero - Construyendo un Transformer con Rust.png")).set_height(2.6)
             fondo_qr = RoundedRectangle(corner_radius=0.25, width=qr_real.width + 0.5, height=qr_real.height + 0.5,
                                         color=NARANJA_TERRACOTA, stroke_width=4, fill_color=PAPEL_CREMA, fill_opacity=1)
             estr_l = estrella_deco(fondo_qr.get_corner(UL) + RIGHT*0.28 + DOWN*0.28)
             estr_r = estrella_deco(fondo_qr.get_corner(UR) + LEFT*0.28  + DOWN*0.28)
 
-            grupo_qr = Group(fondo_qr, qr_real, estr_l, estr_r).to_edge(RIGHT, buff=1.0).shift(DOWN * 1.2)
+            grupo_qr = Group(fondo_qr, qr_real, estr_l, estr_r).to_edge(RIGHT, buff=1.6).shift(DOWN * 1.2)
 
-            lbl_qr = Text("Repositorio del proyecto", font=FUENTE, font_size=17, weight=BOLD, color=MARRON_OSCURO).next_to(grupo_qr, UP, buff=0.28)
-            url_lbl = Text("github.com/molineteai", font=FUENTE, font_size=15, color=NARANJA_TERRACOTA).next_to(grupo_qr, DOWN, buff=0.18)
+            lbl_qr = Text("Calificación de la Charla", font=FUENTE, font_size=17, weight=BOLD, color=MARRON_OSCURO).next_to(grupo_qr, UP, buff=0.28)
+            url_lbl = Text("Pycon Colombia 2026", font=FUENTE, font_size=15, color=NARANJA_TERRACOTA).next_to(grupo_qr, DOWN, buff=0.18)
 
             return fondo_qr, qr_real, estr_l, estr_r, lbl_qr, url_lbl
 
@@ -131,4 +131,4 @@ class SlideFinal:
             run_time=1.4
         )
 
-        self.play(Rotate(aspas, angle=2*PI*4, about_point=centro_giro_aspas, run_time=10, rate_func=linear))
+        self.play(Rotate(aspas, angle=2*PI, about_point=centro_giro_aspas, run_time=10, rate_func=linear))
