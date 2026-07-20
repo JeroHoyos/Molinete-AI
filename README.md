@@ -209,7 +209,7 @@ La interfaz del proyecto reúne todo el flujo de trabajo en el navegador. Desde 
 <div align="center">
 <img src="docs/img/web_chat.png" width="850" alt="Chat con Molinete entrenado.">
 
-*Conversando con un Molinete ya entrenado..*
+*Conversando con un Molinete ya entrenado.*
 
 <img src="docs/img/web_entrenamiento.png" width="850" alt="Dashboard del entrenamiento de Molinete.">
 
@@ -242,7 +242,7 @@ La carpeta `presentation/` contiene una charla con **animaciones desarrolladas e
 <div align="center">
 <img src="docs/img/presentation_portada.png" width="850" alt="Comparativa de arquitecturas de LLMs modernos">
 
-*Presentado en Medellín AI y en Pycon Colombia 2026*
+*Presentado en Medellín AI y en Pycon Colombia 2026.*
 </div>
 
 ```bash

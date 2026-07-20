@@ -17,11 +17,6 @@ cd portable
 uv run python -m manim_slides present Presentacion
 ```
 
-> Se invoca como `python -m manim_slides` (y no `manim-slides` a secas) porque
-> Smart App Control de Windows puede bloquear el lanzador `.exe` del entorno
-> con el error "An Application Control policy has blocked this file".
-> La forma con `python -m` hace exactamente lo mismo.
-
 ## Llevar la presentación a otro PC
 
 La carpeta `portable/` es autocontenida: la presentación renderizada más un
@@ -31,10 +26,10 @@ La carpeta `portable/` es autocontenida: la presentación renderizada más un
 uv run python comprimir.py      # crea presentacion_portable.zip
 ```
 
-En el otro PC basta el zip y `descomprimir.py` (solo necesita Python):
+En el otro PC basta el zip y `descomprimir.py`:
 
 ```bash
-python3 descomprimir.py
+uv run python descomprimir.py
 ```
 
 Las instrucciones completas para presentar fuera del repositorio, los controles
