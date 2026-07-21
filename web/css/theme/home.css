@@ -170,9 +170,9 @@
 }
 .model-card:hover:not(.is-disabled) .model-time { background: var(--gold); border-color: var(--gold); color: #fff; }
 
-/* ── Acciones: chat y corpus ── */
+/* ── Acciones: chat/comparador y corpus ── */
 .nd-actions {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 0 0 auto;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; flex: 0 0 auto;
   padding: 18px 40px 30px;
 }
 .nd-actions .opt-btn {

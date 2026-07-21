@@ -14,6 +14,7 @@ Exporta:
 """
 
 import csv
+import json
 import math
 import os
 import shutil
@@ -96,6 +97,16 @@ def _leer_stats(carpeta: str) -> dict:
     return stats
 
 
+def _tam_vocabulario(carpeta: str) -> int | None:
+    """Tamaño del vocabulario según tokenizador.json (None si no se puede leer)."""
+    try:
+        with open(os.path.join(carpeta, "tokenizador.json"), encoding="utf-8") as f:
+            vocab = json.load(f).get("vocabulario")
+        return len(vocab) if isinstance(vocab, dict) else None
+    except Exception:
+        return None
+
+
 def _buscar_modelos() -> list[dict]:
     """Escanea data/ y devuelve lista de modelos disponibles con metadatos."""
     modelos = []
@@ -117,6 +128,12 @@ def _buscar_modelos() -> list[dict]:
             continue
 
         stats = _leer_stats(carpeta)
+        ruta_ultimo = ck_ultimo if os.path.exists(ck_ultimo) else (ck_final if os.path.exists(ck_final) else None)
+        ck_ref = ck_mejor if tiene_mejor else ruta_ultimo
+        try:
+            size_mb = round(os.path.getsize(ck_ref) / 1e6, 1) if ck_ref else None
+        except OSError:
+            size_mb = None
         modelos.append({
             "idx":          len(modelos) + 1,
             "nombre":       nombre,
@@ -124,9 +141,11 @@ def _buscar_modelos() -> list[dict]:
             "fecha":        _fecha_carpeta(nombre),
             "carpeta":      carpeta,
             "ck_mejor":     ck_mejor  if tiene_mejor  else None,
-            "ck_ultimo":    ck_ultimo if os.path.exists(ck_ultimo) else (ck_final if os.path.exists(ck_final) else None),
+            "ck_ultimo":    ruta_ultimo,
             "tiene_mejor":  tiene_mejor,
             "tiene_ultimo": tiene_ultimo,
+            "vocab":        _tam_vocabulario(carpeta),
+            "size_mb":      size_mb,
             **stats,
         })
     return modelos
@@ -174,9 +193,18 @@ def run_chat():
     if modelos:
         # El frontend muestra las tarjetas con los modelos vía chat_checkpoints.
         # Bloqueamos stdin esperando la selección; "borrar N" elimina la
-        # carpeta del modelo N y reemite la lista actualizada.
+        # carpeta del modelo N y reemite la lista actualizada. Una selección
+        # con comas ("1,3" o "2,2") abre la sesión de comparación en su lugar.
         while True:
             sel = pedir_input("").strip()
+
+            if "," in sel:
+                from modules.comparar import _sesion_comparar, parsear_indices
+                indices = parsear_indices(sel, len(modelos))
+                if indices:
+                    _sesion_comparar(modelos, indices)
+                    return
+                continue
 
             if sel.lower().startswith("borrar "):
                 arg = sel.split(None, 1)[1].strip()

@@ -49,7 +49,7 @@ function parseAndRender(chunk) {
 function handleMolEvent(ev) {
   switch (ev.type) {
 
-    // ── Chat ──
+    // ── Selector unificado: 1 modelo → chat · 2+ paneles → comparación ──
     case 'chat_checkpoints': {
       $chatLoading.style.display = 'none';
       document.getElementById('ck-picker-wrap')?.remove();
@@ -60,84 +60,159 @@ function handleMolEvent(ev) {
         el.className = 'ck-no-models';
         el.textContent = 'No hay modelos entrenados todavía. Entrena uno desde la portada y vuelve aquí.';
         $chatWelcome.appendChild(el);
-      } else {
-        $chatWelcomeText.textContent = '';
-        const wrap = document.createElement('div');
-        wrap.id = 'ck-picker-wrap';
-        wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;';
-        wrap.innerHTML = `
-          <div class="ck-picker-heading">Elige tu modelo</div>
-          <div class="ck-picker-sub">Selecciona el checkpoint con el que quieres conversar</div>
-        `;
-        const grid = document.createElement('div');
-        grid.className = 'ck-model-grid';
-        grid.id = 'ck-model-grid';
-        ms.forEach(m => {
-          const card = document.createElement('div');
-          card.setAttribute('role', 'button');
-          card.tabIndex = 0;
-          card.className = 'ck-model-card' + (m.tiene_mejor ? ' ck-has-mejor' : '');
-          const perp = m.mejor_perp != null
-            ? `<div class="ck-stat-row"><span class="ck-stat-k">Perplejidad</span><span class="ck-stat-v">${Number(m.mejor_perp).toFixed(2)}</span></div>`
-            : '';
-          const val = m.mejor_val != null
-            ? `<div class="ck-stat-row"><span class="ck-stat-k">Mejor val.</span><span class="ck-stat-v">${Number(m.mejor_val).toFixed(4)}</span></div>`
-            : '';
-          const sizeMb = m.size_mb != null
-            ? `<div class="ck-stat-row"><span class="ck-stat-k">Peso</span><span class="ck-stat-v">${m.size_mb} MB</span></div>`
-            : '';
-          const fecha = m.fecha
-            ? `<div class="ck-stat-row"><span class="ck-stat-k">Entrenado</span><span class="ck-stat-v">${escHtml(m.fecha)}</span></div>`
-            : '';
-          const tagMejor  = m.tiene_mejor  ? '<span class="ck-tag ck-tag-mejor">✓ mejor checkpoint</span>' : '';
-          const tagUltimo = m.tiene_ultimo ? '<span class="ck-tag ck-tag-ultimo">último guardado</span>'  : '';
-          card.innerHTML = `
-            <div class="ck-model-idx">Modelo ${m.idx}</div>
-            <div class="ck-model-display">${escHtml(m.display)}</div>
-            <div class="ck-model-folder">${escHtml(m.nombre)}</div>
-            <div class="ck-stats-block">
-              <div class="ck-stat-row"><span class="ck-stat-k">Pasos</span><span class="ck-stat-v">${(m.pasos||0).toLocaleString()}</span></div>
-              ${val}${perp}${sizeMb}${fecha}
-            </div>
-            <div class="ck-tags">${tagMejor}${tagUltimo}</div>
-            <div class="ck-select-btn">Conversar →</div>`;
-
-          const seleccionar = () => {
-            document.getElementById('ck-picker-wrap')?.remove();
-            $chatWelcomeText.textContent = `Cargando ${m.display}…`;
-            $chatLoading.style.display = 'flex';
-            wsSend({ action: 'input', value: String(m.idx) });
-          };
-          card.addEventListener('click', seleccionar);
-          card.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seleccionar(); }
-          });
-
-          // Borrar el modelo del disco (con confirmación en el propio botón)
-          const del = document.createElement('button');
-          del.type = 'button';
-          del.className = 'ck-del-btn';
-          del.title = 'Borrar este modelo del disco';
-          del.textContent = '×';
-          del.addEventListener('click', e => {
-            e.stopPropagation();
-            if (!del.classList.contains('confirmar')) {
-              del.classList.add('confirmar');
-              del.textContent = '¿Borrar?';
-              setTimeout(() => {
-                del.classList.remove('confirmar');
-                del.textContent = '×';
-              }, 3000);
-              return;
-            }
-            wsSend({ action: 'input', value: `borrar ${m.idx}` });
-          });
-          card.appendChild(del);
-          grid.appendChild(card);
-        });
-        wrap.appendChild(grid);
-        $chatWelcome.appendChild(wrap);
+        break;
       }
+
+      $chatWelcomeText.textContent = '';
+      $chatWelcome.classList.add('picker-mode');
+      const MAX_PANELES = 4;
+      const sel = [];   // idx elegidos en orden de panel; admite repetidos
+
+      const wrap = document.createElement('div');
+      wrap.id = 'ck-picker-wrap';
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;';
+      wrap.innerHTML = `
+        <div class="ck-picker-heading">Tus modelos entrenados</div>
+        <div class="ck-picker-sub">Elige <b>uno</b> para conversar, o <b>varios</b> para compararlos con el mismo prompt.
+        Puedes repetir un modelo para verlo a distintas temperaturas.</div>
+      `;
+      const grid = document.createElement('div');
+      grid.className = 'ck-model-grid';
+      grid.id = 'ck-model-grid';
+
+      // Barra de acción con botón dinámico
+      const bar  = document.createElement('div');
+      bar.className = 'ck-action-bar';
+      const go   = document.createElement('button');
+      go.type = 'button';
+      go.className = 'btn btn-primary ck-go';
+      go.disabled = true;
+      const hint = document.createElement('div');
+      hint.className = 'ck-action-hint';
+      bar.appendChild(go);
+      bar.appendChild(hint);
+
+      const refreshBar = () => {
+        const n = sel.length;
+        go.disabled = n === 0;
+        if (n === 0) {
+          go.textContent = 'Elige al menos un modelo';
+          hint.textContent = 'Con un modelo abres el chat; con dos o más, la comparación';
+        } else if (n === 1) {
+          const m0 = ms.find(x => x.idx === sel[0]);
+          go.textContent = `Conversar con ${m0 ? m0.display : 'el modelo'} →`;
+          hint.textContent = 'Añade otro modelo, o repite este, para comparar en paralelo';
+        } else {
+          go.textContent = `Comparar ${n} paneles →`;
+          hint.textContent = 'Mismo prompt en todos; la temperatura se ajusta panel a panel';
+        }
+      };
+
+      ms.forEach(m => {
+        const card = document.createElement('div');
+        card.setAttribute('role', 'button');
+        card.tabIndex = 0;
+        card.className = 'ck-model-card' + (m.tiene_mejor ? ' ck-has-mejor' : '');
+        const mini = (v, k) => `<div class="ck-mini"><b>${v}</b><span>${k}</span></div>`;
+        const tiles =
+          mini((m.pasos || 0).toLocaleString(), 'pasos') +
+          (m.mejor_perp != null ? mini(Number(m.mejor_perp).toFixed(1), 'perplejidad') : '') +
+          (m.vocab != null ? mini(Number(m.vocab).toLocaleString(), 'vocab') : '') +
+          (m.size_mb != null ? mini(`${m.size_mb} MB`, 'peso') : '');
+        const meta =
+          (m.tiene_mejor ? '<span class="ok">✓ mejor checkpoint</span>' : 'último guardado') +
+          (m.fecha ? ` · ${escHtml(m.fecha)}` : '');
+        card.innerHTML = `
+          <span class="comp-check">✓</span>
+          <div class="ck-model-idx">Modelo ${m.idx}</div>
+          <div class="ck-model-display">${escHtml(m.display)}</div>
+          <div class="ck-model-folder">${escHtml(m.nombre)}</div>
+          <div class="ck-stats-mini">${tiles}</div>
+          <div class="ck-meta-line">${meta}</div>
+          <div class="ck-card-foot">
+            <button type="button" class="ck-minus hidden" aria-label="Quitar un panel de ${escHtml(m.display)}">−</button>
+            <div class="ck-select-btn">Elegir</div>
+          </div>`;
+
+        const cuenta = () => sel.filter(x => x === m.idx).length;
+        const pintarCard = () => {
+          const n = cuenta();
+          card.classList.toggle('comp-on', n > 0);
+          const chk = card.querySelector('.comp-check');
+          chk.textContent = n > 1 ? '×' + n : '✓';
+          chk.classList.toggle('multi', n > 1);
+          card.querySelector('.ck-minus').classList.toggle('hidden', n === 0);
+          card.querySelector('.ck-select-btn').textContent =
+            n === 0 ? 'Elegir' : n === 1 ? 'Elegido' : `Elegido ×${n}`;
+        };
+
+        const anadir = () => {
+          if (sel.length >= MAX_PANELES) {
+            hint.textContent = `Máximo ${MAX_PANELES} paneles; quita alguno para añadir otro`;
+            return;
+          }
+          sel.push(m.idx);
+          pintarCard();
+          refreshBar();
+        };
+        const quitar = () => {
+          const p = sel.lastIndexOf(m.idx);
+          if (p >= 0) sel.splice(p, 1);
+          pintarCard();
+          refreshBar();
+        };
+
+        card.addEventListener('click', anadir);
+        card.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); anadir(); }
+        });
+        card.querySelector('.ck-minus').addEventListener('click', e => {
+          e.stopPropagation();
+          quitar();
+        });
+
+        // Borrar el modelo del disco (con confirmación en el propio botón)
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'ck-del-btn';
+        del.title = 'Borrar este modelo del disco';
+        del.textContent = '×';
+        del.addEventListener('click', e => {
+          e.stopPropagation();
+          if (!del.classList.contains('confirmar')) {
+            del.classList.add('confirmar');
+            del.textContent = '¿Borrar?';
+            setTimeout(() => {
+              del.classList.remove('confirmar');
+              del.textContent = '×';
+            }, 3000);
+            return;
+          }
+          wsSend({ action: 'input', value: `borrar ${m.idx}` });
+        });
+        card.appendChild(del);
+        grid.appendChild(card);
+      });
+
+      go.addEventListener('click', () => {
+        if (!sel.length) return;
+        document.getElementById('ck-picker-wrap')?.remove();
+        $chatWelcome.classList.remove('picker-mode');
+        if (sel.length === 1) {
+          const m0 = ms.find(x => x.idx === sel[0]);
+          $chatWelcomeText.textContent = `Cargando ${m0 ? m0.display : 'el modelo'}…`;
+          $chatLoading.style.display = 'flex';
+          wsSend({ action: 'input', value: String(sel[0]) });
+        } else {
+          switchToCompView();
+          wsSend({ action: 'input', value: sel.join(',') });
+        }
+      });
+
+      refreshBar();
+      wrap.appendChild(grid);
+      wrap.appendChild(bar);
+      $chatWelcome.appendChild(wrap);
       break;
     }
 
@@ -145,6 +220,10 @@ function handleMolEvent(ev) {
       document.getElementById('ck-model-grid')?.remove();
       $chatLoading.style.display = 'none';
       $chatWelcome.style.display = 'none';
+      if (ev.display) {
+        $hdrTaskName.textContent = `Chat con ${ev.display}`;
+        $hdrTaskSub.textContent  = ev.nombre || '';
+      }
 
       // Chip con el modelo cargado + tarjeta de bienvenida con sus datos
       const partes = String(ev.checkpoint || '').split(/[\\/]/);
@@ -271,7 +350,6 @@ function handleMolEvent(ev) {
     case 'train_start':
       $trainStepLabel.textContent = 'Entrenando…';
       S.trainStarted = true;
-      if ($trainRightDots) $trainRightDots.classList.remove('hidden');
       break;
 
     case 'train_done':
@@ -279,7 +357,6 @@ function handleMolEvent(ev) {
       $trainPctLabel.textContent = '100%';
       $progressFill.style.width = '100%';
       $ttEta.textContent = '0 s';
-      if ($trainRightDots) $trainRightDots.classList.add('hidden');
       break;
 
     case 'sample':

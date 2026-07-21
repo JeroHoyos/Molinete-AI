@@ -143,11 +143,7 @@ body {
 .btn-danger { background: var(--red-bg); border-color: var(--red-brd); color: var(--red); }
 .btn-danger:hover:not(:disabled) { background: #f3d5c8; border-color: var(--red); color: var(--red); }
 
-/* ─── Puntos de actividad ─── */
-.run-dots { display: inline-flex; gap: 4px; align-items: center; padding: 0 6px; }
-.run-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: dotB 1.2s infinite; }
-.run-dot:nth-child(2) { animation-delay: .15s; }
-.run-dot:nth-child(3) { animation-delay: .30s; }
+/* ─── Punto de actividad (filas de preparación y descarga) ─── */
 @keyframes dotB { 0%,80%,100% { transform: scale(.5); opacity: .3; } 40% { transform: scale(1); opacity: 1; } }
 
 /* ─── Vista de módulo: marco ─── */

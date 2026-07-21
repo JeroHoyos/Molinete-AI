@@ -27,8 +27,6 @@ function handleMsg(msg) {
     case 'started':
       S.running = true;
       _lineBuffer = '';
-      $hdrRunDots.classList.remove('hidden');
-      if ($terminalRunDots) $terminalRunDots.classList.remove('hidden');
       setStatus('Ejecutando…', 'run');
       syncUI();
       break;
@@ -39,8 +37,6 @@ function handleMsg(msg) {
 
     case 'done':
       S.running = false;
-      $hdrRunDots.classList.add('hidden');
-      if ($terminalRunDots) $terminalRunDots.classList.add('hidden');
       if (S.cat === 'learn') {
         $outputPre.classList.remove('cursor');
         showNote(msg.code === 0 ? '✓ Proceso completado' : `Proceso terminó con código ${msg.code}`, msg.code === 0);
@@ -58,8 +54,6 @@ function handleMsg(msg) {
 
     case 'stopped':
       S.running = false;
-      $hdrRunDots.classList.add('hidden');
-      if ($terminalRunDots) $terminalRunDots.classList.add('hidden');
       if (S.cat === 'learn') showNote('Detenido por el usuario', false);
       setStatus('Listo', 'ok');
       syncUI();
@@ -67,8 +61,6 @@ function handleMsg(msg) {
 
     case 'error':
       S.running = false;
-      $hdrRunDots.classList.add('hidden');
-      if ($terminalRunDots) $terminalRunDots.classList.add('hidden');
       if (S.cat === 'learn') showNote(msg.message || 'Error', false);
       setStatus('Error', 'err');
       syncUI();

@@ -34,6 +34,8 @@ function resetCompView() {
   $compTokensBtn.setAttribute('aria-pressed', 'false');
   $compInput.disabled = true;
   $compSend.disabled = true;
+  S.compMax = 80;
+  $('comp-max-value').textContent = String(S.compMax);
   _compSel = [];
 }
 
@@ -124,7 +126,7 @@ function compPanel(slot) {
 }
 
 const _ESTADO_HTML = txt =>
-  `<div class="comp-estado"><span class="run-dot"></span><span class="run-dot"></span><span class="run-dot"></span><span class="comp-estado-txt">${txt}</span></div>`;
+  `<div class="comp-estado"><span class="comp-estado-txt">${txt}</span></div>`;
 
 function compLoadingEv(ev) {
   $compWelcome.style.display = 'none';
@@ -135,10 +137,36 @@ function compLoadingEv(ev) {
     p.dataset.slot = ev.slot;
     p.innerHTML = `
       <div class="comp-panel-head">
-        <div class="comp-panel-title"></div>
+        <div class="comp-head-row">
+          <div class="comp-panel-title"></div>
+          <span class="comp-temp-ctl stepper hidden" title="Temperatura de este panel">
+            <button type="button" class="ct-minus" aria-label="Bajar temperatura">−</button>
+            <output>0.8</output>
+            <button type="button" class="ct-plus" aria-label="Subir temperatura">+</button>
+          </span>
+        </div>
         <div class="comp-panel-sub"></div>
+        <div class="comp-panel-chips hidden"></div>
       </div>
       <div class="comp-panel-body tok-dual">${_ESTADO_HTML('Cargando…')}</div>`;
+
+    // Temperatura por panel: el backend acepta "temp <panel> <valor>" (1-based)
+    const ctl = p.querySelector('.comp-temp-ctl');
+    const out = ctl.querySelector('output');
+    let timer = 0;
+    const ajustar = delta => {
+      const t = Math.min(2.0, Math.max(0.1, Math.round((parseFloat(out.textContent) + delta) * 10) / 10));
+      out.textContent = t.toFixed(1);
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (S.running && S.cat === 'comp') {
+          wsSend({ action: 'input', value: `temp ${Number(ev.slot) + 1} ${out.textContent}` });
+        }
+      }, 450);
+    };
+    ctl.querySelector('.ct-minus').addEventListener('click', () => ajustar(-0.1));
+    ctl.querySelector('.ct-plus').addEventListener('click',  () => ajustar(+0.1));
+
     $compGrid.appendChild(p);
   }
   p.querySelector('.comp-panel-title').textContent = ev.display || ev.nombre || 'Modelo';
@@ -148,14 +176,29 @@ function compLoadingEv(ev) {
 function compLoadedEv(ev) {
   const p = compPanel(ev.slot);
   if (!p) return;
-  const sub = [];
-  if (ev.nombre) sub.push(ev.nombre);
-  if (ev.vocab) sub.push(`vocab ${Number(ev.vocab).toLocaleString()}`);
-  if (ev.mejor_perp != null) sub.push(`perp ${Number(ev.mejor_perp).toFixed(1)}`);
-  p.querySelector('.comp-panel-sub').textContent = sub.join(' · ');
+  p.querySelector('.comp-panel-sub').textContent = ev.nombre || '';
+
   const body = p.querySelector('.comp-panel-body');
   body.innerHTML = '';
   if (ev.ok) {
+    // Chips con los datos del checkpoint + stepper de temperatura visible
+    const chips = p.querySelector('.comp-panel-chips');
+    chips.innerHTML = '';
+    const chip = (v, k) => {
+      const c = document.createElement('span');
+      c.className = 'comp-chip';
+      c.innerHTML = `<b>${v}</b> ${k}`;
+      chips.appendChild(c);
+    };
+    if (ev.pasos)              chip(Number(ev.pasos).toLocaleString(), 'pasos');
+    if (ev.mejor_perp != null) chip(Number(ev.mejor_perp).toFixed(1), 'perp');
+    if (ev.vocab)              chip(Number(ev.vocab).toLocaleString(), 'vocab');
+    chips.classList.toggle('hidden', !chips.children.length);
+
+    const ctl = p.querySelector('.comp-temp-ctl');
+    if (ev.temp != null) ctl.querySelector('output').textContent = Number(ev.temp).toFixed(1);
+    ctl.classList.remove('hidden');
+
     body.innerHTML = '<div class="comp-vacio">Esperando prompt…</div>';
   } else {
     p.classList.add('err');
@@ -170,7 +213,11 @@ function compReadyEv(ev) {
   $compWelcome.style.display = 'none';
   $compLoadingDots.style.display = 'none';
   $compInputBar.classList.remove('hidden');
-  $compCount.textContent = `${ev.n} ${ev.n === 1 ? 'modelo listo' : 'modelos listos'}`;
+  $compCount.textContent = `${ev.n} ${ev.n === 1 ? 'panel listo' : 'paneles listos'}`;
+  if (ev.max_tok != null) {
+    S.compMax = Number(ev.max_tok);
+    $('comp-max-value').textContent = String(S.compMax);
+  }
   $compInput.disabled = !S.running;
   $compSend.disabled = !S.running;
   if (S.running) $compInput.focus();
@@ -197,6 +244,17 @@ function compResultEv(ev) {
   body.appendChild(construirTexto(ev.prompt, ev.text));
   if (ev.tokens && ev.tokens.length) {
     body.appendChild(construirVistaTokens(ev.tokens, ev.tokens_prompt || null, ev.ids || null, ev.ids_prompt || null));
+  }
+  // Pie con los datos de la generación
+  const datos = [];
+  if (ev.tokens)       datos.push(`${ev.tokens.length} tokens`);
+  if (ev.segs != null) datos.push(`${ev.segs} s`);
+  if (ev.temp != null) datos.push(`temp ${Number(ev.temp).toFixed(1)}`);
+  if (datos.length) {
+    const foot = document.createElement('div');
+    foot.className = 'comp-foot';
+    foot.textContent = datos.join(' · ');
+    body.appendChild(foot);
   }
   body.classList.add('fade-up');
 }
@@ -241,3 +299,16 @@ $compTokensBtn.addEventListener('click', () => {
   $compTokensBtn.classList.toggle('active', activo);
   $compTokensBtn.setAttribute('aria-pressed', String(activo));
 });
+
+// ── Máximo de tokens (global para todos los paneles) ──────────────
+let _compMaxTimer = 0;
+function ajustarCompMax(delta) {
+  S.compMax = Math.min(400, Math.max(20, S.compMax + delta));
+  $('comp-max-value').textContent = String(S.compMax);
+  clearTimeout(_compMaxTimer);
+  _compMaxTimer = setTimeout(() => {
+    if (S.running && S.cat === 'comp') wsSend({ action: 'input', value: `max ${S.compMax}` });
+  }, 450);
+}
+$('comp-max-minus').addEventListener('click', () => ajustarCompMax(-20));
+$('comp-max-plus').addEventListener('click',  () => ajustarCompMax(+20));

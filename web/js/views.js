@@ -44,6 +44,7 @@ function showModule(id) {
     // Reset del chat
     $chatBubbleList.innerHTML = '';
     $chatWelcome.style.display = 'flex';
+    $chatWelcome.classList.remove('picker-mode');
     $chatWelcomeText.textContent = 'Buscando checkpoints entrenados…';
     $chatLoading.style.display = 'flex';
     $chatThinking.classList.remove('visible');
@@ -130,6 +131,23 @@ function runExample(id) {
   if (!S.connected || S.running) return;
   showModule(id);
   wsSend({ action: 'run', id });
+}
+
+// El módulo unificado (10) arranca en la vista de chat; si la selección
+// del picker es múltiple, el backend pasa a modo comparación y aquí
+// cambiamos de vista sin reiniciar el proceso.
+function switchToCompView() {
+  if (S.cat === 'comp') return;
+  S.cat = 'comp';
+  $chatView.classList.add('hidden');
+  $inputBar.classList.add('hidden');
+  $('comp-view').classList.remove('hidden');
+  resetCompView();
+  $('comp-welcome-text').textContent = 'Cargando modelos…';
+  $('comp-loading').style.display = 'flex';
+  $hdrTaskName.textContent = 'Comparar modelos';
+  $hdrTaskSub.textContent  = 'El mismo prompt en varios paneles, cada uno con su temperatura';
+  syncUI();
 }
 
 // ─────────────────────────────────────────────────

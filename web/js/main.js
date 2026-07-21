@@ -18,11 +18,6 @@ $backBtn.addEventListener('click', () => {
   showHome();
 });
 $stopBtn.addEventListener('click', () => wsSend({ action: 'stop' }));
-$clearBtn.addEventListener('click', () => {
-  S.outputBuf = '';
-  $outputPre.textContent = '';
-  $terminalNote.className = '';
-});
 
 // ── Chat: envío ──
 function submitChat() {

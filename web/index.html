@@ -9,10 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/base.css?v=9">
-  <link rel="stylesheet" href="css/theme/home.css?v=9">
-  <link rel="stylesheet" href="css/theme/views.css?v=9">
-  <link rel="stylesheet" href="css/theme/output.css?v=9">
+  <link rel="stylesheet" href="css/base.css?v=12">
+  <link rel="stylesheet" href="css/theme/home.css?v=12">
+  <link rel="stylesheet" href="css/theme/views.css?v=12">
+  <link rel="stylesheet" href="css/theme/output.css?v=12">
 </head>
 
 <body>
@@ -50,9 +50,7 @@
         <div class="hdr-task-name" id="hdr-task-name"></div>
         <div class="hdr-task-sub"  id="hdr-task-sub"></div>
       </div>
-      <span id="hdr-run-dots" class="run-dots hidden"><span class="run-dot"></span><span class="run-dot"></span><span class="run-dot"></span></span>
       <button id="stop-btn"  class="btn btn-danger hidden">■ Detener</button>
-      <button id="clear-btn" class="btn">Limpiar</button>
     </div>
   </header>
 
@@ -203,11 +201,7 @@
     <div class="nd-actions">
       <button class="opt-btn" data-id="10">
         <span class="opt-num">❝</span>
-        <span class="opt-label">Conversar con un modelo<span class="opt-tag">Interactivo · generación libre</span></span>
-      </button>
-      <button class="opt-btn" data-id="12">
-        <span class="opt-num">⇄</span>
-        <span class="opt-label">Comparar modelos<span class="opt-tag">El mismo prompt · hasta 4 a la vez</span></span>
+        <span class="opt-label">Conversar y comparar<span class="opt-tag">Chatea con un modelo o lanza el mismo prompt a varios a la vez</span></span>
       </button>
       <button class="opt-btn" data-id="11">
         <span class="opt-num">↓</span>
@@ -241,12 +235,9 @@
                 <path d="M12.5 11.5 L5 4 Q3 3 5 1 L13.5 10 Z"/>
               </svg>
             </div>
-            <h3>Chat con modelo</h3>
+            <h3>Conversar y comparar</h3>
             <p id="chat-welcome-text">Buscando checkpoints entrenados…</p>
             <div class="chat-loading" id="chat-loading">
-              <span class="run-dot"></span>
-              <span class="run-dot"></span>
-              <span class="run-dot"></span>
               <span>Iniciando…</span>
             </div>
           </div>
@@ -325,9 +316,6 @@
             <h3>Comparar modelos</h3>
             <p id="comp-welcome-text">Buscando checkpoints entrenados…</p>
             <div class="chat-loading" id="comp-loading">
-              <span class="run-dot"></span>
-              <span class="run-dot"></span>
-              <span class="run-dot"></span>
               <span>Iniciando…</span>
             </div>
           </div>
@@ -342,6 +330,14 @@
         <div id="comp-toolbar">
           <span class="chat-model-chip"><span id="comp-count">Modelos</span></span>
           <button type="button" class="chat-tokens-btn" id="comp-tokens-btn" aria-pressed="false" title="Alterna la vista de tokens; haz clic en un token para ver su ID">Ver tokens</button>
+          <span class="chat-ctl">
+            <span class="chat-ctl-label">Máx. tokens</span>
+            <span class="stepper">
+              <button id="comp-max-minus" type="button" aria-label="Bajar máximo de tokens">−</button>
+              <output id="comp-max-value">80</output>
+              <button id="comp-max-plus" type="button" aria-label="Subir máximo de tokens">+</button>
+            </span>
+          </span>
         </div>
         <div class="input-inner">
           <textarea id="comp-input" rows="1" placeholder="Escribe un prompt para todos los modelos… (Enter para enviar)" disabled></textarea>
@@ -466,9 +462,6 @@
         <div id="train-right">
           <div class="train-right-header">
             <span class="train-right-title">Predicciones en vivo</span>
-            <span id="train-right-dots" class="run-dots hidden">
-              <span class="run-dot"></span><span class="run-dot"></span><span class="run-dot"></span>
-            </span>
           </div>
           <div id="train-right-scroll">
 
@@ -557,7 +550,6 @@
             <div class="learn-terminal-bar">
               <div class="t-dots"><div class="t-dot td-r"></div><div class="t-dot td-y"></div><div class="t-dot td-g"></div></div>
               <span class="learn-terminal-label" id="learn-terminal-label">salida del proceso</span>
-              <span id="terminal-run-dots" class="run-dots hidden"><span class="run-dot"></span><span class="run-dot"></span><span class="run-dot"></span></span>
             </div>
             <pre id="output-pre"></pre>
             <div id="terminal-note"></div>
@@ -604,17 +596,17 @@
 </div>
 
 <!-- JS modular (scripts clásicos en orden de dependencia) -->
-<script src="js/config.js?v=9"></script>
-<script src="js/dom.js?v=9"></script>
-<script src="js/utils.js?v=9"></script>
-<script src="js/views.js?v=9"></script>
-<script src="js/ws.js?v=9"></script>
-<script src="js/render.js?v=9"></script>
-<script src="js/train.js?v=9"></script>
-<script src="js/chat.js?v=9"></script>
-<script src="js/comp.js?v=9"></script>
-<script src="js/learn.js?v=9"></script>
-<script src="js/arch.js?v=9"></script>
-<script src="js/main.js?v=9"></script>
+<script src="js/config.js?v=12"></script>
+<script src="js/dom.js?v=12"></script>
+<script src="js/utils.js?v=12"></script>
+<script src="js/views.js?v=12"></script>
+<script src="js/ws.js?v=12"></script>
+<script src="js/render.js?v=12"></script>
+<script src="js/train.js?v=12"></script>
+<script src="js/chat.js?v=12"></script>
+<script src="js/comp.js?v=12"></script>
+<script src="js/learn.js?v=12"></script>
+<script src="js/arch.js?v=12"></script>
+<script src="js/main.js?v=12"></script>
 </body>
 </html>

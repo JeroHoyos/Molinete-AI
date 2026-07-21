@@ -18,18 +18,27 @@
 .chat-loading { font-family: var(--mono); font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
 
 /* ── Selector de checkpoints ── */
+/* En modo selector la bienvenida se compacta (el título ya está en la
+   cabecera) y la columna se ensancha para que quepan más tarjetas. */
+.chat-welcome.picker-mode { padding: 14px 12px 4px; gap: 4px; }
+.chat-welcome.picker-mode .chat-welcome-icon,
+.chat-welcome.picker-mode > h3,
+.chat-welcome.picker-mode > p { display: none; }
+#chat-messages .chat-wrap:has(#ck-picker-wrap) { max-width: 1240px; }
+
 .ck-picker-heading {
-  font-family: var(--display); font-size: 32px; font-weight: 700; color: var(--ink);
+  font-family: var(--display); font-size: 28px; font-weight: 700; color: var(--ink);
   text-align: center; margin-bottom: 4px;
 }
-.ck-picker-sub { font-size: 16px; color: var(--muted); font-style: italic; text-align: center; margin-bottom: 22px; }
+.ck-picker-sub { font-size: 15.5px; color: var(--muted); font-style: italic; text-align: center; margin-bottom: 20px; line-height: 1.6; max-width: 640px; }
+.ck-picker-sub b { color: var(--gold-2); font-weight: 600; }
 .ck-model-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px; width: 100%; max-width: 960px; margin-top: 4px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+  gap: 14px; width: 100%; margin-top: 4px;
 }
 .ck-model-card {
   position: relative; background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: var(--r-m); padding: 20px 20px 18px; cursor: pointer; text-align: left;
+  border-radius: var(--r-m); padding: 16px 16px 14px; cursor: pointer; text-align: left;
   font-family: var(--serif); color: var(--text); overflow: hidden;
   display: flex; flex-direction: column; box-shadow: var(--sombra-1);
   transition: transform var(--transicion), box-shadow var(--transicion), border-color var(--transicion);
@@ -46,11 +55,28 @@
   font-family: var(--mono); font-size: 11px; font-weight: 600;
   color: var(--muted); letter-spacing: .16em; text-transform: uppercase; margin-bottom: 6px;
 }
-.ck-model-display { font-family: var(--display); font-size: 23px; font-weight: 700; color: var(--ink); margin-bottom: 2px; line-height: 1.15; }
+.ck-model-display { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 2px; line-height: 1.15; }
 .ck-model-folder {
-  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
-  margin-bottom: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  margin-bottom: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* fichas compactas con los datos clave */
+.ck-stats-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.ck-mini {
+  background: var(--bg-3); border: 1px solid var(--border-2);
+  border-radius: var(--r-s); padding: 7px 10px 6px; min-width: 0;
+}
+.ck-mini b {
+  display: block; font-family: var(--mono); font-size: 14px; font-weight: 600;
+  color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ck-mini span {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted);
+}
+.ck-meta-line { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.ck-meta-line .ok { color: var(--green); }
 .ck-stats-block { flex: 1; display: flex; flex-direction: column; margin-bottom: 12px; }
 .ck-stat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 0; border-bottom: 1px dotted #ddd1b8; }
 .ck-stat-row:last-child { border-bottom: none; }
@@ -71,7 +97,30 @@
   transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
 }
 .ck-model-card:hover .ck-select-btn { background: var(--gold); border-color: var(--gold); color: #fff; }
+.ck-model-card.comp-on .ck-select-btn { background: var(--gold); border-color: var(--gold); color: #fff; }
 .ck-no-models { font-size: 18px; color: var(--text-3); font-style: italic; margin-top: 20px; }
+
+/* pie de tarjeta: botón de estado + quitar instancia */
+.ck-card-foot { display: flex; gap: 8px; margin-top: auto; align-items: stretch; }
+.ck-card-foot .ck-select-btn { flex: 1; margin-top: 0; }
+.ck-minus {
+  width: 40px; border-radius: var(--r-s); border: 1px solid var(--border);
+  background: var(--bg-2); color: var(--muted); cursor: pointer;
+  font-family: var(--mono); font-size: 17px; line-height: 1; flex-shrink: 0;
+  transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+}
+.ck-minus:hover { background: var(--red-bg); border-color: var(--red-brd); color: var(--red); }
+
+/* barra de acción del selector unificado: pegada al borde inferior
+   para que el botón principal siempre quede a la vista */
+.ck-action-bar {
+  position: sticky; bottom: 0; z-index: 5; width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  margin-top: 18px; padding: 18px 0 8px;
+  background: linear-gradient(180deg, rgba(249,244,232,0), var(--bg) 40%);
+}
+.ck-go { padding: 12px 34px; font-size: 14.5px; box-shadow: var(--sombra-2); }
+.ck-action-hint { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--muted); }
 
 /* botón de borrado en las tarjetas del selector */
 .ck-del-btn {
@@ -512,6 +561,10 @@
 .ck-model-card.comp-on { border-color: var(--gold); box-shadow: var(--sombra-2); }
 .ck-model-card.comp-on::before { transform: scaleX(1); }
 .ck-model-card.comp-on .comp-check { background: var(--gold); border-color: var(--gold); color: #fff; }
+/* con contador de instancias (mismo modelo repetido) */
+.ck-model-card .comp-check.multi { font-family: var(--mono); font-size: 10.5px; font-weight: 600; }
+/* si la tarjeta tiene botón de borrado, la marca se desplaza a su izquierda */
+.ck-model-card:has(.ck-del-btn) .comp-check { right: 44px; top: 10px; }
 
 /* prompt de la ronda */
 .comp-prompt-line {
@@ -530,18 +583,40 @@
   box-shadow: var(--sombra-1); overflow: hidden; animation: fadeUp .25s ease-out both;
 }
 .comp-panel.err { opacity: .65; }
-.comp-panel-head { padding: 11px 16px 9px; border-bottom: 1px solid var(--border-2); background: var(--bg-3); }
-.comp-panel-title { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+.comp-panel-head { padding: 11px 16px 10px; border-bottom: 1px solid var(--border-2); background: var(--bg-3); }
+.comp-head-row { display: flex; align-items: center; gap: 10px; }
+.comp-panel-title { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.15; flex: 1; min-width: 0; }
 .comp-panel-sub {
   font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* stepper de temperatura propio de cada panel */
+.comp-temp-ctl { flex-shrink: 0; }
+.comp-temp-ctl button { width: 24px; height: 24px; font-size: 13px; }
+.comp-temp-ctl output { min-width: 36px; font-size: 12px; line-height: 24px; }
+
+/* chips con los datos del checkpoint cargado */
+.comp-panel-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.comp-chip {
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-3);
+  background: var(--bg-2); border: 1px solid var(--border-2); border-radius: 999px;
+  padding: 2.5px 9px;
+}
+.comp-chip b { color: var(--ink); font-weight: 600; }
+
 .comp-panel-body { padding: 14px 16px; min-height: 96px; font-size: 16px; line-height: 1.7; }
 .comp-panel-body .bubble-tok-flow { font-size: 13px; }
 .comp-estado { display: flex; align-items: center; padding: 8px 0; }
-.comp-estado-txt { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 10px; }
+.comp-estado-txt { font-family: var(--mono); font-size: 12px; color: var(--muted); font-style: italic; }
 .comp-vacio { font-style: italic; color: var(--muted); font-size: 14.5px; padding: 6px 0; }
 .comp-vacio.err { color: var(--red); font-style: normal; font-family: var(--mono); font-size: 12.5px; }
+
+/* pie del resultado: tokens generados, tiempo y temperatura de la ronda */
+.comp-foot {
+  margin-top: 12px; padding-top: 9px; border-top: 1px dotted #ddd1b8;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
 
 /* nota de error del proceso de entrenamiento */
 .train-note {

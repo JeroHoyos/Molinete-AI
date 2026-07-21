@@ -11,9 +11,7 @@ const $hdrHome        = $('hdr-home');
 const $hdrModule      = $('hdr-module');
 const $hdrTaskName    = $('hdr-task-name');
 const $hdrTaskSub     = $('hdr-task-sub');
-const $hdrRunDots     = $('hdr-run-dots');
 const $stopBtn        = $('stop-btn');
-const $clearBtn       = $('clear-btn');
 const $backBtn        = $('back-btn');
 const $statusDot      = $('status-dot');
 const $statusText     = $('status-text');
@@ -41,7 +39,6 @@ const $maxValue       = $('max-value');
 
 // Training
 const $trainContent   = $('train-right-scroll');
-const $trainRightDots = $('train-right-dots');
 const $progressFill   = $('progress-fill');
 const $trainStepLabel = $('train-step-label');
 const $trainPctLabel  = $('train-pct-label');
@@ -79,7 +76,6 @@ const $vocabLog       = $('vocab-log');
 // Learn
 const $outputPre      = $('output-pre');
 const $terminalNote   = $('terminal-note');
-const $terminalRunDots= $('terminal-run-dots');
 const $archTableWrap  = $('arch-table-wrap');
 const $archTableBody  = $('arch-table-body');
 
